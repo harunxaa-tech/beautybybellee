@@ -1,554 +1,171 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#101318" />
-  <meta name="description" content="Mobiler Angebotsassistent für Handwerksbetriebe" />
-  <title>AngebotsPilot – Prototyp</title>
-  <style>
-:root {
-  --bg: #0b0d11;
-  --surface: #141820;
-  --surface-2: #1b2029;
-  --text: #f7f8fa;
-  --muted: #9ca5b5;
-  --line: rgba(255,255,255,.09);
-  --accent: #d8ff3e;
-  --accent-text: #11150a;
-  --danger: #ff6b6b;
-  --shadow: 0 22px 60px rgba(0,0,0,.32);
-}
-
-:root.light {
-  --bg: #eef1f4;
-  --surface: #ffffff;
-  --surface-2: #f5f7f9;
-  --text: #101318;
-  --muted: #667080;
-  --line: rgba(16,19,24,.10);
-  --accent: #a9d600;
-  --accent-text: #10140a;
-  --shadow: 0 18px 45px rgba(20,30,45,.10);
-}
-
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at top right, rgba(216,255,62,.12), transparent 30%),
-    var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-}
-
-button, input, textarea, select { font: inherit; }
-button { cursor: pointer; }
-
-.app-shell { width: min(100%, 980px); margin: 0 auto; padding: 18px 16px 80px; }
-.topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
-h1, h2, p { margin-top: 0; }
-h1 { font-size: clamp(1.45rem, 5vw, 2rem); margin-bottom: 0; }
-h2 { font-size: clamp(1.4rem, 6vw, 2.35rem); line-height: 1.05; }
-.eyebrow { color: var(--muted); text-transform: uppercase; letter-spacing: .12em; font-size: .72rem; font-weight: 750; margin-bottom: 5px; }
-
-.card, .mini-card {
-  background: color-mix(in srgb, var(--surface) 96%, transparent);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: var(--shadow);
-}
-
-.hero { padding: 24px; display: grid; gap: 24px; overflow:hidden; position:relative; }
-.hero::after {
-  content:""; position:absolute; width:170px; height:170px; right:-60px; bottom:-75px;
-  border-radius:50%; background:rgba(216,255,62,.13); filter:blur(3px);
-}
-.hero p { color: var(--muted); line-height: 1.55; max-width: 650px; }
-.status-pill { display:inline-flex; align-items:center; gap:8px; padding:8px 11px; background:var(--surface-2); border-radius:999px; color:var(--muted); font-size:.8rem; margin-bottom:18px; }
-.pulse { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 0 rgba(216,255,62,.5); animation:pulse 1.8s infinite; }
-@keyframes pulse { 70% { box-shadow:0 0 0 10px rgba(216,255,62,0); } }
-
-.primary-button, .secondary-button, .ghost-button, .icon-button, .voice-button {
-  border:0; border-radius:16px; transition:.18s ease; font-weight:750;
-}
-.primary-button { background:var(--accent); color:var(--accent-text); padding:15px 18px; }
-.primary-button:active, .secondary-button:active, .ghost-button:active, .voice-button:active { transform:scale(.98); }
-.secondary-button { background:var(--surface-2); color:var(--text); padding:13px 16px; border:1px solid var(--line); }
-.ghost-button { background:transparent; color:var(--muted); padding:12px 8px; }
-.icon-button { width:44px; height:44px; background:var(--surface); color:var(--text); border:1px solid var(--line); }
-
-.dashboard-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin:16px 0; }
-.mini-card { padding:17px; box-shadow:none; }
-.mini-card span { color:var(--muted); font-size:.78rem; display:block; margin-bottom:9px; }
-.mini-card strong { font-size:1.25rem; }
-.mini-card.wide { grid-column:1/-1; }
-
-.builder { padding:20px; margin-top:18px; }
-.builder-header { display:flex; flex-direction:column; gap:12px; margin-bottom:18px; }
-.progress-wrap { height:7px; background:var(--surface-2); border-radius:999px; overflow:hidden; }
-.progress-bar { height:100%; width:25%; background:var(--accent); border-radius:999px; transition:width .25s ease; }
-
-.step { display:none; animation:fadeUp .25s ease; }
-.step.active { display:block; }
-@keyframes fadeUp { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:none;} }
-
-label { display:grid; gap:8px; color:var(--muted); font-size:.85rem; margin-bottom:15px; }
-input, textarea, select {
-  width:100%; border:1px solid var(--line); background:var(--surface-2); color:var(--text);
-  border-radius:14px; padding:14px; outline:none;
-}
-input:focus, textarea:focus, select:focus { border-color: color-mix(in srgb, var(--accent) 60%, transparent); box-shadow:0 0 0 3px rgba(216,255,62,.08); }
-textarea { resize:vertical; min-height:140px; }
-
-.voice-box { position:relative; }
-.voice-button { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:var(--surface-2); color:var(--text); border:1px solid var(--line); padding:14px; margin:10px 0 15px; }
-.voice-button.listening { background:rgba(255,107,107,.12); border-color:rgba(255,107,107,.5); }
-.mic { color:var(--danger); font-size:.8rem; }
-.photo-preview { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
-.photo-preview img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:13px; border:1px solid var(--line); }
-
-.line-item-grid { display:grid; grid-template-columns:minmax(0,1.6fr) .65fr .85fr 1fr; gap:7px; margin-bottom:8px; align-items:center; }
-.header-row { color:var(--muted); font-size:.72rem; padding:0 4px; }
-.line-item input, .line-item select { padding:11px 9px; border-radius:11px; }
-.price-input-wrap { display:flex; gap:4px; }
-.remove-item { border:0; background:transparent; color:var(--danger); font-size:1.4rem; padding:0 4px; }
-.price-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:18px; }
-.price-grid label { margin-bottom:0; }
-
-.preview-paper { background:#fff; color:#20242b; border-radius:16px; padding:22px; min-height:420px; box-shadow:0 15px 45px rgba(0,0,0,.18); }
-.preview-paper h3 { margin:0 0 4px; }
-.preview-paper .offer-meta { display:flex; justify-content:space-between; gap:18px; font-size:.8rem; color:#667080; margin-bottom:24px; }
-.preview-paper table { width:100%; border-collapse:collapse; margin:20px 0; font-size:.82rem; }
-.preview-paper th, .preview-paper td { border-bottom:1px solid #e8ebef; padding:10px 5px; text-align:left; }
-.preview-paper th:last-child, .preview-paper td:last-child { text-align:right; }
-.preview-paper .total-box { margin-left:auto; width:min(100%, 330px); }
-.preview-paper .total-line { display:flex; justify-content:space-between; padding:6px 0; }
-.preview-paper .grand-total { font-size:1.15rem; font-weight:800; border-top:2px solid #20242b; margin-top:5px; padding-top:10px; }
-.preview-paper .notice { margin-top:28px; font-size:.75rem; color:#667080; }
-
-.builder-actions { display:flex; justify-content:space-between; gap:12px; margin-top:20px; }
-.builder-actions .primary-button { margin-left:auto; min-width:130px; }
-.saved-section { margin-top:18px; padding:20px; }
-.section-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:15px; }
-.saved-list { display:grid; gap:10px; }
-.saved-offer { border:1px solid var(--line); background:var(--surface-2); border-radius:15px; padding:14px; display:flex; justify-content:space-between; gap:15px; align-items:center; }
-.saved-offer p { color:var(--muted); font-size:.8rem; margin:5px 0 0; }
-.empty-state { color:var(--muted); padding:20px 0; }
-.hidden { display:none !important; }
-
-@media (min-width: 720px) {
-  .hero { grid-template-columns:1fr auto; align-items:end; padding:34px; }
-  .builder { padding:30px; }
-  .builder-header { flex-direction:row; align-items:flex-end; justify-content:space-between; }
-  .progress-wrap { width:260px; }
-}
-
-@media (max-width: 560px) {
-  .line-item-grid { grid-template-columns:1fr 65px 80px 90px; gap:5px; }
-  .line-item input, .line-item select { font-size:.78rem; padding:10px 6px; }
-  .price-grid { grid-template-columns:1fr; }
-  .preview-paper { padding:16px; }
-}
-
-@media print {
-  body { background:white; }
-  .topbar, .hero, .dashboard-grid, .builder-header, .builder-actions, .saved-section, .step:not([data-step="4"]) { display:none !important; }
-  .app-shell, .builder { padding:0; margin:0; width:100%; box-shadow:none; border:0; }
-  .preview-paper { box-shadow:none; padding:0; }
-}
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d11">
+<title>AngebotsPilot – Kostenlose Version</title>
+<style>
+:root{--bg:#090b0f;--card:#141820;--card2:#1b2029;--text:#f7f8fa;--muted:#9ca5b5;--line:#2a313d;--accent:#d8ff3e;--accentText:#121700;--danger:#ff6b6b;--ok:#62d394;--shadow:0 20px 55px rgba(0,0,0,.32)}
+:root.light{--bg:#eef1f4;--card:#fff;--card2:#f5f7f9;--text:#101318;--muted:#667080;--line:#dfe4ea;--accent:#b9e900;--accentText:#101400;--shadow:0 16px 40px rgba(10,20,35,.1)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}button,input,textarea,select{font:inherit}.app{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 16px calc(100px + env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;padding:22px 2px 16px;position:sticky;top:0;background:linear-gradient(var(--bg) 75%,transparent);z-index:5}.brand small{display:block;color:var(--muted);font-weight:800;letter-spacing:.15em;font-size:11px}.brand h1{margin:3px 0 0;font-size:28px}.iconBtn,.navBtn,.btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:16px;min-height:48px;padding:0 16px;font-weight:800}.iconBtn{width:48px;padding:0}.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accentText)}.btn.danger{color:var(--danger)}.btn.ghost{background:transparent}.btn:active,.navBtn:active{transform:scale(.985)}.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}.hero{background:radial-gradient(circle at 100% 100%,rgba(216,255,62,.15),transparent 38%),var(--card)}.hero h2{font-size:32px;line-height:1.05;margin:12px 0}.hero p{color:var(--muted);font-size:17px;line-height:1.55}.pill{display:inline-flex;align-items:center;gap:8px;background:var(--card2);padding:9px 12px;border-radius:999px;color:var(--muted);font-weight:700}.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px}.stat span{color:var(--muted);display:block}.stat strong{display:block;font-size:25px;margin-top:8px}.sectionTitle{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:24px 2px 12px}.sectionTitle h2{margin:0;font-size:22px}.sectionTitle p{margin:0;color:var(--muted);font-size:13px}.quickGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.quick{min-height:105px;text-align:left;padding:16px;border-radius:20px;background:var(--card);border:1px solid var(--line);color:var(--text)}.quick b{display:block;margin-top:12px}.quick span{color:var(--muted);font-size:13px}.screen{display:none}.screen.active{display:block}.field{margin:14px 0}.field label{display:block;font-weight:800;margin-bottom:7px}.field small{display:block;color:var(--muted);margin-top:6px;line-height:1.35}.input,textarea,select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:14px;outline:none}.input:focus,textarea:focus,select:focus{border-color:var(--accent)}textarea{min-height:110px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1.4fr .55fr .65fr;gap:8px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.actions .btn{flex:1}.tabs{display:flex;gap:8px;overflow:auto;padding-bottom:8px}.tab{white-space:nowrap;border:1px solid var(--line);background:var(--card2);color:var(--muted);padding:10px 13px;border-radius:999px;font-weight:800}.tab.active{background:var(--accent);color:var(--accentText);border-color:var(--accent)}.item{border:1px solid var(--line);background:var(--card2);border-radius:17px;padding:13px;margin:10px 0}.itemTop{display:flex;justify-content:space-between;gap:8px}.itemTotal{font-weight:900}.mini{font-size:12px;color:var(--muted)}.listEmpty{color:var(--muted);text-align:center;padding:25px 10px}.bottomNav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(760px,100%);display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:9px 10px calc(9px + env(safe-area-inset-bottom));background:rgba(9,11,15,.92);backdrop-filter:blur(16px);border-top:1px solid var(--line);z-index:10}.navBtn{border:0;background:transparent;min-height:52px;padding:4px;color:var(--muted);font-size:11px;border-radius:12px}.navBtn b{display:block;font-size:18px;margin-bottom:2px}.navBtn.active{background:var(--card2);color:var(--text)}.offerPaper{background:white;color:#1d2430;border-radius:10px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-family:Arial,sans-serif}.offerPaper.classic{font-family:"Times New Roman",serif}.offerPaper.minimal{font-family:Arial,sans-serif}.paperHead{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #202735;padding-bottom:13px}.paperHead h2{margin:0}.paperMeta{font-size:12px;text-align:right}.paperCustomer{margin:26px 0}.paperTable{width:100%;border-collapse:collapse;font-size:13px}.paperTable th,.paperTable td{padding:9px 5px;border-bottom:1px solid #dfe4ea;text-align:left;vertical-align:top}.paperTable th:last-child,.paperTable td:last-child{text-align:right}.totals{margin-left:auto;width:min(330px,100%);margin-top:18px}.totals div{display:flex;justify-content:space-between;padding:5px 0}.totals .grand{border-top:2px solid #202735;margin-top:6px;padding-top:10px;font-size:18px;font-weight:900}.paperFoot{margin-top:30px;font-size:11px;color:#637083}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:900;background:#edf3d1;color:#364500}.catalogBtn{width:100%;text-align:left;border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:15px;padding:13px;margin:6px 0}.catalogBtn span{float:right;color:var(--muted)}.templateCards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.template{padding:12px 6px;text-align:center;border:1px solid var(--line);border-radius:15px;background:var(--card2);color:var(--text)}.template.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.notice{border-left:4px solid var(--accent);background:var(--card2);padding:13px;border-radius:10px;color:var(--muted)}.toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%) translateY(20px);background:#fff;color:#111;padding:12px 16px;border-radius:999px;font-weight:800;opacity:0;pointer-events:none;transition:.25s;z-index:20}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:520px){.row,.row3{grid-template-columns:1fr}.hero h2{font-size:29px}.templateCards{grid-template-columns:1fr 1fr 1fr}.offerPaper{padding:16px}.paperTable{font-size:11px}.paperHead{display:block}.paperMeta{text-align:left;margin-top:10px}}
+@media print{body{background:#fff}.app,.bottomNav,.toast{display:none!important}#printArea{display:block!important}.offerPaper{box-shadow:none;border-radius:0;padding:0}.paperTable{font-size:12px}@page{size:A4;margin:18mm}}
+#printArea{display:none}
 </style>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Facility & Care Testbetrieb</p>
-        <h1>AngebotsPilot</h1>
-      </div>
-      <button class="icon-button" id="themeToggle" aria-label="Darstellung wechseln">◐</button>
-    </header>
+<div class="app">
+<header class="top"><div class="brand"><small>KOSTENLOSE OFFLINE-VERSION</small><h1>AngebotsPilot</h1></div><button class="iconBtn" id="themeBtn">◐</button></header>
 
-    <main>
-      <section class="hero card">
-        <div>
-          <span class="status-pill"><span class="pulse"></span> Prototyp bereit</span>
-          <h2>Vom Auftrag zum Angebot – direkt am Handy.</h2>
-          <p>Sprich den Auftrag ein, ergänze Mengen und Preise und erhalte sofort einen prüfbaren Angebotsentwurf.</p>
-        </div>
-        <button class="primary-button" id="startOffer">Neues Angebot erstellen</button>
-      </section>
-
-      <section id="dashboard" class="dashboard-grid">
-        <article class="mini-card">
-          <span>Gespeicherte Angebote</span>
-          <strong id="savedCount">0</strong>
-        </article>
-        <article class="mini-card">
-          <span>Aktueller Entwurf</span>
-          <strong id="draftTotal">0,00 €</strong>
-        </article>
-        <article class="mini-card wide">
-          <span>Nächster Schritt</span>
-          <strong>Erstes echtes Facility-&-Care-Angebot testen</strong>
-        </article>
-      </section>
-
-      <section id="offerBuilder" class="builder card hidden" aria-live="polite">
-        <div class="builder-header">
-          <div>
-            <p class="eyebrow">Neues Angebot</p>
-            <h2 id="stepTitle">Kundendaten</h2>
-          </div>
-          <div class="progress-wrap" aria-label="Fortschritt">
-            <div id="progressBar" class="progress-bar"></div>
-          </div>
-        </div>
-
-        <form id="offerForm">
-          <div class="step active" data-step="1">
-            <label>Kundenname
-              <input id="customerName" type="text" autocomplete="name" placeholder="Max Mustermann" required />
-            </label>
-            <label>Adresse
-              <input id="customerAddress" type="text" autocomplete="street-address" placeholder="Musterstraße 1, München" />
-            </label>
-            <label>E-Mail oder Telefonnummer
-              <input id="customerContact" type="text" placeholder="kunde@beispiel.de" />
-            </label>
-          </div>
-
-          <div class="step" data-step="2">
-            <label>Auftrag beschreiben</label>
-            <div class="voice-box">
-              <textarea id="jobDescription" rows="7" placeholder="Zum Beispiel: 30 Quadratmeter alten Rasen abtragen, Boden vorbereiten und Rollrasen verlegen."></textarea>
-              <button type="button" class="voice-button" id="voiceButton">
-                <span class="mic">●</span>
-                <span id="voiceLabel">Auftrag einsprechen</span>
-              </button>
-            </div>
-            <label>Fotos vom Auftrag
-              <input id="jobPhotos" type="file" accept="image/*" capture="environment" multiple />
-            </label>
-            <div id="photoPreview" class="photo-preview"></div>
-          </div>
-
-          <div class="step" data-step="3">
-            <div class="line-item-grid header-row">
-              <span>Position</span><span>Menge</span><span>Einheit</span><span>Preis</span>
-            </div>
-            <div id="lineItems"></div>
-            <button type="button" class="secondary-button" id="addLineItem">+ Position hinzufügen</button>
-
-            <div class="price-grid">
-              <label>Anfahrt (€)
-                <input id="travelPrice" type="number" min="0" step="0.01" value="50" />
-              </label>
-              <label>Rabatt (%)
-                <input id="discount" type="number" min="0" max="100" step="0.1" value="0" />
-              </label>
-              <label>Umsatzsteuer
-                <select id="taxRate">
-                  <option value="0">0 % – Kleinunternehmer</option>
-                  <option value="19">19 %</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <div class="step" data-step="4">
-            <div class="preview-paper" id="offerPreview"></div>
-          </div>
-
-          <div class="builder-actions">
-            <button type="button" class="ghost-button hidden" id="backButton">Zurück</button>
-            <button type="button" class="primary-button" id="nextButton">Weiter</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="card saved-section">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Lokal gespeichert</p>
-            <h2>Meine Angebote</h2>
-          </div>
-          <button class="ghost-button" id="clearOffers">Alle löschen</button>
-        </div>
-        <div id="savedOffers" class="saved-list empty-state">Noch keine Angebote gespeichert.</div>
-      </section>
-    </main>
+<main>
+<section id="home" class="screen active">
+  <div class="card hero"><span class="pill"><i class="dot"></i>Bereit – ohne laufende Kosten</span><h2>Professionelle Angebote direkt am Handy.</h2><p>Auftrag einsprechen, Positionen auswählen, Preise prüfen und als PDF speichern oder über WhatsApp senden.</p><button class="btn primary" style="width:100%" onclick="startNewOffer()">Neues Angebot erstellen</button></div>
+  <div class="grid2"><div class="stat"><span>Gespeicherte Angebote</span><strong id="statOffers">0</strong></div><div class="stat"><span>Gesamtvolumen</span><strong id="statVolume">0 €</strong></div></div>
+  <div class="sectionTitle"><h2>Schnellzugriff</h2></div>
+  <div class="quickGrid">
+    <button class="quick" onclick="showScreen('offer')">🧾<b>Angebot</b><span>Neuen Entwurf erstellen</span></button>
+    <button class="quick" onclick="showScreen('customers')">👤<b>Kunden</b><span>Kundendaten speichern</span></button>
+    <button class="quick" onclick="showScreen('catalog')">💶<b>Preisliste</b><span>Leistungen hinterlegen</span></button>
+    <button class="quick" onclick="showScreen('settings')">⚙️<b>Firma</b><span>Logo, Steuer, Zahlung</span></button>
   </div>
+  <div class="card" style="margin-top:16px"><b>Nächster Schritt</b><p style="color:var(--muted)">Lege zuerst unter „Firma“ deine Daten und unter „Preisliste“ deine häufigsten Leistungen an. Danach kannst du Angebote in wenigen Minuten erstellen.</p></div>
+</section>
 
-  <template id="lineItemTemplate">
-    <div class="line-item-grid line-item">
-      <input class="item-name" type="text" placeholder="Leistung oder Material" />
-      <input class="item-qty" type="number" min="0" step="0.01" value="1" />
-      <select class="item-unit">
-        <option>pauschal</option>
-        <option>Std.</option>
-        <option>m²</option>
-        <option>m³</option>
-        <option>Stk.</option>
-        <option>lfm</option>
-      </select>
-      <div class="price-input-wrap">
-        <input class="item-price" type="number" min="0" step="0.01" value="0" />
-        <button type="button" class="remove-item" aria-label="Position entfernen">×</button>
-      </div>
-    </div>
-  </template>
+<section id="offer" class="screen">
+ <div class="sectionTitle"><div><p>NEUES DOKUMENT</p><h2>Angebot erstellen</h2></div><button class="btn ghost" onclick="resetOffer()">Zurücksetzen</button></div>
+ <div class="card">
+  <div class="tabs"><button class="tab active" data-step="1">1 Kunde</button><button class="tab" data-step="2">2 Auftrag</button><button class="tab" data-step="3">3 Positionen</button><button class="tab" data-step="4">4 Vorschau</button></div>
+  <div class="offerStep" data-step="1">
+    <div class="field"><label>Kunde auswählen</label><select id="offerCustomerSelect"><option value="">Neuen Kunden eingeben</option></select></div>
+    <div class="row"><div class="field"><label>Name/Firma</label><input class="input" id="customerName" placeholder="Max Mustermann"></div><div class="field"><label>E-Mail</label><input class="input" id="customerEmail" type="email" placeholder="kunde@beispiel.de"></div></div>
+    <div class="field"><label>Adresse</label><input class="input" id="customerAddress" placeholder="Musterstraße 12, 85579 Neubiberg"></div>
+    <div class="field"><label>Telefon</label><input class="input" id="customerPhone" type="tel" placeholder="0176 ..."></div>
+    <div class="actions"><button class="btn primary" onclick="goStep(2)">Weiter zum Auftrag</button></div>
+  </div>
+  <div class="offerStep" data-step="2" hidden>
+    <div class="field"><label>Auftrag beschreiben</label><textarea id="jobDescription" placeholder="Zum Beispiel: 30 m² alten Rasen abtragen, Boden vorbereiten, Humus einbringen und Rollrasen verlegen."></textarea><small>Die Spracheingabe deines Browsers ist kostenlos. Auf iPhone funktioniert alternativ die Mikrofontaste der Tastatur.</small></div>
+    <div class="actions"><button class="btn" id="speechBtn" onclick="startSpeech()">🎙️ Spracheingabe</button><button class="btn" onclick="suggestFromText()">✨ Positionen vorschlagen</button></div>
+    <div class="row"><div class="field"><label>Ausführungsort</label><input class="input" id="jobLocation" placeholder="falls abweichend"></div><div class="field"><label>Gültig bis</label><input class="input" id="validUntil" type="date"></div></div>
+    <div class="field"><label>Fotos</label><input class="input" id="jobPhotos" type="file" accept="image/*" multiple><small>Fotos werden nur auf deinem Gerät für die aktuelle Sitzung angezeigt und nicht hochgeladen.</small></div>
+    <div id="photoPreview" class="actions"></div>
+    <div class="actions"><button class="btn" onclick="goStep(1)">Zurück</button><button class="btn primary" onclick="goStep(3)">Weiter zu Positionen</button></div>
+  </div>
+  <div class="offerStep" data-step="3" hidden>
+    <div class="field"><label>Aus Preisliste hinzufügen</label><select id="catalogSelect"><option value="">Leistung auswählen</option></select></div>
+    <button class="btn" style="width:100%" onclick="addCatalogItem()">+ Ausgewählte Leistung hinzufügen</button>
+    <div id="lineItems"></div>
+    <button class="btn ghost" style="width:100%" onclick="addLineItem()">+ Freie Position hinzufügen</button>
+    <div class="row"><div class="field"><label>Anfahrt €</label><input class="input" id="travelPrice" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Rabatt %</label><input class="input" id="discount" type="number" min="0" max="100" step="0.1" value="0"></div></div>
+    <div class="field"><label>Interne Notiz</label><textarea id="internalNote" placeholder="Nur intern, erscheint nicht im Angebot"></textarea></div>
+    <div class="actions"><button class="btn" onclick="goStep(2)">Zurück</button><button class="btn primary" onclick="goStep(4)">Angebot prüfen</button></div>
+  </div>
+  <div class="offerStep" data-step="4" hidden>
+    <div class="templateCards"><button class="template active" data-template="modern">Modern</button><button class="template" data-template="classic">Klassisch</button><button class="template" data-template="minimal">Schlicht</button></div>
+    <div id="offerPreview" style="margin-top:16px"></div>
+    <div class="actions"><button class="btn" onclick="goStep(3)">Bearbeiten</button><button class="btn primary" onclick="saveOffer()">Speichern</button></div>
+    <div class="actions"><button class="btn" onclick="printOffer()">PDF / Drucken</button><button class="btn" onclick="shareWhatsApp()">WhatsApp</button></div>
+  </div>
+ </div>
+</section>
 
-  <script>
-const state = {
-  step: 1,
-  offerNumber: `AP-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`,
+<section id="offers" class="screen">
+ <div class="sectionTitle"><div><p>LOKAL GESPEICHERT</p><h2>Meine Angebote</h2></div></div>
+ <div class="card"><div id="savedOffers"></div></div>
+</section>
+
+<section id="customers" class="screen">
+ <div class="sectionTitle"><div><p>KUNDENVERWALTUNG</p><h2>Kunden</h2></div></div>
+ <div class="card"><div class="row"><div class="field"><label>Name/Firma</label><input class="input" id="newCustomerName"></div><div class="field"><label>Telefon</label><input class="input" id="newCustomerPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="newCustomerAddress"></div><div class="field"><label>E-Mail</label><input class="input" id="newCustomerEmail"></div><button class="btn primary" style="width:100%" onclick="saveCustomer()">Kunden speichern</button></div>
+ <div class="card"><div id="customerList"></div></div>
+</section>
+
+<section id="catalog" class="screen">
+ <div class="sectionTitle"><div><p>EIGENE PREISE</p><h2>Leistungskatalog</h2></div></div>
+ <div class="card"><div class="field"><label>Leistung</label><input class="input" id="catalogName" placeholder="z. B. Gartenpflege"></div><div class="row3"><div class="field"><label>Einheit</label><select id="catalogUnit"><option>Std.</option><option>m²</option><option>m³</option><option>Stk.</option><option>lfm</option><option>pauschal</option></select></div><div class="field"><label>Preis €</label><input class="input" id="catalogPrice" type="number" step="0.01"></div><div class="field"><label>Typ</label><select id="catalogType"><option>Leistung</option><option>Material</option><option>Maschine</option><option>Entsorgung</option></select></div></div><div class="field"><label>Standardbeschreibung</label><textarea id="catalogDescription" placeholder="Professionelle Leistungsbeschreibung"></textarea></div><button class="btn primary" style="width:100%" onclick="saveCatalogItem()">Leistung speichern</button></div>
+ <div class="card"><div id="catalogList"></div></div>
+</section>
+
+<section id="tools" class="screen">
+ <div class="sectionTitle"><div><p>KOSTENLOSE HELFER</p><h2>Rechner</h2></div></div>
+ <div class="card"><h3>Fläche</h3><div class="row"><div class="field"><label>Länge m</label><input class="input calc" id="calcLength" type="number" step="0.01"></div><div class="field"><label>Breite m</label><input class="input calc" id="calcWidth" type="number" step="0.01"></div></div><div class="stat"><span>Fläche</span><strong id="areaResult">0 m²</strong></div></div>
+ <div class="card"><h3>Volumen / Erde</h3><div class="row"><div class="field"><label>Fläche m²</label><input class="input calc" id="calcArea" type="number" step="0.01"></div><div class="field"><label>Schicht cm</label><input class="input calc" id="calcDepth" type="number" step="0.1"></div></div><div class="stat"><span>Benötigtes Volumen</span><strong id="volumeResult">0 m³</strong></div></div>
+ <div class="card"><h3>Arbeitskosten</h3><div class="row"><div class="field"><label>Mitarbeiter</label><input class="input calc" id="calcWorkers" type="number" value="1"></div><div class="field"><label>Stunden</label><input class="input calc" id="calcHours" type="number"></div></div><div class="field"><label>Stundensatz €</label><input class="input calc" id="calcRate" type="number" value="55"></div><div class="stat"><span>Arbeitskosten</span><strong id="laborResult">0 €</strong></div></div>
+</section>
+
+<section id="settings" class="screen">
+ <div class="sectionTitle"><div><p>BETRIEB EINRICHTEN</p><h2>Firmendaten</h2></div></div>
+ <div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="field"><label>Unterzeile / Gewerk</label><input class="input" id="companyTrade"></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="row"><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div></div><div class="field"><label>Bankverbindung / Fußzeile</label><textarea id="companyFooter"></textarea></div><div class="row"><div class="field"><label>Steuerstatus</label><select id="taxMode"><option value="small">Kleinunternehmer § 19 UStG</option><option value="vat19">19 % Umsatzsteuer</option><option value="vat7">7 % Umsatzsteuer</option></select></div><div class="field"><label>Zahlungsziel Tage</label><input class="input" id="paymentDays" type="number" value="7"></div></div><div class="field"><label>Nächste Angebotsnummer</label><input class="input" id="nextOfferNumber" type="number" value="1"></div><button class="btn primary" style="width:100%" onclick="saveSettings()">Einstellungen speichern</button></div>
+ <div class="card"><h3>Daten sichern</h3><p style="color:var(--muted)">Alle Daten liegen nur auf diesem Gerät. Exportiere regelmäßig eine Sicherungsdatei.</p><div class="actions"><button class="btn" onclick="exportBackup()">Backup exportieren</button><label class="btn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Backup importieren<input id="backupFile" type="file" accept="application/json" hidden></label></div><button class="btn danger" style="width:100%;margin-top:12px" onclick="clearAllData()">Alle lokalen Daten löschen</button></div>
+ <div class="notice">Diese Version arbeitet vollständig lokal im Browser. Es werden keine Kundendaten an einen Server übertragen.</div>
+</section>
+</main>
+</div>
+
+<nav class="bottomNav"><button class="navBtn active" data-screen="home"><b>⌂</b>Start</button><button class="navBtn" data-screen="offer"><b>＋</b>Angebot</button><button class="navBtn" data-screen="offers"><b>▤</b>Dokumente</button><button class="navBtn" data-screen="tools"><b>▦</b>Rechner</button><button class="navBtn" data-screen="settings"><b>⚙</b>Firma</button></nav>
+<div id="printArea"></div><div id="toast" class="toast"></div>
+
+<script>
+const KEY='angebotspilot_v2';
+const defaultState={
+ settings:{companyName:'Facility & Care',companyTrade:'Hausmeister- und Gartenservice',companyAddress:'Neubiberg / München',companyPhone:'',companyEmail:'',companyFooter:'Zahlbar innerhalb von 7 Tagen ohne Abzug.',taxMode:'small',paymentDays:7,nextOfferNumber:1,template:'modern'},
+ customers:[],
+ catalog:[
+  {id:cryptoId(),name:'Gartenarbeit',unit:'Std.',price:55,type:'Leistung',description:'Fachgerechte Gartenpflege und Ausführung der vereinbarten Arbeiten.'},
+  {id:cryptoId(),name:'Anfahrt',unit:'pauschal',price:50,type:'Leistung',description:'Anfahrt sowie Bereitstellung von Werkzeugen und Geräten.'},
+  {id:cryptoId(),name:'Rasenfläche vorbereiten',unit:'m²',price:8,type:'Leistung',description:'Untergrund vorbereiten, planieren und für die weitere Bearbeitung herrichten.'},
+  {id:cryptoId(),name:'Rollrasen liefern und verlegen',unit:'m²',price:18,type:'Material',description:'Lieferung und fachgerechte Verlegung von Rollrasen.'}
+ ],offers:[],draft:null,theme:'dark'
 };
-
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
-const money = (value) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(value || 0));
-
-const builder = $('#offerBuilder');
-const steps = $$('.step');
-const stepTitle = $('#stepTitle');
-const progressBar = $('#progressBar');
-const nextButton = $('#nextButton');
-const backButton = $('#backButton');
-const lineItems = $('#lineItems');
-const template = $('#lineItemTemplate');
-const savedOffers = $('#savedOffers');
-
-const titles = ['Kundendaten', 'Auftrag aufnehmen', 'Kalkulation', 'Angebot prüfen'];
-
-function openBuilder() {
-  builder.classList.remove('hidden');
-  builder.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function setStep(nextStep) {
-  state.step = Math.max(1, Math.min(4, nextStep));
-  steps.forEach((step) => step.classList.toggle('active', Number(step.dataset.step) === state.step));
-  stepTitle.textContent = titles[state.step - 1];
-  progressBar.style.width = `${state.step * 25}%`;
-  backButton.classList.toggle('hidden', state.step === 1);
-  nextButton.textContent = state.step === 4 ? 'Angebot speichern' : 'Weiter';
-  if (state.step === 4) renderPreview();
-}
-
-function addLineItem(values = {}) {
-  const node = template.content.cloneNode(true);
-  const row = node.querySelector('.line-item');
-  row.querySelector('.item-name').value = values.name || '';
-  row.querySelector('.item-qty').value = values.qty ?? 1;
-  row.querySelector('.item-unit').value = values.unit || 'pauschal';
-  row.querySelector('.item-price').value = values.price ?? 0;
-  row.querySelector('.remove-item').addEventListener('click', () => {
-    row.remove();
-    calculateTotal();
-  });
-  row.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', calculateTotal));
-  lineItems.appendChild(node);
-  calculateTotal();
-}
-
-function getItems() {
-  return $$('.line-item').map((row) => ({
-    name: row.querySelector('.item-name').value.trim() || 'Leistung',
-    qty: Number(row.querySelector('.item-qty').value || 0),
-    unit: row.querySelector('.item-unit').value,
-    price: Number(row.querySelector('.item-price').value || 0),
-  }));
-}
-
-function calculateSummary() {
-  const items = getItems();
-  const positions = items.reduce((sum, item) => sum + item.qty * item.price, 0);
-  const travel = Number($('#travelPrice').value || 0);
-  const discountRate = Number($('#discount').value || 0);
-  const taxRate = Number($('#taxRate').value || 0);
-  const subtotalBeforeDiscount = positions + travel;
-  const discount = subtotalBeforeDiscount * (discountRate / 100);
-  const net = subtotalBeforeDiscount - discount;
-  const tax = net * (taxRate / 100);
-  const total = net + tax;
-  return { items, positions, travel, discountRate, discount, taxRate, net, tax, total };
-}
-
-function calculateTotal() {
-  $('#draftTotal').textContent = money(calculateSummary().total);
-}
-
-function renderPreview() {
-  const data = calculateSummary();
-  const customer = $('#customerName').value.trim() || 'Kunde';
-  const address = $('#customerAddress').value.trim();
-  const description = $('#jobDescription').value.trim();
-  const date = new Intl.DateTimeFormat('de-DE').format(new Date());
-
-  const rows = data.items.map((item) => `
-    <tr>
-      <td>${escapeHtml(item.name)}</td>
-      <td>${item.qty} ${escapeHtml(item.unit)}</td>
-      <td>${money(item.price)}</td>
-      <td>${money(item.qty * item.price)}</td>
-    </tr>`).join('');
-
-  $('#offerPreview').innerHTML = `
-    <div class="offer-meta">
-      <div><strong>Facility & Care</strong><br>Hausmeister- und Gartenservice</div>
-      <div><strong>Angebot ${state.offerNumber}</strong><br>${date}</div>
-    </div>
-    <h3>Angebot für ${escapeHtml(customer)}</h3>
-    <p>${escapeHtml(address)}</p>
-    ${description ? `<p><strong>Auftragsbeschreibung:</strong><br>${escapeHtml(description)}</p>` : ''}
-    <table>
-      <thead><tr><th>Position</th><th>Menge</th><th>Einzelpreis</th><th>Gesamt</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="4">Noch keine Positionen eingetragen.</td></tr>'}</tbody>
-    </table>
-    <div class="total-box">
-      <div class="total-line"><span>Positionen</span><strong>${money(data.positions)}</strong></div>
-      <div class="total-line"><span>Anfahrt</span><strong>${money(data.travel)}</strong></div>
-      ${data.discount > 0 ? `<div class="total-line"><span>Rabatt (${data.discountRate} %)</span><strong>− ${money(data.discount)}</strong></div>` : ''}
-      <div class="total-line"><span>Zwischensumme</span><strong>${money(data.net)}</strong></div>
-      ${data.taxRate > 0 ? `<div class="total-line"><span>Umsatzsteuer (${data.taxRate} %)</span><strong>${money(data.tax)}</strong></div>` : ''}
-      <div class="total-line grand-total"><span>Gesamtbetrag</span><strong>${money(data.total)}</strong></div>
-    </div>
-    <p class="notice">${data.taxRate === 0 ? 'Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.' : 'Alle Preise inklusive gesetzlicher Umsatzsteuer.'}<br>Zahlbar innerhalb von 7 Tagen nach Rechnungsstellung.</p>
-  `;
-}
-
-function saveOffer() {
-  const summary = calculateSummary();
-  const offer = {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-    number: state.offerNumber,
-    createdAt: new Date().toISOString(),
-    customer: $('#customerName').value.trim() || 'Kunde',
-    address: $('#customerAddress').value.trim(),
-    contact: $('#customerContact').value.trim(),
-    description: $('#jobDescription').value.trim(),
-    items: summary.items,
-    total: summary.total,
-  };
-  const offers = JSON.parse(localStorage.getItem('angebotspilot_offers') || '[]');
-  offers.unshift(offer);
-  localStorage.setItem('angebotspilot_offers', JSON.stringify(offers));
-  renderSavedOffers();
-  nextButton.textContent = 'Gespeichert ✓';
-  setTimeout(() => {
-    nextButton.textContent = 'Angebot drucken / PDF';
-    nextButton.onclick = () => window.print();
-  }, 700);
-}
-
-function renderSavedOffers() {
-  const offers = JSON.parse(localStorage.getItem('angebotspilot_offers') || '[]');
-  $('#savedCount').textContent = offers.length;
-  if (!offers.length) {
-    savedOffers.className = 'saved-list empty-state';
-    savedOffers.textContent = 'Noch keine Angebote gespeichert.';
-    return;
-  }
-  savedOffers.className = 'saved-list';
-  savedOffers.innerHTML = offers.map((offer) => `
-    <article class="saved-offer">
-      <div><strong>${escapeHtml(offer.customer)}</strong><p>${offer.number} · ${new Intl.DateTimeFormat('de-DE').format(new Date(offer.createdAt))}</p></div>
-      <strong>${money(offer.total)}</strong>
-    </article>`).join('');
-}
-
-function escapeHtml(value = '') {
-  return String(value).replace(/[&<>'"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#039;', '"':'&quot;' }[char]));
-}
-
-function seedFromDescription() {
-  const text = $('#jobDescription').value.toLowerCase();
-  if (!text || getItems().some((item) => item.name !== 'Leistung')) return;
-  lineItems.innerHTML = '';
-  if (text.includes('rasen') || text.includes('rollrasen')) {
-    addLineItem({ name: 'Alten Rasen abtragen und entsorgen', qty: 30, unit: 'm²', price: 12 });
-    addLineItem({ name: 'Boden vorbereiten und planieren', qty: 30, unit: 'm²', price: 8 });
-    addLineItem({ name: 'Rollrasen liefern und verlegen', qty: 30, unit: 'm²', price: 18 });
-  } else {
-    addLineItem({ name: 'Arbeitsleistung', qty: 4, unit: 'Std.', price: 55 });
-    addLineItem({ name: 'Material', qty: 1, unit: 'pauschal', price: 0 });
-  }
-}
-
-$('#startOffer').addEventListener('click', openBuilder);
-$('#addLineItem').addEventListener('click', () => addLineItem());
-$('#travelPrice').addEventListener('input', calculateTotal);
-$('#discount').addEventListener('input', calculateTotal);
-$('#taxRate').addEventListener('change', calculateTotal);
-
-nextButton.addEventListener('click', () => {
-  if (state.step === 1 && !$('#customerName').value.trim()) {
-    $('#customerName').focus();
-    return;
-  }
-  if (state.step === 2) seedFromDescription();
-  if (state.step < 4) setStep(state.step + 1);
-  else saveOffer();
-});
-backButton.addEventListener('click', () => setStep(state.step - 1));
-
-$('#jobPhotos').addEventListener('change', (event) => {
-  const container = $('#photoPreview');
-  container.innerHTML = '';
-  [...event.target.files].slice(0, 6).forEach((file) => {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
-    img.alt = 'Auftragsfoto';
-    container.appendChild(img);
-  });
-});
-
-let recognition;
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.lang = 'de-DE';
-  recognition.interimResults = true;
-  recognition.continuous = false;
-  recognition.onstart = () => {
-    $('#voiceButton').classList.add('listening');
-    $('#voiceLabel').textContent = 'Ich höre zu …';
-  };
-  recognition.onresult = (event) => {
-    const transcript = [...event.results].map((result) => result[0].transcript).join(' ');
-    $('#jobDescription').value = transcript;
-  };
-  recognition.onend = () => {
-    $('#voiceButton').classList.remove('listening');
-    $('#voiceLabel').textContent = 'Auftrag einsprechen';
-  };
-  $('#voiceButton').addEventListener('click', () => recognition.start());
-} else {
-  $('#voiceButton').addEventListener('click', () => {
-    $('#jobDescription').focus();
-    $('#voiceLabel').textContent = 'Nutze die Mikrofontaste deiner Tastatur';
-  });
-}
-
-$('#themeToggle').addEventListener('click', () => {
-  document.documentElement.classList.toggle('light');
-});
-
-$('#clearOffers').addEventListener('click', () => {
-  if (confirm('Alle lokal gespeicherten Angebote löschen?')) {
-    localStorage.removeItem('angebotspilot_offers');
-    renderSavedOffers();
-  }
-});
-
-addLineItem({ name: 'Leistung', qty: 1, unit: 'pauschal', price: 0 });
-renderSavedOffers();
-calculateTotal();
-
+let db=load();let currentStep=1;let currentItems=[];let selectedTemplate=db.settings.template||'modern';
+function cryptoId(){return (crypto?.randomUUID?.()||Date.now()+'-'+Math.random().toString(16).slice(2))}
+function load(){try{return {...structuredClone(defaultState),...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return structuredClone(defaultState)}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(db));updateStats()}
+function money(v){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(Number(v)||0)}
+function esc(s=''){return String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
+function showScreen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.navBtn').forEach(x=>x.classList.toggle('active',x.dataset.screen===id));window.scrollTo({top:0,behavior:'smooth'});if(id==='offers')renderOffers();if(id==='customers')renderCustomers();if(id==='catalog')renderCatalog()}
+document.querySelectorAll('.navBtn').forEach(b=>b.onclick=()=>showScreen(b.dataset.screen));
+document.getElementById('themeBtn').onclick=()=>{db.theme=db.theme==='light'?'dark':'light';document.documentElement.classList.toggle('light',db.theme==='light');persist()};document.documentElement.classList.toggle('light',db.theme==='light');
+function startNewOffer(){showScreen('offer');resetOffer();goStep(1)}
+function goStep(n){currentStep=n;document.querySelectorAll('.offerStep').forEach(x=>x.hidden=Number(x.dataset.step)!==n);document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',Number(x.dataset.step)===n));if(n===4)renderPreview();window.scrollTo({top:0,behavior:'smooth'})}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>goStep(Number(t.dataset.step)));
+function resetOffer(){currentItems=[];['customerName','customerEmail','customerAddress','customerPhone','jobDescription','jobLocation','internalNote'].forEach(id=>document.getElementById(id).value='');document.getElementById('travelPrice').value=0;document.getElementById('discount').value=0;document.getElementById('validUntil').value=new Date(Date.now()+14*86400000).toISOString().slice(0,10);renderLineItems()}
+function addLineItem(v={}){currentItems.push({id:cryptoId(),name:v.name||'',description:v.description||'',qty:Number(v.qty||1),unit:v.unit||'pauschal',price:Number(v.price||0)});renderLineItems()}
+function renderLineItems(){const box=document.getElementById('lineItems');if(!currentItems.length){box.innerHTML='<div class="listEmpty">Noch keine Positionen.</div>';return}box.innerHTML=currentItems.map((x,i)=>`<div class="item"><div class="itemTop"><b>Position ${i+1}</b><button class="btn danger" style="min-height:34px;padding:0 10px" onclick="removeItem('${x.id}')">Löschen</button></div><div class="field"><input class="input" value="${esc(x.name)}" placeholder="Leistung" oninput="editItem('${x.id}','name',this.value)"></div><div class="field"><textarea placeholder="Beschreibung" oninput="editItem('${x.id}','description',this.value)">${esc(x.description)}</textarea></div><div class="row3"><input class="input" type="number" step="0.01" value="${x.qty}" oninput="editItem('${x.id}','qty',this.value)"><input class="input" value="${esc(x.unit)}" oninput="editItem('${x.id}','unit',this.value)"><input class="input" type="number" step="0.01" value="${x.price}" oninput="editItem('${x.id}','price',this.value)"></div><div class="itemTotal">${money(x.qty*x.price)}</div></div>`).join('')}
+function editItem(id,k,v){const x=currentItems.find(i=>i.id===id);if(!x)return;x[k]=['qty','price'].includes(k)?Number(v):v;renderLineItems()}
+function removeItem(id){currentItems=currentItems.filter(x=>x.id!==id);renderLineItems()}
+function refreshCatalogSelect(){const s=document.getElementById('catalogSelect');s.innerHTML='<option value="">Leistung auswählen</option>'+db.catalog.map(x=>`<option value="${x.id}">${esc(x.name)} – ${money(x.price)}/${esc(x.unit)}</option>`).join('')}
+function addCatalogItem(){const id=document.getElementById('catalogSelect').value;if(!id)return;const x=db.catalog.find(c=>c.id===id);addLineItem({...x,qty:1});document.getElementById('catalogSelect').value=''}
+function suggestFromText(){const t=document.getElementById('jobDescription').value.toLowerCase();const rules=[['rasen',db.catalog.find(x=>x.name.toLowerCase().includes('rasen'))],['garten',db.catalog.find(x=>x.name.toLowerCase().includes('garten'))],['anfahrt',db.catalog.find(x=>x.name.toLowerCase().includes('anfahrt'))]];let added=0;for(const [word,item] of rules){if(t.includes(word)&&item&&!currentItems.some(x=>x.name===item.name)){addLineItem({...item,qty:1});added++}}if(!added)addLineItem({name:'Ausführung der beschriebenen Arbeiten',description:document.getElementById('jobDescription').value,qty:1,unit:'pauschal',price:0});toast('Positionen als Entwurf ergänzt')}
+function startSpeech(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Nutze die Mikrofontaste deiner iPhone-Tastatur');document.getElementById('jobDescription').focus();return}const r=new SR();r.lang='de-DE';r.interimResults=false;r.onstart=()=>document.getElementById('speechBtn').textContent='🔴 Aufnahme läuft';r.onresult=e=>{document.getElementById('jobDescription').value+=(document.getElementById('jobDescription').value?' ':'')+e.results[0][0].transcript};r.onend=()=>document.getElementById('speechBtn').textContent='🎙️ Spracheingabe';r.start()}
+document.getElementById('jobPhotos').onchange=e=>{const box=document.getElementById('photoPreview');box.innerHTML='';[...e.target.files].slice(0,5).forEach(f=>{const img=document.createElement('img');img.src=URL.createObjectURL(f);img.style='width:78px;height:78px;object-fit:cover;border-radius:12px;border:1px solid var(--line)';box.appendChild(img)})};
+function totals(){const net=currentItems.reduce((s,x)=>s+x.qty*x.price,0)+Number(document.getElementById('travelPrice').value||0);const after=net*(1-Number(document.getElementById('discount').value||0)/100);const rate=db.settings.taxMode==='vat19'?.19:db.settings.taxMode==='vat7'?.07:0;return{net,after,vat:after*rate,total:after*(1+rate),rate}}
+function offerData(){return{id:cryptoId(),number:`AP-${new Date().getFullYear()}-${String(db.settings.nextOfferNumber).padStart(4,'0')}`,date:new Date().toLocaleDateString('de-DE'),createdAt:new Date().toISOString(),validUntil:document.getElementById('validUntil').value,customer:{name:document.getElementById('customerName').value,address:document.getElementById('customerAddress').value,email:document.getElementById('customerEmail').value,phone:document.getElementById('customerPhone').value},description:document.getElementById('jobDescription').value,location:document.getElementById('jobLocation').value,items:structuredClone(currentItems),travel:Number(document.getElementById('travelPrice').value||0),discount:Number(document.getElementById('discount').value||0),internalNote:document.getElementById('internalNote').value,template:selectedTemplate,totals:totals(),settings:structuredClone(db.settings)}}
+function offerHtml(o){const s=o.settings;const taxText=s.taxMode==='small'?'Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.':`Enthaltene Umsatzsteuer (${Math.round(o.totals.rate*100)} %): ${money(o.totals.vat)}`;return `<div class="offerPaper ${o.template}"><div class="paperHead"><div><h2>${esc(s.companyName)}</h2><div>${esc(s.companyTrade)}</div><div class="mini">${esc(s.companyAddress)}</div></div><div class="paperMeta"><b>Angebot ${esc(o.number)}</b><br>Datum: ${esc(o.date)}<br>${o.validUntil?'Gültig bis: '+esc(new Date(o.validUntil).toLocaleDateString('de-DE')):''}</div></div><div class="paperCustomer"><span class="badge">ANGEBOT</span><h2>Angebot für ${esc(o.customer.name||'Kunde')}</h2><div>${esc(o.customer.address)}</div></div>${o.description?`<p><b>Auftragsbeschreibung:</b><br>${esc(o.description)}</p>`:''}<table class="paperTable"><thead><tr><th>Pos.</th><th>Leistung</th><th>Menge</th><th>Einzelpreis</th><th>Gesamt</th></tr></thead><tbody>${o.items.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.name)}</b><br><span class="mini">${esc(x.description)}</span></td><td>${x.qty} ${esc(x.unit)}</td><td>${money(x.price)}</td><td>${money(x.qty*x.price)}</td></tr>`).join('')}${o.travel?`<tr><td>${o.items.length+1}</td><td>Anfahrt</td><td>1 pauschal</td><td>${money(o.travel)}</td><td>${money(o.travel)}</td></tr>`:''}</tbody></table><div class="totals"><div><span>Zwischensumme</span><b>${money(o.totals.net)}</b></div>${o.discount?`<div><span>Rabatt ${o.discount}%</span><b>− ${money(o.totals.net-o.totals.after)}</b></div>`:''}${o.totals.rate?`<div><span>Umsatzsteuer</span><b>${money(o.totals.vat)}</b></div>`:''}<div class="grand"><span>Gesamtbetrag</span><span>${money(o.totals.total)}</span></div></div><div class="paperFoot">${esc(taxText)}<br>Zahlbar innerhalb von ${esc(s.paymentDays)} Tagen ohne Abzug.<br><br>${esc(s.companyFooter)}<br>${esc(s.companyPhone)} ${s.companyEmail?'· '+esc(s.companyEmail):''}</div></div>`}
+function renderPreview(){const o=offerData();document.getElementById('offerPreview').innerHTML=offerHtml(o)}
+document.querySelectorAll('.template').forEach(b=>b.onclick=()=>{selectedTemplate=b.dataset.template;document.querySelectorAll('.template').forEach(x=>x.classList.toggle('active',x===b));renderPreview()});
+function saveOffer(){if(!currentItems.length){toast('Mindestens eine Position erforderlich');return}const o=offerData();db.offers.unshift(o);db.settings.nextOfferNumber++;persist();saveSettingsFields();renderOffers();toast('Angebot gespeichert')}
+function renderOffers(){const box=document.getElementById('savedOffers');if(!db.offers.length){box.innerHTML='<div class="listEmpty">Noch keine Angebote gespeichert.</div>';return}box.innerHTML=db.offers.map(o=>`<div class="item"><div class="itemTop"><div><b>${esc(o.number)} · ${esc(o.customer.name||'Ohne Namen')}</b><div class="mini">${new Date(o.createdAt).toLocaleString('de-DE')}</div></div><div class="itemTotal">${money(o.totals.total)}</div></div><div class="actions"><button class="btn" onclick="openSaved('${o.id}')">Ansehen</button><button class="btn danger" onclick="deleteOffer('${o.id}')">Löschen</button></div></div>`).join('')}
+function openSaved(id){const o=db.offers.find(x=>x.id===id);if(!o)return;document.getElementById('offerPreview').innerHTML=offerHtml(o);showScreen('offer');goStep(4)}function deleteOffer(id){if(confirm('Angebot wirklich löschen?')){db.offers=db.offers.filter(x=>x.id!==id);persist();renderOffers()}}
+function printOffer(){const o=offerData();document.getElementById('printArea').innerHTML=offerHtml(o);window.print()}
+function shareWhatsApp(){const o=offerData();const text=`Guten Tag ${o.customer.name||''},\n\nanbei erhalten Sie unser Angebot ${o.number} über ${money(o.totals.total)}.\n\nMit freundlichen Grüßen\n${o.settings.companyName}`;location.href='https://wa.me/?text='+encodeURIComponent(text)}
+function saveCustomer(){const c={id:cryptoId(),name:document.getElementById('newCustomerName').value,address:document.getElementById('newCustomerAddress').value,email:document.getElementById('newCustomerEmail').value,phone:document.getElementById('newCustomerPhone').value};if(!c.name)return toast('Bitte Namen eingeben');db.customers.unshift(c);persist();['newCustomerName','newCustomerAddress','newCustomerEmail','newCustomerPhone'].forEach(id=>document.getElementById(id).value='');renderCustomers();refreshCustomerSelect();toast('Kunde gespeichert')}
+function renderCustomers(){const b=document.getElementById('customerList');b.innerHTML=db.customers.length?db.customers.map(c=>`<div class="item"><b>${esc(c.name)}</b><div class="mini">${esc(c.address)}<br>${esc(c.phone)} ${c.email?'· '+esc(c.email):''}</div><div class="actions"><button class="btn" onclick="useCustomer('${c.id}')">Für Angebot nutzen</button><button class="btn danger" onclick="deleteCustomer('${c.id}')">Löschen</button></div></div>`).join(''):'<div class="listEmpty">Noch keine Kunden gespeichert.</div>'}
+function refreshCustomerSelect(){const s=document.getElementById('offerCustomerSelect');s.innerHTML='<option value="">Neuen Kunden eingeben</option>'+db.customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}
+document.getElementById('offerCustomerSelect').onchange=e=>{if(e.target.value)fillCustomer(db.customers.find(c=>c.id===e.target.value))};function fillCustomer(c){if(!c)return;document.getElementById('customerName').value=c.name;document.getElementById('customerAddress').value=c.address;document.getElementById('customerEmail').value=c.email;document.getElementById('customerPhone').value=c.phone}function useCustomer(id){fillCustomer(db.customers.find(c=>c.id===id));showScreen('offer');goStep(1)}function deleteCustomer(id){db.customers=db.customers.filter(x=>x.id!==id);persist();renderCustomers();refreshCustomerSelect()}
+function saveCatalogItem(){const x={id:cryptoId(),name:document.getElementById('catalogName').value,unit:document.getElementById('catalogUnit').value,price:Number(document.getElementById('catalogPrice').value||0),type:document.getElementById('catalogType').value,description:document.getElementById('catalogDescription').value};if(!x.name)return toast('Bitte Leistung eingeben');db.catalog.unshift(x);persist();['catalogName','catalogPrice','catalogDescription'].forEach(id=>document.getElementById(id).value='');renderCatalog();refreshCatalogSelect();toast('Leistung gespeichert')}
+function renderCatalog(){const b=document.getElementById('catalogList');b.innerHTML=db.catalog.map(x=>`<div class="item"><div class="itemTop"><div><b>${esc(x.name)}</b><div class="mini">${esc(x.type)} · ${esc(x.description)}</div></div><div class="itemTotal">${money(x.price)}/${esc(x.unit)}</div></div><button class="btn danger" style="margin-top:10px" onclick="deleteCatalog('${x.id}')">Löschen</button></div>`).join('')}
+function deleteCatalog(id){db.catalog=db.catalog.filter(x=>x.id!==id);persist();renderCatalog();refreshCatalogSelect()}
+function loadSettingsFields(){Object.keys(db.settings).forEach(k=>{const el=document.getElementById(k);if(el)el.value=db.settings[k]})}
+function saveSettingsFields(){['companyName','companyTrade','companyAddress','companyPhone','companyEmail','companyFooter','taxMode','paymentDays','nextOfferNumber'].forEach(k=>{const el=document.getElementById(k);if(el)db.settings[k]=['paymentDays','nextOfferNumber'].includes(k)?Number(el.value):el.value});db.settings.template=selectedTemplate;persist()}
+function saveSettings(){saveSettingsFields();toast('Firmendaten gespeichert')}
+function exportBackup(){const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='AngebotsPilot-Backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)}
+document.getElementById('backupFile').onchange=async e=>{try{const txt=await e.target.files[0].text();db=JSON.parse(txt);persist();init();toast('Backup importiert')}catch{toast('Backup konnte nicht gelesen werden')}};
+function clearAllData(){if(confirm('Wirklich alle Angebote, Kunden und Einstellungen löschen?')){localStorage.removeItem(KEY);db=structuredClone(defaultState);init();toast('Alle Daten gelöscht')}}
+function calc(){const l=Number(document.getElementById('calcLength').value||0),w=Number(document.getElementById('calcWidth').value||0);document.getElementById('areaResult').textContent=(l*w).toLocaleString('de-DE',{maximumFractionDigits:2})+' m²';const a=Number(document.getElementById('calcArea').value||0),d=Number(document.getElementById('calcDepth').value||0);document.getElementById('volumeResult').textContent=(a*d/100).toLocaleString('de-DE',{maximumFractionDigits:2})+' m³';const workers=Number(document.getElementById('calcWorkers').value||0),h=Number(document.getElementById('calcHours').value||0),r=Number(document.getElementById('calcRate').value||0);document.getElementById('laborResult').textContent=money(workers*h*r)}document.querySelectorAll('.calc').forEach(x=>x.oninput=calc)
+function updateStats(){document.getElementById('statOffers').textContent=db.offers.length;document.getElementById('statVolume').textContent=money(db.offers.reduce((s,o)=>s+(o.totals?.total||0),0))}
+function init(){loadSettingsFields();refreshCustomerSelect();refreshCatalogSelect();renderCustomers();renderCatalog();renderOffers();updateStats();renderLineItems();document.documentElement.classList.toggle('light',db.theme==='light');if(!document.getElementById('validUntil').value)document.getElementById('validUntil').value=new Date(Date.now()+14*86400000).toISOString().slice(0,10)}init();
 </script>
 </body>
 </html>
