@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0c10">
+<title>Digitaler Handwerker – AngebotsPilot</title>
+<meta name="description" content="Angebote, Rechnungen, Kunden, Baustellen, Kalender und Wetter für Handwerksbetriebe.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Handwerker">
+<link rel="stylesheet" href="style.css?v=11.0.2">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand"><small id="cloudModeLabel">DIGITALER HANDWERKER · LOKAL</small><h1>AngebotsPilot</h1></div><div class="topActions"><button class="iconBtn" id="themeBtn">◐</button><button class="iconBtn" onclick="showScreen('more')">⚙️</button></div></header>
+
+<section class="screen active" id="today">
+<div class="card hero"><span class="pill"><span class="dot"></span><span id="todayDate"></span></span><h2>Guten Morgen, <span id="ownerGreeting">Handwerker</span>.</h2><p id="dailyMessage">Hier siehst du, was heute wichtig ist.</p></div>
+<div class="card weatherHero weatherCompact" id="weatherDashboard" role="button" tabindex="0" onclick="showScreen('weather')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showScreen('weather')}">
+  <div class="weatherCompactTop">
+    <div class="weatherCompactInfo">
+      <span class="weatherCompactLocation">🌦️ <span id="weatherLocationLabel">Wetter wird geladen</span></span>
+      <div class="weatherCompactReading"><strong class="weatherTemp" id="weatherTemp">–°</strong><span class="weatherIcon" id="weatherIcon">⛅</span><span id="weatherDescription" class="mini">Standort festlegen</span></div>
+    </div>
+    <span class="weatherCompactArrow">›</span>
+  </div>
+  <div class="weatherMeta weatherMetaCompact" id="weatherMeta"></div>
+  <div id="weatherRisk" class="riskBox weatherRiskCompact">Wetterdaten werden geladen …</div>
+</div>
+<div class="stats"><div class="stat"><span>Offene Aufgaben</span><strong id="statTasks">0</strong></div><div class="stat"><span>Termine heute</span><strong id="statEvents">0</strong></div><div class="stat"><span>Offene Angebote</span><strong id="statOffers">0</strong></div><div class="stat"><span>Angebotswert</span><strong id="statValue">0 €</strong></div></div>
+<div class="sectionTitle"><h2>Schnellstart</h2><span>1 Klick</span></div>
+<div class="quickGrid"><button class="quick" onclick="newOffer()"><span class="emoji">📄</span><b>Neues Angebot</b><small>Kunde, Positionen, PDF</small></button><button class="quick" onclick="newEvent()"><span class="emoji">📅</span><b>Termin planen</b><small>Baustelle oder Besichtigung</small></button><button class="quick" onclick="newCustomer()"><span class="emoji">👤</span><b>Kunde anlegen</b><small>Kontaktdaten und Adresse</small></button><button class="quick" onclick="newTask()"><span class="emoji">✅</span><b>Aufgabe erstellen</b><small>Nichts mehr vergessen</small></button></div>
+<div class="sectionTitle"><h2>Heute erledigen</h2><span id="taskProgress">0 erledigt</span></div><div class="card"><div id="todayTasks" class="list"></div><button class="btn ghost" style="width:100%;margin-top:10px" onclick="newTask()">＋ Aufgabe hinzufügen</button></div>
+<div class="sectionTitle"><h2>Heutige Termine</h2><span>Kalender</span></div><div class="card"><div id="todayEvents" class="timeline"></div></div>
+</section>
+
+<section class="screen" id="offers">
+<div class="sectionTitle"><h2>Angebote</h2><button class="btn primary small" onclick="newOffer()">＋ Neu</button></div>
+<div class="tabs" id="offerTabs"><button class="tab active" data-filter="all">Alle</button><button class="tab" data-filter="draft">Entwurf</button><button class="tab" data-filter="sent">Versendet</button><button class="tab" data-filter="accepted">Angenommen</button></div>
+<div id="offerList" class="list" style="margin-top:10px"></div>
+</section>
+
+<section class="screen" id="customers">
+<div class="sectionTitle"><h2>Kunden</h2><button class="btn primary small" onclick="newCustomer()">＋ Neu</button></div>
+<div class="field"><input id="customerSearch" class="input" placeholder="Kunden suchen …"></div><div id="customerList" class="list"></div>
+</section>
+
+
+<section class="screen" id="customerDetail">
+  <div class="sectionTitle">
+    <div><button class="backLink" type="button" onclick="showScreen('customers')">← Kunden</button><h2 id="customerDetailName">Kundenakte</h2><p class="mini" id="customerDetailMeta"></p></div>
+    <button class="btn small owner-office-only" onclick="editCurrentCustomer()">Bearbeiten</button>
+  </div>
+  <div class="folderHero">
+    <div class="folderIcon">📁</div>
+    <div><b>Digitale Kundenakte</b><p>Alles zu Kunde und Baustellen an einem Ort.</p></div>
+  </div>
+  <div class="customerFolderTabs">
+    <button class="folderTab active" data-foldertab="overview" onclick="setCustomerFolderTab('overview',this)">Übersicht</button>
+    <button class="folderTab" data-foldertab="sites" onclick="setCustomerFolderTab('sites',this)">Baustellen</button>
+    <button class="folderTab" data-foldertab="photos" onclick="setCustomerFolderTab('photos',this)">Fotos</button>
+    <button class="folderTab owner-office-only" data-foldertab="docs" onclick="setCustomerFolderTab('docs',this)">Dokumente</button>
+  </div>
+  <div class="customerFileActions">
+    <label class="customerFileBtn">
+      <span>🖼️</span><b>Fotos hinzufügen</b><small>Aus Galerie / Fotomediathek</small>
+      <input id="customerGalleryInput" type="file" accept="image/*" multiple hidden onchange="addCustomerGalleryPhotos(event)">
+    </label>
+    <label class="customerFileBtn owner-office-only">
+      <span>📎</span><b>Dokument hinzufügen</b><small>PDF, Word, Excel, Bild …</small>
+      <input id="customerDocumentInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.rtf,.jpg,.jpeg,.png,.heic,.webp,application/pdf,image/*" multiple hidden onchange="addCustomerDocuments(event)">
+    </label>
+  </div>
+  <div id="customerFolderContent"></div>
+</section>
+
+<section class="screen" id="calendar">
+<div class="sectionTitle"><h2>Kalender</h2><button class="btn primary small" onclick="newEvent()">＋ Termin</button></div>
+<div class="card"><div class="itemTop"><button class="btn small" onclick="changeMonth(-1)">‹</button><h3 id="monthTitle" style="margin:8px 0"></h3><button class="btn small" onclick="changeMonth(1)">›</button></div><div class="calendarGrid" id="calendarGrid" style="margin-top:14px"></div></div>
+<div class="sectionTitle"><h2>Alle Termine</h2><span>Export möglich</span></div><div id="eventList" class="list"></div>
+</section>
+
+<section class="screen" id="more">
+<div class="sectionTitle"><h2>Mehr</h2><span>Einstellungen & Werkzeuge</span></div>
+<div class="quickGrid"><button class="quick cloudQuick" onclick="openCloudAccount()"><span class="emoji">☁️</span><b>Konto & Cloud</b><small id="cloudQuickStatus">Noch nicht verbunden</small></button><button class="quick" onclick="showScreen('jobs')"><span class="emoji">🏗️</span><b>Baustellen</b><small>Status, Wetter, Navigation</small></button><button class="quick" onclick="showScreen('invoices')"><span class="emoji">🧾</span><b>Rechnungen</b><small>Automatisch nach Abschluss</small></button><button class="quick" onclick="showScreen('weather')"><span class="emoji">🌦️</span><b>Wetter</b><small>7 Tage & Baustellenrisiko</small></button><button class="quick" onclick="showScreen('tasks')"><span class="emoji">✅</span><b>Aufgaben</b><small>Heute und später</small></button><button class="quick" onclick="showScreen('catalog')"><span class="emoji">📦</span><b>Preisliste</b><small>Leistungen & Material</small></button><button class="quick" onclick="showScreen('settings')"><span class="emoji">⚙️</span><b>Betrieb</b><small>Firmendaten & Backup</small></button><button class="quick" onclick="showScreen('privacy')"><span class="emoji">🔐</span><b>Datenschutz</b><small>Berechtigungen & Daten</small></button></div>
+<div class="card introHub" style="margin-top:14px">
+  <h3 style="margin:0 0 6px">App-Einführung</h3>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.0.2</div>
+  <div class="introButtons">
+    <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
+  </div>
+</div><div class="card" style="margin-top:14px"><h3 style="margin-top:0">Kostenlose Kalender-Verbindung</h3><p style="color:var(--muted);line-height:1.45">Jeden Termin kannst du mit einem Klick in Google Calendar öffnen oder als <b>.ics-Datei</b> für Apple Kalender und Outlook exportieren. Eine automatische Zwei-Wege-Synchronisierung folgt später mit Benutzerkonto.</p></div>
+</section>
+
+
+<section class="screen" id="cloudAccount">
+  <div class="sectionTitle"><div><h2>Konto & Cloud</h2><p class="mini">Dein Betrieb auf mehreren Geräten</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
+
+  <div id="cloudSignedOut">
+    <div class="card cloudHeroCard">
+      <div class="cloudOrb">☁️</div>
+      <div><span class="securityBadge">ECHTES BACKEND</span><h3>AngebotsPilot Konto</h3><p class="mini">Mit einem Konto gehört dein Betrieb eindeutig dir. Danach können wir Daten, Mitarbeiter und Dateien sicher synchronisieren.</p></div>
+    </div>
+
+    <div class="cloudAuthTabs">
+      <button class="active" data-cloud-auth-tab="login" onclick="setCloudAuthMode('login')">Anmelden</button>
+      <button data-cloud-auth-tab="register" onclick="setCloudAuthMode('register')">Konto erstellen</button>
+    </div>
+
+    <div class="card" id="cloudLoginPanel">
+      <div class="field"><label>E-Mail</label><input class="input" id="cloudLoginEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
+      <div class="field"><label>Passwort</label><input class="input" id="cloudLoginPassword" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen"></div>
+      <button class="btn primary cloudMainBtn" onclick="cloudSignIn()">Anmelden</button>
+      <button class="btn ghost cloudSecondaryBtn" onclick="cloudRefresh()">Status aktualisieren</button>
+    </div>
+
+    <div class="card hidden" id="cloudRegisterPanel">
+      <div class="field"><label>Dein Name</label><input class="input" id="cloudRegisterName" autocomplete="name" placeholder="z. B. Max Mustermann"></div>
+      <div class="field"><label>E-Mail</label><input class="input" id="cloudRegisterEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
+      <div class="field"><label>Passwort</label><input class="input" id="cloudRegisterPassword" type="password" autocomplete="new-password" placeholder="Mindestens 6 Zeichen"></div>
+      <div class="field"><label>Firmenname</label><input class="input" id="cloudRegisterCompany" placeholder="z. B. Muster Gartenbau"></div>
+      <div class="field"><label>Hauptgewerk</label><select id="cloudRegisterTrade">
+        <option value="garden">Garten & Landschaft</option><option value="caretaker">Hausmeisterservice</option><option value="cleaning">Gebäudereinigung</option><option value="painter">Maler & Lackierer</option><option value="tiler">Fliesenleger</option><option value="drywall">Trockenbau</option><option value="electrical">Elektro</option><option value="plumbing">Sanitär & Heizung</option><option value="roofing">Dachdecker</option>
+      </select></div>
+      <button class="btn primary cloudMainBtn" onclick="cloudSignUp()">Konto erstellen</button>
+      <p class="mini cloudLegalHint">Für die Testphase. Abo und Bezahlung sind noch nicht aktiv.</p>
+    </div>
+  </div>
+
+  <div id="cloudSignedIn" class="hidden">
+    <div class="card cloudConnectedCard" id="cloudConnectionCard">
+      <div class="cloudConnectedTop">
+        <div class="cloudStatusDot" id="cloudStatusDot"></div>
+        <div class="cloudConnectedText">
+          <span class="securityBadge" id="cloudConnectionBadge">KONTO GELADEN</span>
+          <h3 id="cloudCompanyName">Konto wird geprüft …</h3>
+          <p class="mini" id="cloudAccountEmail">–</p>
+        </div>
+      </div>
+      <div class="cloudAccountStats">
+        <div><span>Rolle</span><strong id="cloudRole">–</strong></div>
+        <div><span>Region</span><strong>Frankfurt</strong></div>
+        <div><span>Sicherheit</span><strong>RLS aktiv</strong></div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="cloudCompanySetupCard">
+      <span class="securityBadge warningBadge">NOCH 1 SCHRITT</span>
+      <h3>Betrieb fertig einrichten</h3>
+      <p class="mini">Deine E-Mail ist bestätigt. Jetzt fehlt nur noch die Verknüpfung mit deinem Betrieb.</p>
+      <div class="field"><label>Firmenname</label><input class="input" id="cloudSetupCompanyName" placeholder="z. B. Muster Gartenbau"></div>
+      <div class="field"><label>Hauptgewerk</label><select id="cloudSetupTrade">
+        <option value="garden">Garten & Landschaft</option><option value="caretaker">Hausmeisterservice</option><option value="cleaning">Gebäudereinigung</option><option value="painter">Maler & Lackierer</option><option value="tiler">Fliesenleger</option><option value="drywall">Trockenbau</option><option value="electrical">Elektro</option><option value="plumbing">Sanitär & Heizung</option><option value="roofing">Dachdecker</option>
+      </select></div>
+      <button class="btn primary cloudMainBtn" onclick="completeCloudCompanySetup()">Betrieb anlegen</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Was ist schon in der Cloud?</h3>
+      <div class="cloudChecklist">
+        <div id="cloudCheckAccount"><span id="cloudCheckAccountIcon">→</span><div><b>Benutzerkonto</b><small id="cloudCheckAccountText">Konto wird geprüft …</small></div></div>
+        <div id="cloudCheckCompany"><span id="cloudCheckCompanyIcon">→</span><div><b>Betrieb</b><small id="cloudCheckCompanyText">Noch nicht eingerichtet.</small></div></div>
+        <div id="cloudCheckSecurity"><span id="cloudCheckSecurityIcon">→</span><div><b>Zugriffsschutz</b><small id="cloudCheckSecurityText">Wird mit dem Betrieb aktiviert.</small></div></div>
+        <div id="cloudCheckData"><span>→</span><div><b>Kunden & Aufträge</b><small>Werden im nächsten Schritt sicher übertragen.</small></div></div>
+      </div>
+    </div>
+
+    <div class="card" id="cloudLocalLinkCard">
+      <h3 style="margin-top:0">Diese App mit dem Betrieb verbinden</h3>
+      <p class="mini">Dadurch merken wir uns, zu welchem Cloud-Betrieb diese lokale Testinstallation gehört. Deine bestehenden Kunden und Rechnungen werden dabei noch nicht hochgeladen.</p>
+      <button class="btn primary cloudMainBtn" id="cloudLinkBtn" onclick="linkLocalAppToCloud()">Lokale App verknüpfen</button>
+      <div id="cloudLinkedInfo" class="notice hidden cloudLinkedNotice" style="margin-top:10px">
+        <b>✓ Verknüpft</b><span>Dieses Gerät gehört jetzt zu deinem Cloud-Betrieb.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="itemTop"><div><h3 style="margin:0">Konto</h3><p class="mini">Du kannst dich jederzeit abmelden. Lokale Daten bleiben auf diesem Gerät erhalten.</p></div></div>
+      <button class="btn danger" onclick="cloudSignOut()">Abmelden</button>
+    </div>
+  </div>
+
+  <div id="cloudMessage" class="notice hidden"></div>
+</section>
+
+<section class="screen" id="weather"><div class="sectionTitle"><h2>Wetter</h2><button class="btn small" onclick="refreshWeather(true)">↻ Aktualisieren</button></div><div class="card"><div class="row"><div class="field"><label>Ort oder Baustellenadresse</label><input class="input" id="weatherSearch" placeholder="z. B. Neubiberg oder Kundenstraße 1, München"></div><div class="field"><label>Datum prüfen</label><input type="date" class="input" id="weatherDate"></div></div><div class="actions"><button class="btn primary" onclick="loadWeatherFromForm()">Wetter prüfen</button><button class="btn" onclick="useDeviceLocation()">📍 Mein Standort</button></div></div><div class="card weatherHero"><div class="weatherNow"><div><span class="pill" id="weatherPageLocation">Noch kein Ort</span><div class="weatherTemp" id="weatherPageTemp">–°</div><div class="mini" id="weatherPageDescription">Ort eingeben und Wetter prüfen.</div></div><div class="weatherIcon" id="weatherPageIcon">⛅</div></div><div class="weatherMeta" id="weatherPageMeta"></div><div id="weatherPageRisk" class="riskBox" style="margin-top:13px">Noch keine Wetterprüfung.</div></div><div class="sectionTitle"><h2>7-Tage-Vorschau</h2><span>Außenarbeiten planen</span></div><div class="forecastStrip" id="weatherForecast"><div class="empty">Noch keine Daten.</div></div><div class="notice" style="margin-top:14px">Die Wetteranzeige ist eine Planungshilfe. Vor sicherheitskritischen Arbeiten bitte zusätzlich amtliche Warnungen und die Bedingungen vor Ort prüfen.</div></section>
+<section class="screen" id="jobs"><div class="sectionTitle"><h2>Baustellen</h2><button class="btn primary small" onclick="newJob()">＋ Neu</button></div><div id="jobList" class="list"></div></section>
+<section class="screen" id="invoices"><div class="sectionTitle"><h2>Rechnungen</h2><button class="btn primary small" onclick="newInvoice()">＋ Neu</button></div><div class="notice">Beim Abschluss einer Baustelle erstellt die App automatisch einen Rechnungsentwurf. Vor Versand bitte Mengen, Zusatzarbeiten, Steuern und Pflichtangaben prüfen.</div><div id="invoiceList" class="list" style="margin-top:12px"></div></section>
+
+<section class="screen" id="tasks"><div class="sectionTitle"><h2>Aufgaben</h2><button class="btn primary small" onclick="newTask()">＋ Neu</button></div><div class="tabs" id="taskTabs"><button class="tab active" data-filter="open">Offen</button><button class="tab" data-filter="done">Erledigt</button><button class="tab" data-filter="all">Alle</button></div><div id="taskList" class="list" style="margin-top:10px"></div></section>
+<section class="screen" id="catalog"><div class="sectionTitle"><div><h2>Material & Leistungen</h2><p class="mini">Dein Betriebskatalog</p></div><button class="btn primary small" onclick="addCatalogItem()">＋ Position</button></div><div class="notice">Standardpositionen sind Startvorlagen. Preise und fachliche Eignung bitte selbst prüfen.</div><div class="card catalogTools"><input id="catalogSearch" class="input" placeholder="🔎 Material oder Leistung suchen …" oninput="renderCatalog()"><div class="filterPills"><button class="pill active" data-catfilter="all" onclick="setCatalogFilter('all',this)">Alle</button><button class="pill" data-catfilter="material" onclick="setCatalogFilter('material',this)">Material</button><button class="pill" data-catfilter="service" onclick="setCatalogFilter('service',this)">Leistungen</button></div></div><div id="catalogList" class="list" style="margin-top:12px"></div></section>
+<section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Lokal gespeichert</span></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="row"><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div><div class="field"><label>Steuer</label><select id="taxMode"><option value="0">Kleinunternehmer §19</option><option value="19">19 % MwSt.</option><option value="7">7 % MwSt.</option></select></div></div><div class="field"><label>Zahlungsziel</label><input class="input" id="paymentTerm" placeholder="z. B. 7 Tage"></div>
+<div class="sectionTitle" style="margin-top:18px"><h3>Rechnungsangaben</h3></div>
+<div class="row"><div class="field"><label>Steuernummer</label><input class="input" id="taxNumber" placeholder="optional"></div><div class="field"><label>USt-IdNr.</label><input class="input" id="vatId" placeholder="optional"></div></div>
+<div class="field"><label>IBAN</label><input class="input" id="iban" placeholder="DE00 …"></div>
+<div class="field"><label>Bank</label><input class="input" id="bankName" placeholder="z. B. Musterbank"></div>
+<button class="btn primary" style="width:100%" onclick="saveSettings()">Speichern</button></div><div class="card"><h3 style="margin-top:0">Datensicherung</h3><div class="actions"><button class="btn" onclick="exportBackup()">Backup exportieren</button><label class="btn" style="display:flex;align-items:center;justify-content:center">Backup importieren<input type="file" accept="application/json" style="display:none" onchange="importBackup(event)"></label></div><button class="btn danger" style="width:100%;margin-top:10px" onclick="resetApp()">Alle Daten löschen</button></div></section>
+
+
+<section class="screen" id="privacy">
+<div class="sectionTitle"><h2>Datenschutz & Sicherheit</h2><span>Version 1.0</span></div>
+<div class="card roleDemoCard">
+  <div class="roleDemoTop"><div><span class="securityBadge">👥 Rollen-Vorschau</span><h3>Ansicht testen</h3><p class="mini">Noch lokal simuliert. Echte sichere Mitarbeiterrechte kommen später mit Benutzerkonten und Backend.</p></div></div>
+  <div class="roleChoice">
+    <button type="button" data-rolechoice="owner" onclick="setLocalRole('owner')">👑 Chef</button>
+    <button type="button" data-rolechoice="office" onclick="setLocalRole('office')">🗂️ Büro</button>
+    <button type="button" data-rolechoice="worker" onclick="setLocalRole('worker')">🛠️ Mitarbeiter</button>
+  </div>
+  <div id="rolePermissionText" class="rolePermissionText"></div>
+</div>
+<div class="card"><div class="itemTop"><div><span class="securityBadge">🔒 Cloud vorbereitet</span><h3>Lokale Geschäftsdaten + echtes Benutzerkonto</h3><p>Login, Betrieb und Rollen können jetzt im sicheren Backend liegen. Kunden, Angebote und Rechnungen bleiben in v11.0 noch lokal, bis wir die erste kontrollierte Cloud-Migration starten.</p></div></div></div>
+<div class="privacyGrid"><div class="privacyTile"><strong>Geschäftsdaten</strong><span class="mini">In v11.0 noch lokal</span></div><div class="privacyTile"><strong>Verbindung</strong><span class="mini">HTTPS + Supabase Auth</span></div><div class="privacyTile"><strong>Cloud-Konto</strong><span class="mini" id="privacyCloudStatus">Optional aktivierbar</span></div><div class="privacyTile"><strong>KI-Übertragung</strong><span class="mini">Deaktiviert</span></div></div>
+<div class="sectionTitle"><h2>Einwilligungen</h2><span>Jederzeit änderbar</span></div>
+<div class="card">
+<div class="switchRow"><div><b>Wetterdienst verwenden</b><div class="mini">Ort oder Baustellenadresse wird zur Wetterabfrage an Open-Meteo übertragen.</div></div><label class="switch"><input id="consentWeather" type="checkbox" onchange="updateConsent('weather',this.checked)"><span class="slider"></span></label></div>
+<div class="switchRow"><div><b>Gerätestandort verwenden</b><div class="mini">Der Browser fragt den Standort erst nach deinem Klick ab.</div></div><label class="switch"><input id="consentLocation" type="checkbox" onchange="updateConsent('location',this.checked)"><span class="slider"></span></label></div>
+<div class="switchRow"><div><b>Externe Apps öffnen</b><div class="mini">Für Google Maps, Google Kalender und WhatsApp können Kundendaten an den gewählten Dienst übergeben werden.</div></div><label class="switch"><input id="consentExternal" type="checkbox" onchange="updateConsent('external',this.checked)"><span class="slider"></span></label></div>
+<div class="switchRow"><div><b>Fehleranalyse</b><div class="mini">Derzeit technisch nicht eingebaut und standardmäßig ausgeschaltet.</div></div><label class="switch"><input id="consentAnalytics" type="checkbox" disabled><span class="slider"></span></label></div>
+</div>
+<div class="sectionTitle"><h2>Rolle & Zugriff</h2><span>Cloud-fähig</span></div>
+<div class="card"><div class="field"><label>Aktuelle Rolle</label><select id="currentRole" onchange="setRole(this.value)"><option value="owner">Chef / Inhaber</option><option value="office">Büro</option><option value="worker">Mitarbeiter</option></select><small>Ohne Cloud-Konto ist dies eine lokale Vorschau. Mit Cloud-Konto wird die echte Rolle zusätzlich serverseitig in Supabase abgesichert.</small></div><div id="roleDescription" class="notice"></div></div>
+<div class="sectionTitle"><h2>Deine Daten</h2><span>Auskunft & Löschung</span></div>
+<div class="card"><div class="actions"><button class="btn" onclick="exportPrivacyData()">Datenkopie exportieren</button><button class="btn" onclick="exportBackup()">Vollständiges Backup</button></div><button class="btn danger" style="width:100%;margin-top:10px" onclick="resetAppPrivacy()">Alle App-Daten dauerhaft löschen</button></div>
+<div class="sectionTitle"><h2>Aktivitätsprotokoll</h2><span>Nur lokal</span></div><div class="card audit" id="auditLog"></div>
+<div class="sectionTitle"><h2>Rechtliches</h2><span>Entwürfe</span></div><div class="quickGrid"><button class="quick" onclick="openLegal('privacyPolicy')"><span class="emoji">📄</span><b>Datenschutz</b><small>Entwurf anzeigen</small></button><button class="quick" onclick="openLegal('imprint')"><span class="emoji">🏢</span><b>Impressum</b><small>Firmendaten prüfen</small></button><button class="quick" onclick="openLegal('terms')"><span class="emoji">⚖️</span><b>Nutzung</b><small>Regeln der App</small></button><button class="quick" onclick="openLegal('architecture')"><span class="emoji">🛡️</span><b>Sicherheitsplan</b><small>Technische Architektur</small></button></div>
+<div class="notice" style="margin-top:14px">Diese Seiten sind technische Arbeitsentwürfe und keine anwaltliche Prüfung oder DSGVO-Zertifizierung. Vor dem kommerziellen Start müssen sie an den tatsächlichen Betrieb und alle eingesetzten Dienstleister angepasst und rechtlich geprüft werden.</div>
+</section>
+<section class="screen" id="legal"><div class="sectionTitle"><h2 id="legalTitle">Dokument</h2><button class="btn small" onclick="showScreen('privacy')">Zurück</button></div><div class="card legalText" id="legalContent"></div></section>
+
+<section class="screen" id="offerEditor">
+  <div class="sectionTitle">
+    <div>
+      <div class="eyebrow appEyebrow">ANGEBOT</div>
+      <h2>Neues Angebot</h2>
+    </div>
+    <button class="btn small finishBtn" onclick="autoSaveOfferAndClose()">✓ Fertig</button>
+  </div>
+
+  <input type="hidden" id="offerId">
+
+  <div class="card compactOfferCard">
+    <div class="flowStep"><span>1</span><div><b>Kunde</b><small>Für wen ist das Angebot?</small></div></div>
+    <div class="field simpleField">
+      <select id="offerCustomer" class="hiddenNativeSelect"></select>
+      <button type="button" id="offerCustomerButton" class="softSelectButton" onclick="openCustomerPicker('offerCustomer')">
+        <span class="softSelectIcon">👤</span>
+        <span class="softSelectText"><b>Kunde auswählen</b><small>Tippen zum Auswählen</small></span>
+        <span class="softChevron">›</span>
+      </button>
+      <button type="button" class="inlineCreateBtn" onclick="openQuickCustomerModal('offerCustomer')">＋ Neuen Kunden direkt anlegen</button>
+    </div>
+  </div>
+
+  <div class="card compactOfferCard">
+    <div class="flowStep"><span>2</span><div><b>Auftrag</b><small>Was soll gemacht werden?</small></div></div>
+    <div class="field simpleField">
+      <input class="input cleanInput" id="offerSubject" placeholder="z. B. Terrassenreinigung">
+    </div>
+    <div class="field simpleField">
+      <textarea class="cleanTextarea" id="offerNotes" placeholder="Optional: kurze Beschreibung oder Besonderheiten"></textarea>
+    </div>
+  </div>
+
+  <div class="card compactOfferCard">
+    <div class="itemTop">
+      <div class="flowStep" style="margin:0"><span>3</span><div><b>Positionen</b><small>Material & Leistungen hinzufügen</small></div></div>
+      <button class="btn primary small addPositionMain" onclick="openPositionPicker()">＋ Position</button>
+    </div>
+    <div id="offerLines" class="offerLinesSimple"></div>
+    <button class="btn ghost addFirstPosition" onclick="openPositionPicker()">＋ Position hinzufügen</button>
+  </div>
+
+  <details class="card moreDetails">
+    <summary>Weitere Angaben</summary>
+    <div class="detailsInner">
+      <div class="row">
+        <div class="field">
+          <label>Datum</label>
+          <input type="date" class="input cleanInput" id="offerDate">
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="offerStatus">
+            <option value="draft">Entwurf</option>
+            <option value="sent">Versendet</option>
+            <option value="accepted">Angenommen</option>
+            <option value="declined">Abgelehnt</option>
+            <option value="completed">Abgeschlossen</option>
+          </select>
+        </div>
+      </div>
+      <div class="field discountField">
+        <div class="discountFieldHead"><label>Rabatt</label><span class="mini">Optional</span></div>
+        <input type="hidden" id="offerDiscountType" value="euro">
+        <div class="discountControl">
+          <div class="discountSegments">
+            <button type="button" class="active" data-discount-owner="offer" data-discount-type="euro" onclick="setDiscountType('offer','euro')">€</button>
+            <button type="button" data-discount-owner="offer" data-discount-type="percent" onclick="setDiscountType('offer','percent')">%</button>
+          </div>
+          <div class="discountInputWrap"><input type="number" class="input cleanInput" id="offerDiscount" value="0" min="0" step="0.01" inputmode="decimal"><span id="offerDiscountSuffix">€</span></div>
+        </div>
+        <small>Anfahrt wird als normale Position hinzugefügt und dadurch nur einmal berechnet.</small>
+      </div>
+    </div>
+  </details>
+
+  <div class="stickyOfferActions">
+    <button class="btn" onclick="previewOffer()">Vorschau</button>
+    <button class="btn primary" onclick="saveOffer()">Angebot speichern</button>
+  </div>
+</section>
+
+<section class="screen" id="offerPreview"><div class="sectionTitle"><h2>Vorschau</h2><button class="btn small" onclick="showScreen('offerEditor')">Bearbeiten</button></div><div id="offerPreviewPaper"></div><div class="actions"><button class="btn" onclick="printOffer()">PDF / Drucken</button><button class="btn" onclick="shareOfferWhatsApp()">WhatsApp</button><button class="btn primary" onclick="saveOffer()">Speichern</button></div></section>
+
+
+<section class="screen" id="invoiceEditor">
+  <div class="sectionTitle"><h2 id="invoiceEditorTitle">Rechnung</h2><button class="btn small finishBtn" onclick="autoSaveInvoiceAndClose()">✓ Fertig</button></div>
+  <div id="invoiceLockBanner" class="invoiceLockBanner hidden">
+    <div><span>🔒</span><div><b>Ausgestellte Rechnung – gesperrt</b><small>Inhalt und Beträge können nicht mehr überschrieben werden. Änderungen erfolgen über Korrektur oder Storno.</small></div></div>
+    <div class="invoiceLockActions"><button class="btn small" id="invoiceCorrectionBtn">↗ Korrekturentwurf</button><button class="btn small danger" id="invoiceCancelDraftBtn">↩ Stornoentwurf</button></div>
+  </div>
+  <div class="card">
+    <input type="hidden" id="invoiceId">
+    <div class="field">
+      <label>Kunde</label>
+      <select id="invoiceCustomer" class="hiddenNativeSelect" data-invoice-editable></select>
+      <button type="button" id="invoiceCustomerButton" class="softSelectButton premiumCustomerSelect" data-invoice-editable onclick="openCustomerPicker('invoiceCustomer')">
+        <span class="softSelectIcon">👤</span>
+        <span class="softSelectText"><b>Kunde auswählen</b><small>Name & Adresse</small></span>
+        <span class="softChevron">›</span>
+      </button>
+      <button type="button" class="inlineCreateBtn" data-invoice-editable onclick="openQuickCustomerModal('invoiceCustomer')">＋ Neuen Kunden anlegen</button>
+    </div>
+    <div class="row"><div class="field"><label>Rechnungsdatum</label><input type="date" class="input" id="invoiceDate" data-invoice-editable></div><div class="field"><label>Fällig am</label><input type="date" class="input" id="invoiceDueDate" data-invoice-editable></div></div>
+    <div class="field"><label>Status</label><select id="invoiceStatus" data-invoice-editable><option value="draft">Entwurf</option><option value="open">Offen / ausgestellt</option><option value="paid">Bezahlt</option><option value="cancelled">Storniert</option></select><small id="invoiceStatusHint">Entwürfe können frei bearbeitet werden. Beim Ausstellen wird die Rechnung gesperrt.</small></div>
+    <div class="field"><label>Betreff</label><input class="input" id="invoiceSubject" placeholder="z. B. Gartenarbeiten" data-invoice-editable></div>
+    <div class="field"><label>Hinweis / Notiz</label><textarea id="invoiceNotes" data-invoice-editable></textarea></div>
+  </div>
+  <div class="card"><div class="itemTop"><h3 style="margin:0">Rechnungspositionen</h3><button class="btn small" id="invoiceAddLineBtn" onclick="addInvoiceLine()">＋ Position</button></div><div id="invoiceLines"></div></div>
+  <div class="card">
+    <div class="field discountField">
+      <div class="discountFieldHead"><label>Rabatt</label><span class="mini">Optional</span></div>
+      <input type="hidden" id="invoiceDiscountType" value="euro" data-invoice-editable>
+      <div class="discountControl">
+        <div class="discountSegments">
+          <button type="button" class="active" data-discount-owner="invoice" data-discount-type="euro" onclick="setDiscountType('invoice','euro')" data-invoice-editable>€</button>
+          <button type="button" data-discount-owner="invoice" data-discount-type="percent" onclick="setDiscountType('invoice','percent')" data-invoice-editable>%</button>
+        </div>
+        <div class="discountInputWrap"><input type="number" class="input" id="invoiceDiscount" value="0" min="0" step="0.01" inputmode="decimal" data-invoice-editable><span id="invoiceDiscountSuffix">€</span></div>
+      </div>
+      <small>Anfahrt ist eine normale Rechnungsposition und wird nicht zusätzlich berechnet.</small>
+    </div>
+    <div class="actions"><button class="btn" onclick="previewInvoice()">Vorschau</button><button class="btn primary" id="invoiceSaveBtn" onclick="saveInvoice()">Rechnung speichern</button></div>
+  </div>
+</section>
+<section class="screen" id="invoicePreview"><div class="sectionTitle"><h2>Rechnungsvorschau</h2><button class="btn small" onclick="showScreen('invoices')">Zurück</button></div><input type="hidden" id="invoicePreviewSource"><div id="invoicePreviewPaper"></div><div class="actions"><button class="btn primary" onclick="printInvoice()">PDF / Drucken</button></div></section>
+
+<section class="screen" id="customerEditor"><div class="sectionTitle"><h2 id="customerEditorTitle">Neuer Kunde</h2><button class="btn small" onclick="showScreen('customers')">Schließen</button></div><div class="card"><input type="hidden" id="customerId"><div class="row"><div class="field"><label>Name / Firma</label><input class="input" id="custName"></div><div class="field"><label>Ansprechpartner</label><input class="input" id="custContact"></div></div><div class="field"><label>Adresse</label><input class="input" id="custAddress"></div><div class="row"><div class="field"><label>Telefon</label><input class="input" id="custPhone"></div><div class="field"><label>E-Mail</label><input class="input" id="custEmail"></div></div><div class="field"><label>Notizen</label><textarea id="custNotes"></textarea></div><button class="btn primary" style="width:100%" onclick="saveCustomer()">Kunde speichern</button></div></section>
+<section class="screen" id="eventEditor">
+  <div class="sectionTitle"><h2 id="eventEditorTitle">Neuer Termin</h2><button class="btn small" onclick="showScreen('calendar')">Schließen</button></div>
+  <div class="card">
+    <input type="hidden" id="eventId">
+    <div class="field"><label>Titel</label><input class="input" id="eventTitle"></div>
+    <div class="field"><label>Kunde</label><select id="eventCustomer" onchange="syncEventCustomerFields()"></select></div>
+    <div class="row">
+      <div class="field"><label>Datum</label><input type="date" class="input" id="eventDate"></div>
+      <div class="field"><label>Uhrzeit</label><input type="time" class="input" id="eventTime" value="08:00"></div>
+    </div>
+    <div class="field">
+      <label>Dauer (Std.)</label>
+      <div class="durationField"><input type="number" class="input" id="eventDurationHours" value="1" min="0.25" step="0.25" inputmode="decimal"><span>Std.</span></div>
+      <small>Auch halbe oder Viertelstunden möglich, z. B. 0,5 oder 0,75.</small>
+    </div>
+    <div class="field">
+      <label>Terminart</label>
+      <input type="hidden" id="eventType" value="Baustelle">
+      <div class="eventTypeGrid">
+        <button type="button" data-eventtype="Baustelle" onclick="setEventType('Baustelle')"><span>🏗️</span><b>Baustelle</b></button>
+        <button type="button" data-eventtype="Besichtigung" onclick="setEventType('Besichtigung')"><span>👀</span><b>Besichtigung</b></button>
+        <button type="button" data-eventtype="Abnahme" onclick="setEventType('Abnahme')"><span>✅</span><b>Abnahme</b></button>
+        <button type="button" data-eventtype="Sonstiges" onclick="setEventType('Sonstiges')"><span>•••</span><b>Sonstiges</b></button>
+      </div>
+    </div>
+    <div class="field"><label>Adresse</label><input class="input" id="eventAddress"></div>
+    <div class="field"><label>Notiz</label><textarea id="eventNotes"></textarea></div>
+    <button class="btn primary" style="width:100%" onclick="saveEvent()">Termin speichern</button>
+  </div>
+</section>
+<section class="screen" id="taskEditor"><div class="sectionTitle"><h2>Aufgabe</h2><button class="btn small" onclick="showScreen('tasks')">Schließen</button></div><div class="card"><input type="hidden" id="taskId"><div class="field"><label>Aufgabe</label><input class="input" id="taskTitle"></div><div class="row"><div class="field"><label>Fällig am</label><input type="date" class="input" id="taskDate"></div><div class="field"><label>Priorität</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">Hoch</option><option value="low">Niedrig</option></select></div></div><div class="field"><label>Notiz</label><textarea id="taskNotes"></textarea></div><button class="btn primary" style="width:100%" onclick="saveTask()">Aufgabe speichern</button></div></section>
+<section class="screen" id="jobEditor"><div class="sectionTitle"><h2>Baustelle</h2><button class="btn small" onclick="showScreen('jobs')">Schließen</button></div><div class="card"><input type="hidden" id="jobId"><div class="field"><label>Baustellenname</label><input class="input" id="jobTitle"></div><div class="field"><label>Kunde</label><select id="jobCustomer" onchange="syncJobCustomerFields()"></select></div><div class="field"><label>Adresse</label><input class="input" id="jobAddress"></div><div class="row"><div class="field"><label>Start</label><input type="date" class="input" id="jobStart"></div><div class="field"><label>Status</label><select id="jobStatus"><option value="open">Geplant</option><option value="active">In Arbeit</option><option value="done">Abgeschlossen</option></select></div></div><div class="field"><label>Angenommenes Angebot</label><select id="jobOffer" onchange="syncJobOfferFields()"></select><small>Wird beim Abschluss als Grundlage für den Rechnungsentwurf verwendet.</small></div><div class="field"><label>Material / Notizen</label><textarea id="jobNotes"></textarea></div>
+<div class="jobDocBox">
+  <div class="jobDocHead"><div><b>📸 Baustellendokumentation</b><p>Fotos und kurze Notizen direkt dieser Baustelle zuordnen.</p></div><span id="jobPhotoCount" class="countPill">0 Fotos</span></div>
+  <label class="photoAddBtn">＋ Foto hinzufügen<input id="jobPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="addJobPhotos(event)" hidden></label>
+  <div id="jobPhotoGrid" class="photoGrid"></div>
+  <div class="field" style="margin-top:12px"><label>Dokumentationsnotiz</label><textarea id="jobDocNote" class="cleanTextarea" placeholder="z. B. Untergrund vor Arbeitsbeginn dokumentiert …"></textarea></div>
+</div><button class="btn primary" style="width:100%" onclick="saveJob()">Baustelle speichern</button></div></section>
+
+</div>
+<nav class="bottomNav"><button class="navBtn active" data-screen="today"><b>☀️</b>Heute</button><button class="navBtn" data-screen="offers"><b>📄</b>Angebote</button><button class="navBtn" data-screen="customers"><b>👥</b>Kunden</button><button class="navBtn" data-screen="calendar"><b>📅</b>Kalender</button><button class="navBtn" data-screen="more"><b>•••</b>Mehr</button></nav>
+
+
+<div id="customerPickerModal" class="sheetBackdrop hidden" onclick="closeCustomerPicker(event)">
+  <div class="bottomSheet softPickerSheet" onclick="event.stopPropagation()">
+    <div class="sheetHandle"></div>
+    <div class="sheetHeader"><div><div class="eyebrow">KUNDE</div><h2>Kunde auswählen</h2></div><button class="sheetClose" onclick="closeCustomerPicker()">✕</button></div>
+    <div class="pickerSearch"><span>⌕</span><input id="customerPickerSearch" placeholder="Name, Ort oder Adresse suchen …" oninput="renderCustomerPicker()"></div>
+    <div id="customerPickerList" class="customerPickerList"></div>
+    <button class="inlineCreateBtn prominentCreate" onclick="openQuickCustomerModal(customerPickerTarget)">＋ Neuen Kunden anlegen</button>
+  </div>
+</div>
+
+<div id="quickCustomerModal" class="appModalBackdrop hidden" onclick="closeQuickCustomerModal(event)">
+  <div class="appModal appModalForm" onclick="event.stopPropagation()">
+    <div class="appModalHeader"><div><div class="modalEyebrow">NEUER KUNDE</div><h3>Kunde direkt anlegen</h3></div><button class="modalClose" onclick="closeQuickCustomerModal()">✕</button></div>
+    <input type="hidden" id="quickCustomerTarget">
+    <div class="field"><label>Name / Firma</label><input id="quickCustName" class="input modalInput" placeholder="z. B. Max Mustermann"></div>
+    <div class="field"><label>Adresse</label><input id="quickCustAddress" class="input modalInput" placeholder="Straße, PLZ, Ort"></div>
+    <div class="modalGrid">
+      <div class="field"><label>Telefon</label><input id="quickCustPhone" class="input modalInput" inputmode="tel"></div>
+      <div class="field"><label>E-Mail</label><input id="quickCustEmail" class="input modalInput" inputmode="email"></div>
+    </div>
+    <button class="btn primary modalPrimary" onclick="saveQuickCustomer()">Kunde anlegen & auswählen</button>
+  </div>
+</div>
+
+<div id="positionPicker" class="sheetBackdrop hidden" onclick="closePositionPicker(event)">
+  <div class="bottomSheet" onclick="event.stopPropagation()">
+    <div class="sheetHandle"></div>
+    <div class="sheetHeader"><div><div class="eyebrow">ANGEBOTSPOSITION</div><h2>Position hinzufügen</h2></div><button class="sheetClose" onclick="closePositionPicker()">✕</button></div>
+    <div class="pickerSearch"><span>⌕</span><input id="positionSearch" placeholder="Material oder Leistung suchen …" oninput="renderPositionPicker()"></div>
+    <div class="pickerTabs"><button class="pickerTab active" data-pickertype="all" onclick="setPositionPickerType('all',this)">Alle</button><button class="pickerTab" data-pickertype="material" onclick="setPositionPickerType('material',this)">Material</button><button class="pickerTab" data-pickertype="service" onclick="setPositionPickerType('service',this)">Leistungen</button></div>
+    <div id="positionPickerCategories" class="pickerCategories"></div><div id="positionPickerContent" class="pickerContent"></div>
+    <button class="customPositionBtn" onclick="addCustomPositionFromPicker()">＋ Eigene Position erstellen</button>
+  </div>
+</div>
+<div id="quickEditModal" class="miniModalBackdrop hidden" onclick="closeQuickEdit(event)"><div class="miniModal" onclick="event.stopPropagation()">
+  <div class="sheetHeader"><div><div class="eyebrow">NEUE POSITION</div><h3>Eigene Position</h3></div><button class="sheetClose" onclick="closeQuickEdit()">✕</button></div>
+  <div class="field"><label>Bezeichnung</label><input id="customPosName" class="input" placeholder="z. B. Kranstellung"></div>
+  <div class="row"><div class="field"><label>Einheit</label><input id="customPosUnit" class="input" placeholder="Std., m², Stk. …"></div><div class="field"><label>Preis (€)</label><input id="customPosPrice" type="number" step="0.01" class="input" placeholder="0,00"></div></div>
+  <button class="btn primary" style="width:100%" onclick="saveCustomPositionFromPicker()">Position hinzufügen</button>
+</div></div>
+
+
+
+<div id="nameSetupModal" class="appModalBackdrop hidden">
+  <div class="appModal" onclick="event.stopPropagation()">
+    <div class="confirmIcon">👋</div>
+    <h3>Wie dürfen wir dich nennen?</h3>
+    <p class="appConfirmText">Dann begrüßt dich AngebotsPilot mit deinem richtigen Namen.</p>
+    <div class="field"><label>Dein Vorname</label><input id="startupOwnerName" class="input modalInput" placeholder="z. B. Max" autocomplete="given-name"></div>
+    <button class="btn primary modalPrimary" onclick="saveStartupOwnerName()">Weiter →</button>
+  </div>
+</div>
+<div id="catalogEditorModal" class="appModalBackdrop hidden" onclick="closeCatalogEditor(event)">
+  <div class="appModal appModalForm" onclick="event.stopPropagation()">
+    <div class="appModalHeader">
+      <div><div class="modalEyebrow">KATALOG</div><h3 id="catalogEditorTitle">Neue Position</h3></div>
+      <button class="modalClose" onclick="closeCatalogEditor()">✕</button>
+    </div>
+    <input type="hidden" id="catalogEditId">
+    <div class="field"><label>Art</label><div class="segmented">
+      <button id="catalogTypeMaterial" type="button" onclick="setCatalogEditorType('material')">📦 Material</button>
+      <button id="catalogTypeService" type="button" onclick="setCatalogEditorType('service')">🛠️ Leistung</button>
+    </div></div>
+    <div class="field"><label>Bezeichnung</label><input id="catalogEditName" class="input modalInput" placeholder="z. B. Pflastersteine"></div>
+    <div class="modalGrid">
+      <div class="field"><label>Einheit</label><input id="catalogEditUnit" class="input modalInput" placeholder="m², Std., Stk. …"></div>
+      <div class="field"><label>Verkaufspreis (€)</label><input id="catalogEditPrice" type="number" step="0.01" class="input modalInput" placeholder="0,00"></div>
+    </div>
+    <p class="modalHint">Du kannst den Preis auch später ergänzen oder jederzeit ändern.</p>
+    <button class="btn primary modalPrimary" onclick="saveCatalogEditor()">Speichern</button>
+  </div>
+</div>
+
+<div id="offerStatusModal" class="appModalBackdrop hidden" onclick="closeOfferStatusModal(event)">
+  <div class="appModal" onclick="event.stopPropagation()">
+    <div class="appModalHeader"><div><div class="modalEyebrow">ANGEBOT</div><h3>Status ändern</h3></div><button class="modalClose" onclick="closeOfferStatusModal()">✕</button></div>
+    <input type="hidden" id="statusOfferId">
+    <div class="statusChoices">
+      <button onclick="setOfferStatusFromModal('draft')"><span>📝</span><div><b>Entwurf</b><small>Noch in Bearbeitung</small></div></button>
+      <button onclick="setOfferStatusFromModal('sent')"><span>📤</span><div><b>Versendet</b><small>Beim Kunden</small></div></button>
+      <button onclick="setOfferStatusFromModal('accepted')"><span>✅</span><div><b>Angenommen</b><small>Auftrag kann geplant werden</small></div></button>
+      <button onclick="setOfferStatusFromModal('rejected')"><span>✕</span><div><b>Abgelehnt</b><small>Nicht angenommen</small></div></button>
+      <button onclick="setOfferStatusFromModal('completed')"><span>🏁</span><div><b>Abgeschlossen</b><small>Vorgang vollständig erledigt</small></div></button>
+    </div>
+  </div>
+</div>
+
+<div id="appConfirmModal" class="appModalBackdrop hidden">
+  <div class="appModal" onclick="event.stopPropagation()">
+    <div class="confirmIcon" id="appConfirmIcon">🔐</div>
+    <h3 id="appConfirmTitle">Bestätigen</h3>
+    <p id="appConfirmText" class="appConfirmText"></p>
+    <div class="modalActions">
+      <button class="btn" onclick="resolveAppConfirm(false)">Abbrechen</button>
+      <button class="btn primary" id="appConfirmYes" onclick="resolveAppConfirm(true)">Erlauben</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteDataModal" class="appModalBackdrop hidden" onclick="closeDeleteDataModal(event)">
+  <div class="appModal" onclick="event.stopPropagation()">
+    <div class="confirmIcon dangerIcon">🗑️</div>
+    <h3>Alle App-Daten löschen?</h3>
+    <p class="appConfirmText">Kunden, Angebote, Rechnungen und Einstellungen auf diesem Gerät werden dauerhaft entfernt.</p>
+    <div class="field"><label>Zur Bestätigung <b>LÖSCHEN</b> eingeben</label><input id="deleteDataPhrase" class="input modalInput" autocomplete="off"></div>
+    <div class="modalActions">
+      <button class="btn" onclick="closeDeleteDataModal()">Abbrechen</button>
+      <button class="btn danger" onclick="confirmDeleteAllData()">Daten löschen</button>
+    </div>
+  </div>
+</div>
+
+<div id="onboarding" class="onboarding hidden onboardingLight">
+  <div class="onboardGlow"></div><div class="onboardCard">
+    <div class="onboardTop"><button id="onboardBack" class="onboardBack hidden" onclick="previousOnboarding()" aria-label="Zurück">←</button><div class="brandMark" id="onboardBrand">🔨</div><div class="progressWrap"><div id="onboardProgress" class="progressBar"></div></div><button class="skipBtn" onclick="skipOnboarding()">Später</button></div>
+    <div class="onStep" data-step="0"><div class="heroEmoji">👋</div><div class="eyebrow">Willkommen</div><h1>Dein Betrieb. Weniger Büro.</h1><p class="lead">Wir richten den Digitalen Handwerker in wenigen Minuten für deinen Betrieb ein.</p><div class="benefitRow"><span>✓ Angebote</span><span>✓ Baustellen</span><span>✓ Rechnungen</span></div><button class="btn primary onboardPrimary" onclick="nextOnboarding()">Los geht’s →</button><p class="microcopy">Keine komplizierte Einrichtung. Du kannst alles später ändern.</p></div>
+    <div class="onStep hidden" data-step="1"><div class="eyebrow">Schritt 1 von 4</div><h2>Was macht dein Betrieb?</h2><p>Wähle dein Hauptgewerk. Wir bereiten passende Materialien und Leistungen vor.</p><div id="tradeGrid" class="tradeGrid"></div><button id="tradeNext" class="btn primary onboardPrimary" onclick="nextOnboarding()" disabled>Weiter →</button></div>
+    <div class="onStep hidden" data-step="2"><div class="eyebrow">Schritt 2 von 4</div><h2>Wer arbeitet mit AngebotsPilot?</h2><p>Damit Begrüßung und Betrieb direkt zu dir passen.</p><div class="field"><label>Dein Vorname</label><input id="onOwnerName" class="input bigInput" placeholder="z. B. Max"><small>Wird nur für die persönliche Begrüßung verwendet.</small></div><div class="field"><label>Firmenname</label><input id="onCompany" class="input bigInput" placeholder="z. B. Muster Gartenbau"></div><div class="field"><label>Ort</label><input id="onLocation" class="input bigInput" placeholder="z. B. München"></div><div class="choiceRow"><button class="choice active" data-tax="0" onclick="pickTax(0,this)">Kleinunternehmer</button><button class="choice" data-tax="19" onclick="pickTax(19,this)">19 % MwSt.</button></div><button class="btn primary onboardPrimary" onclick="nextOnboarding()">Weiter →</button></div>
+    <div class="onStep hidden catalogReadyStep" data-step="3"><div class="eyebrow">Schritt 3 von 4</div><h2>Dein Startkatalog ist bereit.</h2><p id="catalogIntro">Wir haben passende Positionen vorbereitet.</p><div class="successOrb">✓</div><div id="catalogStats" class="catalogStats" aria-live="polite"></div><div class="onboardNote">Du musst jetzt nicht jeden Preis eintragen. Ergänze Preise einfach dann, wenn du die Position zum ersten Mal brauchst.</div><button class="btn primary onboardPrimary" onclick="installTradeCatalog()">Katalog übernehmen →</button></div>
+    <div class="onStep hidden" data-step="4"><div class="celebrate">✨</div><div class="eyebrow">Fertig</div><h1>Dein Betrieb ist startklar.</h1><p class="lead">In 60 Sekunden zeigen wir dir, wo alles ist.</p><div class="finishCard"><div><span id="finishCount">0</span><small>Positionen vorbereitet</small></div><div><span>5</span><small>kurze Tour-Schritte</small></div></div><button class="btn primary onboardPrimary pulse" onclick="finishOnboardingWithTour()">App kurz kennenlernen →</button><button class="textBtn" onclick="finishOnboarding(true)">Direkt erstes Angebot erstellen</button></div>
+  </div>
+</div>
+
+
+
+<div id="customerFileViewer" class="appModalBackdrop hidden" onclick="closeCustomerFileViewer(event)">
+  <div class="appModal fileViewerModal" onclick="event.stopPropagation()">
+    <div class="appModalHeader">
+      <div><div class="modalEyebrow">KUNDENAKTE</div><h3 id="fileViewerTitle">Datei</h3></div>
+      <button class="modalClose" onclick="closeCustomerFileViewer()">✕</button>
+    </div>
+    <div id="fileViewerContent" class="fileViewerContent"></div>
+    <div class="modalActions">
+      <button class="btn" id="fileViewerOpenBtn">Öffnen / Teilen</button>
+      <button class="btn danger owner-office-only" id="fileViewerDeleteBtn">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<div id="productTour" class="tourBackdrop hidden">
+  <div class="tourSpotlight"></div>
+  <div class="tourCard">
+    <div class="tourTop"><span id="tourCounter">1 von 5</span><button class="tourSkip" onclick="finishProductTour()">Überspringen</button></div>
+    <div id="tourIcon" class="tourIcon">☀️</div>
+    <h3 id="tourTitle">Heute</h3>
+    <p id="tourText">Hier siehst du sofort, was heute wichtig ist.</p>
+    <div class="tourDots" id="tourDots"></div>
+    <div class="tourActions"><button id="tourBack" class="btn" onclick="previousTourStep()">← Zurück</button><button id="tourNext" class="btn primary" onclick="nextTourStep()">Weiter →</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div><div id="printArea"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="cloud-config.js?v=11.0.2" defer></script>
+<script src="data-repository.js?v=11.0.2" defer></script>
+<script src="script.js?v=11.0.2" defer></script>
+<script src="cloud-auth.js?v=11.0.2" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
+</body>
+</html>
