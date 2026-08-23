@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Handwerker">
-<link rel="stylesheet" href="style.css?v=11.2.1">
+<link rel="stylesheet" href="style.css?v=11.3">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -98,7 +98,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.2.1</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.3</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -167,7 +167,7 @@
     <h3 style="margin-top:0">Wer sieht was?</h3>
     <div class="teamRightRow"><span>👑</span><div><b>Chef / Inhaber</b><small>Alles, Betriebseinstellungen und Teamverwaltung.</small></div></div>
     <div class="teamRightRow"><span>🗂️</span><div><b>Büro</b><small>Kunden, Angebote, Rechnungen, Kalender, Aufgaben und Baustellen.</small></div></div>
-    <div class="teamRightRow"><span>🛠️</span><div><b>Mitarbeiter</b><small>Keine Preise oder Rechnungen. Später nur zugewiesene Baustellen und deren Kundendaten.</small></div></div>
+    <div class="teamRightRow"><span>🛠️</span><div><b>Mitarbeiter</b><small>Keine Preise oder Rechnungen. Sie sehen nur zugewiesene Baustellen und die dafür nötigen Kundendaten.</small></div></div>
   </div>
 </section>
 
@@ -265,7 +265,7 @@
 </section>
 
 <section class="screen" id="weather"><div class="sectionTitle"><h2>Wetter</h2><button class="btn small" onclick="refreshWeather(true)">↻ Aktualisieren</button></div><div class="card"><div class="row"><div class="field"><label>Ort oder Baustellenadresse</label><input class="input" id="weatherSearch" placeholder="z. B. Neubiberg oder 85579 Neubiberg"></div><div class="field"><label>Datum prüfen</label><input type="date" class="input" id="weatherDate"></div></div><div class="actions"><button class="btn primary" onclick="loadWeatherFromForm()">Wetter prüfen</button><button class="btn" onclick="useDeviceLocation()">📍 Mein Standort</button></div></div><div class="card weatherHero"><div class="weatherNow"><div><span class="pill" id="weatherPageLocation">Noch kein Ort</span><div class="weatherTemp" id="weatherPageTemp">–°</div><div class="mini" id="weatherPageDescription">Ort eingeben und Wetter prüfen.</div></div><div class="weatherIcon" id="weatherPageIcon">⛅</div></div><div class="weatherMeta" id="weatherPageMeta"></div><div id="weatherPageRisk" class="riskBox" style="margin-top:13px">Noch keine Wetterprüfung.</div></div><div class="sectionTitle"><h2>7-Tage-Vorschau</h2><span>Außenarbeiten planen</span></div><div class="forecastStrip" id="weatherForecast"><div class="empty">Noch keine Daten.</div></div><div class="notice" style="margin-top:14px">Die Wetteranzeige ist eine Planungshilfe. Vor sicherheitskritischen Arbeiten bitte zusätzlich amtliche Warnungen und die Bedingungen vor Ort prüfen.</div></section>
-<section class="screen" id="jobs"><div class="sectionTitle"><h2>Baustellen</h2><button class="btn primary small owner-office-only" onclick="newJob()">＋ Neu</button></div><div id="jobList" class="list"></div></section>
+<section class="screen" id="jobs"><div class="sectionTitle"><div><h2 id="jobsScreenTitle">Baustellen</h2><p class="mini worker-only">Nur dir zugewiesene Baustellen</p></div><div class="sectionActions"><button class="btn small worker-only" onclick="refreshMyJobs()">↻ Aktualisieren</button><button class="btn primary small owner-office-only" onclick="newJob()">＋ Neu</button></div></div><div id="jobList" class="list"></div></section>
 <section class="screen" id="invoices"><div class="sectionTitle"><h2>Rechnungen</h2><button class="btn primary small" onclick="newInvoice()">＋ Neu</button></div><div class="notice">Beim Abschluss einer Baustelle erstellt die App automatisch einen Rechnungsentwurf. Vor Versand bitte Mengen, Zusatzarbeiten, Steuern und Pflichtangaben prüfen.</div><div id="invoiceList" class="list" style="margin-top:12px"></div></section>
 
 <section class="screen" id="tasks"><div class="sectionTitle"><h2>Aufgaben</h2><button class="btn primary small owner-office-only" onclick="newTask()">＋ Neu</button></div><div class="tabs" id="taskTabs"><button class="tab active" data-filter="open">Offen</button><button class="tab" data-filter="done">Erledigt</button><button class="tab" data-filter="all">Alle</button></div><div id="taskList" class="list" style="margin-top:10px"></div></section>
@@ -463,13 +463,37 @@
   </div>
 </section>
 <section class="screen" id="taskEditor"><div class="sectionTitle"><h2>Aufgabe</h2><button class="btn small" onclick="showScreen('tasks')">Schließen</button></div><div class="card"><input type="hidden" id="taskId"><div class="field"><label>Aufgabe</label><input class="input" id="taskTitle"></div><div class="row"><div class="field"><label>Fällig am</label><input type="date" class="input" id="taskDate"></div><div class="field"><label>Priorität</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">Hoch</option><option value="low">Niedrig</option></select></div></div><div class="field"><label>Notiz</label><textarea id="taskNotes"></textarea></div><button class="btn primary" style="width:100%" onclick="saveTask()">Aufgabe speichern</button></div></section>
-<section class="screen" id="jobEditor"><div class="sectionTitle"><h2>Baustelle</h2><button class="btn small" onclick="showScreen('jobs')">Schließen</button></div><div class="card"><input type="hidden" id="jobId"><div class="field"><label>Baustellenname</label><input class="input" id="jobTitle"></div><div class="field"><label>Kunde</label><select id="jobCustomer" onchange="syncJobCustomerFields()"></select></div><div class="field"><label>Adresse</label><input class="input" id="jobAddress"></div><div class="row"><div class="field"><label>Start</label><input type="date" class="input" id="jobStart"></div><div class="field"><label>Status</label><select id="jobStatus"><option value="open">Geplant</option><option value="active">In Arbeit</option><option value="done">Abgeschlossen</option></select></div></div><div class="field"><label>Angenommenes Angebot</label><select id="jobOffer" onchange="syncJobOfferFields()"></select><small>Wird beim Abschluss als Grundlage für den Rechnungsentwurf verwendet.</small></div><div class="field"><label>Material / Notizen</label><textarea id="jobNotes"></textarea></div>
-<div class="jobDocBox">
-  <div class="jobDocHead"><div><b>📸 Baustellendokumentation</b><p>Fotos und kurze Notizen direkt dieser Baustelle zuordnen.</p></div><span id="jobPhotoCount" class="countPill">0 Fotos</span></div>
-  <label class="photoAddBtn">＋ Foto hinzufügen<input id="jobPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="addJobPhotos(event)" hidden></label>
-  <div id="jobPhotoGrid" class="photoGrid"></div>
-  <div class="field" style="margin-top:12px"><label>Dokumentationsnotiz</label><textarea id="jobDocNote" class="cleanTextarea" placeholder="z. B. Untergrund vor Arbeitsbeginn dokumentiert …"></textarea></div>
-</div><button class="btn primary" style="width:100%" onclick="saveJob()">Baustelle speichern</button></div></section>
+<section class="screen" id="jobEditor">
+  <div class="sectionTitle"><div><h2>Baustelle</h2><p class="mini" id="jobEditorSubtitle">Auftrag & Dokumentation</p></div><button class="btn small" onclick="showScreen('jobs')">Schließen</button></div>
+  <div class="card">
+    <input type="hidden" id="jobId">
+    <div class="field"><label>Baustellenname</label><input class="input jobProtectedField" id="jobTitle"></div>
+    <div class="field"><label>Kunde</label><select class="jobProtectedField" id="jobCustomer" onchange="syncJobCustomerFields()"></select></div>
+    <div class="field"><label>Adresse</label><input class="input jobProtectedField" id="jobAddress"></div>
+    <div class="row"><div class="field"><label>Start</label><input type="date" class="input jobProtectedField" id="jobStart"></div><div class="field"><label>Status</label><select id="jobStatus"><option value="open">Geplant</option><option value="active">In Arbeit</option><option value="done">Abgeschlossen</option></select></div></div>
+    <div class="field owner-office-only" id="jobOfferField"><label>Angenommenes Angebot</label><select id="jobOffer" onchange="syncJobOfferFields()"></select><small>Wird beim Abschluss als Grundlage für den Rechnungsentwurf verwendet.</small></div>
+    <div class="field"><label>Material / Notizen</label><textarea id="jobNotes"></textarea></div>
+  </div>
+
+  <div class="card jobAssignmentCard owner-office-only">
+    <div class="jobDocHead"><div><b>👷 Mitarbeiter zuweisen</b><p>Ausgewählte Mitarbeiter sehen diese Baustelle auf ihrem eigenen Konto.</p></div><span id="jobAssignmentCount" class="countPill">0 zugewiesen</span></div>
+    <div id="jobAssignmentPicker" class="jobAssignmentPicker"><div class="empty">Mitarbeiter werden geladen …</div></div>
+    <button type="button" class="btn small" onclick="JobAssignments.refresh()">↻ Team neu laden</button>
+  </div>
+
+  <div class="card worker-only workerJobNotice">
+    <div class="jobDocHead"><div><b>🛠️ Deine Baustelle</b><p>Du kannst Status und Dokumentation aktualisieren. Kundenzuordnung, Adresse und Preise bleiben beim Büro.</p></div><span class="securityBadge">ZUGEWIESEN</span></div>
+  </div>
+
+  <div class="card">
+    <div class="jobDocHead"><div><b>📸 Baustellendokumentation</b><p>Fotos und kurze Notizen direkt dieser Baustelle zuordnen.</p></div><span id="jobPhotoCount" class="countPill">0 Fotos</span></div>
+    <label class="photoAddBtn">＋ Foto hinzufügen<input id="jobPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="addJobPhotos(event)" hidden></label>
+    <div id="jobPhotoGrid" class="photoGrid"></div>
+    <div class="field" style="margin-top:12px"><label>Dokumentationsnotiz</label><textarea id="jobDocNote" class="cleanTextarea" placeholder="z. B. Untergrund vor Arbeitsbeginn dokumentiert …"></textarea></div>
+    <div class="worker-only jobLocalPhotoHint">Fotos bleiben in v11.3 noch auf diesem Gerät. Die gemeinsame Foto-Cloud folgt als nächster Schritt.</div>
+  </div>
+  <button class="btn primary" id="jobSaveBtn" style="width:100%" onclick="saveJob()">Baustelle speichern</button>
+</section>
 
 </div>
 <nav class="bottomNav"><button class="navBtn active" data-screen="today"><b>☀️</b>Heute</button><button class="navBtn" data-screen="offers"><b>📄</b>Angebote</button><button class="navBtn" data-screen="customers"><b>👥</b>Kunden</button><button class="navBtn" data-screen="calendar"><b>📅</b>Kalender</button><button class="navBtn" data-screen="more"><b>•••</b>Mehr</button></nav>
@@ -793,12 +817,13 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.2.1" defer></script>
-<script src="data-repository.js?v=11.2.1" defer></script>
-<script src="script.js?v=11.2.1" defer></script>
-<script src="cloud-sync.js?v=11.2.1" defer></script>
-<script src="team.js?v=11.2.1" defer></script>
-<script src="cloud-auth.js?v=11.2.1" defer></script>
+<script src="cloud-config.js?v=11.3" defer></script>
+<script src="data-repository.js?v=11.3" defer></script>
+<script src="script.js?v=11.3" defer></script>
+<script src="cloud-sync.js?v=11.3" defer></script>
+<script src="team.js?v=11.3" defer></script>
+<script src="assignments.js?v=11.3" defer></script>
+<script src="cloud-auth.js?v=11.3" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

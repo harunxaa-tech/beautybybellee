@@ -1029,10 +1029,121 @@ function syncLinkedJobFromEvent(ev){
   job.start=ev.date||job.start;job.address=ev.address||job.address;if(ev.customerId)job.customerId=ev.customerId;
 }
 
-function newJob(){document.getElementById('jobId').value='';document.getElementById('jobTitle').value='';document.getElementById('jobCustomer').innerHTML=customerOptions();document.getElementById('jobAddress').value='';document.getElementById('jobAddress').dataset.autoFilled='1';document.getElementById('jobStart').value=todayISO();document.getElementById('jobStatus').value='open';document.getElementById('jobNotes').value='';document.getElementById('jobOffer').innerHTML=acceptedOfferOptions();jobDraftPhotos=[];document.getElementById('jobDocNote').value='';renderJobPhotos();showScreen('jobEditor')}
-function editJob(id){const j=data.jobs.find(x=>x.id===id);if(!j)return;document.getElementById('jobId').value=j.id;document.getElementById('jobTitle').value=j.title;document.getElementById('jobCustomer').innerHTML=customerOptions(j.customerId);document.getElementById('jobAddress').value=j.address||'';document.getElementById('jobAddress').dataset.autoFilled='0';document.getElementById('jobStart').value=j.start;document.getElementById('jobStatus').value=j.status;document.getElementById('jobNotes').value=j.notes||'';document.getElementById('jobOffer').innerHTML=acceptedOfferOptions(j.offerId||'',j.customerId);jobDraftPhotos=structuredClone(j.photos||[]);document.getElementById('jobDocNote').value=j.docNote||'';renderJobPhotos();showScreen('jobEditor')}
-function saveJob(){const id=document.getElementById('jobId').value,old=id?data.jobs.find(x=>x.id===id):null,obj={id:id||uid(),title:document.getElementById('jobTitle').value.trim(),customerId:document.getElementById('jobCustomer').value,address:document.getElementById('jobAddress').value.trim(),start:document.getElementById('jobStart').value,status:document.getElementById('jobStatus').value,notes:document.getElementById('jobNotes').value.trim(),offerId:document.getElementById('jobOffer').value||'',invoiceId:old?.invoiceId||'',eventId:old?.eventId||'',photos:structuredClone(jobDraftPhotos),docNote:document.getElementById('jobDocNote').value.trim()};if(!obj.title)return toast('Name fehlt');if(id)data.jobs[data.jobs.findIndex(x=>x.id===id)]=obj;else data.jobs.push(obj);upsertCalendarEventForJob(obj);let invoiceResult=null,invoiceWasNew=false;if((data.privacy?.role||'owner')!=='worker'&&obj.status==='done'&&old?.status!=='done'&&!obj.invoiceId){const before=data.invoices.length;invoiceResult=createInvoiceFromJobObject(obj);invoiceWasNew=data.invoices.length>before;if(invoiceResult)obj.invoiceId=invoiceResult.id;data.jobs[data.jobs.findIndex(x=>x.id===obj.id)]=obj}saveData('Baustelle gespeichert',obj.title);showScreen(invoiceResult?'invoices':'jobs');toast(invoiceResult?(invoiceWasNew?'Baustelle abgeschlossen · Rechnungsentwurf erstellt':'Baustelle abgeschlossen · vorhandene Rechnung verknüpft'):'Baustelle gespeichert · Kalender aktualisiert')}
-function renderJobs(){document.getElementById('jobList').innerHTML=data.jobs.length?data.jobs.map(j=>{const c=data.customers.find(x=>x.id===j.customerId),inv=data.invoices.find(x=>x.id===j.invoiceId);return `<div class="item"><div class="itemTop"><div><span class="badge ${j.status==='done'?'done':'open'}">${statusLabel(j.status)}</span><h3 style="margin-top:8px">${escapeHTML(j.title)}</h3><p>${escapeHTML(c?.name||'')} · Start ${dateDE(j.start)}${inv?' · Rechnung '+escapeHTML(inv.number):''}</p></div><button class="btn small" onclick="editJob('${j.id}')">Öffnen</button></div><div class="itemActions">${j.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(j.address)}')">📍 Navigation</button><button class="btn small" onclick="openJobWeather('${j.id}')">🌦️ Wetter</button>`:''}<button class="btn small" onclick="jobToCalendar('${j.id}')">📅 Termin</button>${j.status==='done'&&!inv?`<button class="btn small primary" onclick="createInvoiceFromJob('${j.id}')">🧾 Rechnung</button>`:''}${inv?`<button class="btn small" onclick="editInvoice('${inv.id}')">🧾 Rechnung öffnen</button>`:''}</div></div>`}).join(''):'<div class="empty">Noch keine Baustellen.</div>'}
+function setJobEditorRoleMode(){
+  const worker=(data.privacy?.role||'owner')==='worker';
+  document.querySelectorAll('#jobEditor .jobProtectedField').forEach(el=>{
+    el.disabled=worker;
+    el.classList.toggle('readonlyField',worker);
+  });
+  const save=document.getElementById('jobSaveBtn');
+  if(save)save.textContent=worker?'Fortschritt speichern':'Baustelle speichern';
+  const sub=document.getElementById('jobEditorSubtitle');
+  if(sub)sub.textContent=worker?'Status & Dokumentation':'Auftrag & Dokumentation';
+}
+
+function newJob(){
+  document.getElementById('jobId').value='';
+  document.getElementById('jobTitle').value='';
+  document.getElementById('jobCustomer').innerHTML=customerOptions();
+  document.getElementById('jobAddress').value='';
+  document.getElementById('jobAddress').dataset.autoFilled='1';
+  document.getElementById('jobStart').value=todayISO();
+  document.getElementById('jobStatus').value='open';
+  document.getElementById('jobNotes').value='';
+  document.getElementById('jobOffer').innerHTML=acceptedOfferOptions();
+  jobDraftPhotos=[];
+  document.getElementById('jobDocNote').value='';
+  renderJobPhotos();
+  setJobEditorRoleMode();
+  globalThis.JobAssignments?.open([],[]);
+  showScreen('jobEditor');
+}
+function editJob(id){
+  const j=data.jobs.find(x=>x.id===id);if(!j)return;
+  document.getElementById('jobId').value=j.id;
+  document.getElementById('jobTitle').value=j.title;
+  document.getElementById('jobCustomer').innerHTML=customerOptions(j.customerId);
+  document.getElementById('jobAddress').value=j.address||'';
+  document.getElementById('jobAddress').dataset.autoFilled='0';
+  document.getElementById('jobStart').value=j.start;
+  document.getElementById('jobStatus').value=j.status;
+  document.getElementById('jobNotes').value=j.notes||'';
+  document.getElementById('jobOffer').innerHTML=acceptedOfferOptions(j.offerId||'',j.customerId);
+  jobDraftPhotos=structuredClone(j.photos||[]);
+  document.getElementById('jobDocNote').value=j.docNote||'';
+  renderJobPhotos();
+  setJobEditorRoleMode();
+  globalThis.JobAssignments?.open(j.assignedUserIds||[],j.assignedNames||[]);
+  showScreen('jobEditor');
+}
+function saveJob(){
+  const id=document.getElementById('jobId').value;
+  const old=id?data.jobs.find(x=>x.id===id):null;
+  const role=data.privacy?.role||'owner';
+  const worker=role==='worker';
+  const assignmentState=worker
+    ?{ids:old?.assignedUserIds||[],names:old?.assignedNames||[]}
+    :(globalThis.JobAssignments?.selection?.()||{ids:old?.assignedUserIds||[],names:old?.assignedNames||[]});
+
+  const obj={
+    id:id||uid(),
+    title:document.getElementById('jobTitle').value.trim(),
+    customerId:document.getElementById('jobCustomer').value,
+    address:document.getElementById('jobAddress').value.trim(),
+    start:document.getElementById('jobStart').value,
+    status:document.getElementById('jobStatus').value,
+    notes:document.getElementById('jobNotes').value.trim(),
+    offerId:worker?(old?.offerId||''):(document.getElementById('jobOffer').value||''),
+    invoiceId:old?.invoiceId||'',
+    eventId:old?.eventId||'',
+    photos:structuredClone(jobDraftPhotos),
+    docNote:document.getElementById('jobDocNote').value.trim(),
+    assignedUserIds:assignmentState.ids,
+    assignedNames:assignmentState.names
+  };
+  if(!obj.title)return toast('Name fehlt');
+
+  if(id)data.jobs[data.jobs.findIndex(x=>x.id===id)]=obj;else data.jobs.push(obj);
+
+  if(!worker)upsertCalendarEventForJob(obj);
+
+  let invoiceResult=null,invoiceWasNew=false;
+  if(!worker&&obj.status==='done'&&old?.status!=='done'&&!obj.invoiceId){
+    const before=data.invoices.length;
+    invoiceResult=createInvoiceFromJobObject(obj);
+    invoiceWasNew=data.invoices.length>before;
+    if(invoiceResult)obj.invoiceId=invoiceResult.id;
+    data.jobs[data.jobs.findIndex(x=>x.id===obj.id)]=obj;
+  }
+
+  saveData(worker?'Baustellenfortschritt gespeichert':'Baustelle gespeichert',obj.title);
+  showScreen(invoiceResult?'invoices':'jobs');
+  toast(worker
+    ?'Fortschritt gespeichert · wird synchronisiert'
+    :invoiceResult
+      ?(invoiceWasNew?'Baustelle abgeschlossen · Rechnungsentwurf erstellt':'Baustelle abgeschlossen · vorhandene Rechnung verknüpft')
+      :`Baustelle gespeichert${obj.assignedUserIds?.length?` · ${obj.assignedUserIds.length} Mitarbeiter zugewiesen`:''}`);
+}
+function renderJobs(){
+  const box=document.getElementById('jobList');if(!box)return;
+  const role=data.privacy?.role||'owner',worker=role==='worker';
+  const title=document.getElementById('jobsScreenTitle');if(title)title.textContent=worker?'Meine Baustellen':'Baustellen';
+
+  box.innerHTML=data.jobs.length?data.jobs.map(j=>{
+    const c=data.customers.find(x=>x.id===j.customerId),inv=data.invoices.find(x=>x.id===j.invoiceId);
+    const assignees=!worker?globalThis.JobAssignments?.chips?.(j.assignedUserIds||[],j.assignedNames||[]):'';
+    const financeActions=!worker
+      ?`${j.status==='done'&&!inv?`<button class="btn small primary" onclick="createInvoiceFromJob('${j.id}')">🧾 Rechnung</button>`:''}${inv?`<button class="btn small" onclick="editInvoice('${inv.id}')">🧾 Rechnung öffnen</button>`:''}`
+      :'';
+    return `<div class="item jobCard">
+      <div class="itemTop">
+        <div><span class="badge ${j.status==='done'?'done':'open'}">${statusLabel(j.status)}</span><h3 style="margin-top:8px">${escapeHTML(j.title)}</h3><p>${escapeHTML(c?.name||'')} · Start ${dateDE(j.start)}${!worker&&inv?' · Rechnung '+escapeHTML(inv.number):''}</p>${assignees}</div>
+        <button class="btn small" onclick="editJob('${j.id}')">${worker?'Öffnen':'Bearbeiten'}</button>
+      </div>
+      <div class="itemActions">${j.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(j.address)}')">📍 Navigation</button><button class="btn small" onclick="openJobWeather('${j.id}')">🌦️ Wetter</button>`:''}${!worker?`<button class="btn small" onclick="jobToCalendar('${j.id}')">📅 Termin</button>`:''}${financeActions}</div>
+    </div>`;
+  }).join(''):`<div class="empty">${worker?'Dir ist aktuell keine Baustelle zugewiesen.':'Noch keine Baustellen.'}</div>`;
+}
 function jobToCalendar(id){const j=data.jobs.find(x=>x.id===id);if(!j)return;upsertCalendarEventForJob(j);persistAppState();const ev=data.events.find(e=>e.jobId===j.id);if(ev)editEvent(ev.id)}
 function renderCatalog(){
   const el=document.getElementById('catalogList');if(!el)return;

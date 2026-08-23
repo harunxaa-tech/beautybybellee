@@ -1,10 +1,10 @@
-/* AngebotsPilot v10.9 – zentrale Datenspeicher-Schicht
+/* AngebotsPilot v11.3 – zentrale Datenspeicher-Schicht
    Heute: lokaler Browser-Speicher.
    Später: derselbe App-Code kann zusätzlich mit einem Cloud-Adapter synchronisieren. */
 (function(){
   'use strict';
   const DEFAULT_KEY='digitaler_handwerker_v3';
-  const SCHEMA_VERSION=7;
+  const SCHEMA_VERSION=8;
   const ENTITY_COLLECTIONS=['customers','offers','events','tasks','jobs','invoices','catalog'];
   let cloudAdapter=null;
   let lastSyncError='';

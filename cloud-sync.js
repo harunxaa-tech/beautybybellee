@@ -99,6 +99,54 @@
     await upsertRows('jobs',rows);
     return mapFor('jobs');
   }
+  async function syncJobAssignments(d,jobMap){
+    if(!['owner','office'].includes(membership?.role||''))return;
+    const {data:workerRows,error:workerErr}=await client.from('company_members')
+      .select('user_id')
+      .eq('company_id',company.id)
+      .eq('role','worker')
+      .eq('status','active');
+    if(workerErr)throw workerErr;
+    const allowedWorkers=new Set((workerRows||[]).map(x=>x.user_id));
+
+    for(const job of d.jobs||[]){
+      const cloudJob=jobMap.get(job.id);if(!cloudJob)continue;
+      const desired=[...new Set((job.assignedUserIds||[]).filter(id=>id&&allowedWorkers.has(id)))];
+
+      const {error:delErr}=await client.from('job_assignments')
+        .delete()
+        .eq('company_id',company.id)
+        .eq('job_id',cloudJob.id);
+      if(delErr)throw delErr;
+
+      if(desired.length){
+        const rows=desired.map(userId=>({
+          company_id:company.id,
+          job_id:cloudJob.id,
+          user_id:userId,
+          assigned_by:session.user.id
+        }));
+        const {error}=await client.from('job_assignments').insert(rows);
+        if(error)throw error;
+      }
+    }
+  }
+
+  async function syncWorkerJobProgress(d){
+    for(const job of d.jobs||[]){
+      const payload={
+        status:job.status||'open',
+        notes:job.notes||'',
+        doc_note:job.docNote||'',
+        client_updated_at:new Date().toISOString()
+      };
+      const {error}=await client.from('jobs')
+        .update(payload)
+        .eq('company_id',company.id)
+        .eq('local_id',String(job.id));
+      if(error)throw error;
+    }
+  }
   async function syncEvents(d,custMap,offerMap,jobMap){
     const rows=(d.events||[]).map(x=>({...base(x),customer_id:x.customerId?custMap.get(x.customerId)?.id:null,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,title:x.title||'Termin',event_date:x.date||new Date().toISOString().slice(0,10),event_time:x.time||null,duration_minutes:Number(x.duration)||60,type:x.type||'Sonstiges',address:x.address||'',notes:x.notes||''}));
     await upsertRows('events',rows);
@@ -161,7 +209,15 @@
       const d=localData();
       setProgress(15,'Cloud wird aktualisiert','Kunden und Preisliste …');
       if(membership?.role==='worker'){
-        lastSuccessAt=new Date().toISOString();
+        setProgress(45,'Baustelle wird aktualisiert','Status und Dokumentation …');
+        await syncWorkerJobProgress(d);
+        d.meta=d.meta||{};
+        d.meta.lastCloudPushAt=new Date().toISOString();
+        d.meta.lastSyncError='';
+        localStorage.setItem(KEY,JSON.stringify(d));
+        lastSuccessAt=d.meta.lastCloudPushAt;
+        setProgress(100,'Synchronisiert','Dein Baustellenfortschritt ist gespeichert.');
+        renderStatus();
         return;
       }
       if(membership?.role==='owner'){
@@ -178,6 +234,7 @@
       const offerMap=await syncOffers(d,custMap);
       setProgress(58,'Cloud wird aktualisiert','Baustellen und Kalender …');
       const jobMap=await syncJobs(d,custMap,offerMap);
+      await syncJobAssignments(d,jobMap);
       await syncEvents(d,custMap,offerMap,jobMap);await syncTasks(d,custMap,jobMap);
       setProgress(78,'Cloud wird aktualisiert','Rechnungen …');
       await syncInvoices(d,custMap,offerMap,jobMap);
@@ -213,14 +270,20 @@
   }
   async function pullCloud(){
     setProgress(18,'Cloud-Daten werden geladen','Kunden …');
-    const [customers,catalog,offers,jobs,events,tasks,invoices]=await Promise.all([
+    const [customers,catalog,offers,jobs,events,tasks,invoices,assignments,members]=await Promise.all([
       selectActive('customers'),selectActive('catalog_items'),selectActive('offers'),selectActive('jobs'),
-      selectActive('events'),selectActive('tasks'),selectActive('invoices')
+      selectActive('events'),selectActive('tasks'),selectActive('invoices'),
+      client.from('job_assignments').select('job_id,user_id').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]}),
+      client.from('company_members').select('user_id,display_name,email,role,status').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]})
     ]);
     const customerLocal=new Map(customers.map(x=>[x.id,x.local_id||x.id]));
     const offerLocal=new Map(offers.map(x=>[x.id,x.local_id||x.id]));
     const jobLocal=new Map(jobs.map(x=>[x.id,x.local_id||x.id]));
     const invoiceLocal=new Map(invoices.map(x=>[x.id,x.local_id||x.id]));
+    const assignmentByJob=new Map();
+    assignments.forEach(a=>{if(!assignmentByJob.has(a.job_id))assignmentByJob.set(a.job_id,[]);assignmentByJob.get(a.job_id).push(a.user_id)});
+    const memberNames=new Map(members.map(m=>[m.user_id,m.display_name||m.email||'Mitarbeiter']));
+    const existingLocalJobs=new Map((localData().jobs||[]).map(j=>[j.id,j]));
 
     setProgress(48,'Cloud-Daten werden geladen','Positionen und Beziehungen …');
     const offerIds=offers.map(x=>x.id),invoiceIds=invoices.map(x=>x.id);
@@ -242,7 +305,12 @@
     d.customers=customers.map(x=>({id:x.local_id||x.id,name:x.name,contact:x.contact,address:x.address,phone:x.phone,email:x.email,notes:x.notes,createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.catalog=catalog.map(x=>({id:x.local_id||x.id,trade:x.trade,type:x.type,name:x.name,unit:x.unit,price:Number(x.price),purchasePrice:Number(x.purchase_price),markup:Number(x.markup),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.offers=offers.map(x=>({id:x.local_id||x.id,number:x.number,customerId:customerLocal.get(x.customer_id)||'',date:x.offer_date,status:x.status,subject:x.subject,notes:x.notes,discountType:x.discount_type,discountValue:Number(x.discount_value),tax:Number(x.tax_rate),subtotal:Number(x.subtotal),total:Number(x.total),travel:0,lines:(linesByOffer.get(x.id)||[]).map(l=>({id:l.local_id||l.id,name:l.name,qty:Number(l.qty),unit:l.unit,price:Number(l.price),type:l.type,workers:l.workers||undefined,hoursPerWorker:l.hours_per_worker?Number(l.hours_per_worker):undefined})),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
-    d.jobs=jobs.map(x=>({id:x.local_id||x.id,title:x.title,customerId:customerLocal.get(x.customer_id)||'',address:x.address,start:x.start_date,status:x.status,notes:x.notes,docNote:x.doc_note,offerId:x.offer_id?offerLocal.get(x.offer_id)||'':'',invoiceId:'',eventId:'',photos:[],createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
+    d.jobs=jobs.map(x=>{
+      const localId=x.local_id||x.id;
+      const assignedUserIds=assignmentByJob.get(x.id)||[];
+      const old=existingLocalJobs.get(localId);
+      return{id:localId,title:x.title,customerId:customerLocal.get(x.customer_id)||'',address:x.address,start:x.start_date,status:x.status,notes:x.notes,docNote:x.doc_note,offerId:x.offer_id?offerLocal.get(x.offer_id)||'':'',invoiceId:'',eventId:'',photos:structuredClone(old?.photos||[]),assignedUserIds,assignedNames:assignedUserIds.map(id=>memberNames.get(id)||'Mitarbeiter'),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at};
+    });
     d.events=events.map(x=>({id:x.local_id||x.id,title:x.title,customerId:x.customer_id?customerLocal.get(x.customer_id)||'':'',offerId:x.offer_id?offerLocal.get(x.offer_id)||'':'',jobId:x.job_id?jobLocal.get(x.job_id)||'':'',date:x.event_date,time:(x.event_time||'08:00').slice(0,5),duration:Number(x.duration_minutes)||60,type:x.type,address:x.address,notes:x.notes,createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.tasks=tasks.map(x=>({id:x.local_id||x.id,title:x.title,date:x.due_date||'',priority:x.priority||'normal',notes:x.notes||'',done:!!x.done,customerId:x.customer_id?customerLocal.get(x.customer_id)||'':'',jobId:x.job_id?jobLocal.get(x.job_id)||'':'',createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.invoices=invoices.map(x=>({id:x.local_id||x.id,number:x.number,customerId:customerLocal.get(x.customer_id)||'',date:x.invoice_date,dueDate:x.due_date,status:x.status,subject:x.subject,notes:x.notes,discountType:x.discount_type,discountValue:Number(x.discount_value),tax:Number(x.tax_rate),subtotal:Number(x.subtotal),total:Number(x.total),travel:0,offerId:x.offer_id?offerLocal.get(x.offer_id)||'':'',offerNumber:x.offer_number||'',sourceOfferNumber:x.source_offer_number||'',jobId:x.job_id?jobLocal.get(x.job_id)||'':'',documentType:x.document_type||'invoice',originalInvoiceId:x.original_invoice_id?invoiceLocal.get(x.original_invoice_id)||'':'',correctionOf:x.correction_of_id?invoiceLocal.get(x.correction_of_id)||'':'',createdAutomatically:!!x.created_automatically,finalizedAt:x.finalized_at||'',finalizedSnapshot:x.finalized_snapshot||null,paidAt:x.paid_at||'',cancelledAt:x.cancelled_at||'',cancelledByInvoiceId:x.cancelled_by_invoice_id?invoiceLocal.get(x.cancelled_by_invoice_id)||'':'',lines:(linesByInvoice.get(x.id)||[]).map(l=>({id:l.local_id||l.id,name:l.name,qty:Number(l.qty),unit:l.unit,price:Number(l.price),workers:l.workers||undefined,hoursPerWorker:l.hours_per_worker?Number(l.hours_per_worker):undefined})),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
@@ -265,6 +333,10 @@
     if(d.meta?.cloudInitialSyncDone&&d.meta?.cloudCompanyId===company.id){
       globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
       lastSuccessAt=d.meta?.lastCloudPushAt||d.meta?.lastCloudPullAt||'';
+      if(membership?.role==='worker'){
+        syncing=true;emit();
+        try{await pullCloud();lastSuccessAt=new Date().toISOString()}finally{syncing=false;emit()}
+      }
       renderStatus();return;
     }
     showEntrySync(true);emit();backupLocalOnce();

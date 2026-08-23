@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.2 – Team & sichere Einladungslinks */
+/* AngebotsPilot v11.3 – Team & sichere Einladungslinks */
 (function(){
   'use strict';
   const q=id=>document.getElementById(id);

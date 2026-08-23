@@ -823,3 +823,23 @@ body[data-role="office"] .owner-only{display:none!important}
 .invoiceShareActions{display:grid;grid-template-columns:1fr 1.35fr;gap:8px}
 .shareHint{text-align:center;margin:9px 4px 0!important;line-height:1.4}
 @media(max-width:390px){.invoiceShareActions{grid-template-columns:1fr}.invoiceShareActions .btn{width:100%}}
+
+/* v11.3 – Baustellenzuweisung */
+.worker-only{display:none!important}
+body[data-role="worker"] .worker-only{display:block!important}
+.sectionActions{display:flex;gap:7px;align-items:center}
+.jobAssignmentPicker{display:grid;gap:8px;margin:12px 0}
+.assigneeOption{width:100%;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:15px;padding:10px}
+.assigneeOption.selected{border-color:rgba(216,255,62,.45);background:rgba(216,255,62,.075);box-shadow:inset 0 0 0 1px rgba(216,255,62,.08)}
+.assigneeAvatar{width:38px;height:38px;border-radius:12px;background:rgba(216,255,62,.09);display:grid;place-items:center;color:var(--accent);font-size:10px;font-weight:950}
+.assigneeText{min-width:0}.assigneeText b,.assigneeText small{display:block}.assigneeText b{font-size:11px}.assigneeText small{font-size:8px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.assigneeCheck{width:28px;height:28px;border-radius:9px;border:1px solid var(--line);display:grid;place-items:center;font-weight:950;color:var(--muted)}
+.assigneeOption.selected .assigneeCheck{background:var(--accent);color:#101300;border-color:var(--accent)}
+.assignmentEmpty{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;padding:11px;border:1px dashed var(--line);border-radius:14px}
+.assignmentEmpty>span{font-size:23px}.assignmentEmpty b,.assignmentEmpty small{display:block}.assignmentEmpty small{color:var(--muted);font-size:8px;margin-top:2px}.assignmentEmpty .btn{grid-column:1/-1}
+.jobAssigneeChips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.jobAssigneeChips span{font-size:8px;padding:5px 7px;border-radius:999px;background:rgba(216,255,62,.07);border:1px solid rgba(216,255,62,.15);color:#d9e0e5}.jobAssigneeChips .jobUnassigned{background:transparent;border-color:var(--line);color:var(--muted)}
+.workerJobNotice{border-color:rgba(216,255,62,.18)}
+.jobLocalPhotoHint{font-size:8px;color:var(--muted);line-height:1.4;margin-top:9px;padding:9px;border-radius:10px;background:var(--card2)}
+.readonlyField:disabled{opacity:.82;color:#cfd4d8;-webkit-text-fill-color:#cfd4d8;background:#101318}
+body[data-role="worker"] #jobCustomer,body[data-role="worker"] #jobStart{pointer-events:none}
+@media(max-width:390px){.sectionActions{gap:5px}.sectionActions .btn{padding-left:9px;padding-right:9px}.assignmentEmpty{grid-template-columns:1fr}.assignmentEmpty>span{display:none}}
