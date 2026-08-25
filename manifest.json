@@ -1,7 +1,7 @@
 {
   "name": "Digitaler Handwerker – AngebotsPilot",
   "short_name": "Handwerker",
-  "description": "AngebotsPilot v11.4.3 – Chef-Login-Hotfix: aktive Betriebsrolle hat Vorrang vor Einladungsresten und Sync-Fehler blockieren den Login nicht.",
+  "description": "AngebotsPilot v11.4.4 – stabiler App-Start: gültige Cloud-Konten öffnen auch bei lokalen Safari-Speicherproblemen; Sync läuft danach im Hintergrund.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1720,58 +1720,116 @@ document.getElementById('weatherDate').value=todayISO();
 function workspaceKeyFor(companyId,userId){
   return `angebotspilot_workspace_${String(companyId||'none')}_${String(userId||'none')}`;
 }
+function cloneAppValue(value){
+  try{return structuredClone(value)}
+  catch(e){
+    try{return JSON.parse(JSON.stringify(value))}
+    catch(e2){return value}
+  }
+}
+function safeLocalWrite(key,value){
+  try{
+    const raw=typeof value==='string'?value:JSON.stringify(value);
+    localStorage.setItem(key,raw);
+    return true;
+  }catch(e){
+    console.warn('Lokaler Speicher konnte nicht geschrieben werden',key,e);
+    return false;
+  }
+}
 function freshWorkspaceForRole(userId,companyId,role){
-  const fresh=structuredClone(defaultData);
-  AppRepository.prepare(fresh,{});
+  let fresh=cloneAppValue(defaultData);
+  if(!fresh||typeof fresh!=='object')fresh={settings:{},privacy:{},meta:{},customers:[],offers:[],events:[],tasks:[],jobs:[],invoices:[],catalog:[]};
+
+  try{AppRepository.prepare(fresh,{})}
+  catch(e){
+    console.warn('Repository-Vorbereitung übersprungen',e);
+    fresh.meta=fresh.meta||{};
+  }
+
+  fresh.meta=fresh.meta||{};
   fresh.meta.authUserId=userId;
   fresh.meta.cloudCompanyId=companyId;
   fresh.meta.storageMode='cloud-sync';
-  fresh.privacy=fresh.privacy||structuredClone(defaultData.privacy);
+
+  fresh.privacy=fresh.privacy||cloneAppValue(defaultData?.privacy||{})||{};
   fresh.privacy.role=role||'worker';
+
+  ['customers','offers','events','tasks','jobs','invoices','catalog'].forEach(k=>{
+    if(!Array.isArray(fresh[k]))fresh[k]=[];
+  });
+  fresh.settings=fresh.settings||{};
   return fresh;
 }
-function ensureWorkspaceForCloudAccount(userId,companyId,role,options={}){
-  const oldUser=data?.meta?.authUserId||'';
-  const oldCompany=data?.meta?.cloudCompanyId||'';
-  if(oldUser===userId&&oldCompany===companyId){
-    data.privacy=data.privacy||{};
-    data.privacy.role=role||data.privacy.role||'worker';
-    globalThis.data=data;
-    try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
-    try{applyRoleUI()}catch(e){}
-    return data;
-  }
-
-  if(oldUser||oldCompany){
-    try{localStorage.setItem(workspaceKeyFor(oldCompany,oldUser),JSON.stringify(data))}catch(e){}
-  }
-
-  let target=null;
-  if(!options.forceFresh){
-    try{
-      const raw=localStorage.getItem(workspaceKeyFor(companyId,userId));
-      if(raw)target=JSON.parse(raw);
-    }catch(e){target=null}
-  }
-
-  data=target&&typeof target==='object'?target:freshWorkspaceForRole(userId,companyId,role);
-  data.meta=data.meta||{};
-  data.meta.authUserId=userId;
-  data.meta.cloudCompanyId=companyId;
-  data.meta.storageMode='cloud-sync';
-  data.privacy=data.privacy||structuredClone(defaultData.privacy);
-  data.privacy.role=role||'worker';
+function activateEmergencyCloudWorkspace(userId,companyId,role){
+  // Nur In-Memory-Fallback. Er verhindert, dass lokaler Browser-Speicher
+  // den sicheren Cloud-Login blockiert.
+  data=freshWorkspaceForRole(userId,companyId,role);
   globalThis.data=data;
-  localStorage.setItem(KEY,JSON.stringify(data));
-  try{
-    renderAll();
-  }catch(renderError){
-    console.error('Workspace konnte beim Login nicht vollständig gerendert werden',renderError);
-    try{applyRoleUI()}catch(e){}
-  }
+  try{applyRoleUI()}catch(e){}
   return data;
 }
+globalThis.activateEmergencyCloudWorkspace=activateEmergencyCloudWorkspace;
+
+function ensureWorkspaceForCloudAccount(userId,companyId,role,options={}){
+  try{
+    const oldUser=data?.meta?.authUserId||'';
+    const oldCompany=data?.meta?.cloudCompanyId||'';
+
+    if(oldUser===userId&&oldCompany===companyId){
+      data.privacy=data.privacy||{};
+      data.privacy.role=role||data.privacy.role||'worker';
+      globalThis.data=data;
+      safeLocalWrite(KEY,data);
+      try{applyRoleUI()}catch(e){}
+      return data;
+    }
+
+    // Vorherigen Stand nur als Komfort-Cache sichern. Wenn Safari dafür
+    // keinen Platz mehr hat, darf der Kontowechsel trotzdem weitergehen.
+    if(oldUser||oldCompany){
+      safeLocalWrite(workspaceKeyFor(oldCompany,oldUser),data);
+    }
+
+    let target=null;
+    if(!options.forceFresh){
+      try{
+        const raw=localStorage.getItem(workspaceKeyFor(companyId,userId));
+        if(raw)target=JSON.parse(raw);
+      }catch(e){
+        console.warn('Gespeicherter Workspace konnte nicht gelesen werden',e);
+        target=null;
+      }
+    }
+
+    data=target&&typeof target==='object'
+      ?target
+      :freshWorkspaceForRole(userId,companyId,role);
+
+    data.meta=data.meta||{};
+    data.meta.authUserId=userId;
+    data.meta.cloudCompanyId=companyId;
+    data.meta.storageMode='cloud-sync';
+    data.privacy=data.privacy||cloneAppValue(defaultData?.privacy||{})||{};
+    data.privacy.role=role||'worker';
+    globalThis.data=data;
+
+    safeLocalWrite(KEY,data);
+
+    try{
+      renderAll();
+    }catch(renderError){
+      console.error('Workspace konnte beim Login nicht vollständig gerendert werden',renderError);
+      try{applyRoleUI()}catch(e){}
+    }
+    return data;
+  }catch(e){
+    console.error('Workspace-Wechsel fehlgeschlagen – In-Memory-Fallback aktiv',e);
+    return activateEmergencyCloudWorkspace(userId,companyId,role);
+  }
+}
 globalThis.ensureWorkspaceForCloudAccount=ensureWorkspaceForCloudAccount;
+globalThis.safePersistCloudIdentity=function(d){return safeLocalWrite(KEY,d)};
 
 function setLocalRole(role){
   data.privacy=data.privacy||{};data.privacy.role=role;persistAppState();applyRoleUI();renderPrivacy();toast(role==='owner'?'👑 Chef-Ansicht':role==='office'?'🗂️ Büro-Ansicht':'🛠️ Mitarbeiter-Ansicht');

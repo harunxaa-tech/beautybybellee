@@ -252,7 +252,15 @@
     d.settings.ownerName=session.user.user_metadata?.full_name||d.settings.ownerName||'';
     d.privacy=d.privacy||{};
     d.privacy.role=cloudMembership?.role||'owner';
-    localStorage.setItem('digitaler_handwerker_v3',JSON.stringify(d));
+    try{
+      if(globalThis.safePersistCloudIdentity){
+        globalThis.safePersistCloudIdentity(d);
+      }else{
+        localStorage.setItem('digitaler_handwerker_v3',JSON.stringify(d));
+      }
+    }catch(e){
+      console.warn('Cloud-Identität konnte lokal nicht gespeichert werden',e);
+    }
     globalThis.applyRoleUI?.();
     // Bei neuen Konten ist die Firmenadresse erst jetzt sicher verfügbar.
     setTimeout(()=>{
@@ -300,55 +308,89 @@
     cloudCompany=null;
     cloudMembership=null;
 
-    if(session){
-      recoverInviteFromSessionMetadata();
-      if(pendingInvite()&&!invitePreview)await loadInvitePreview();
+    if(!session){
+      globalThis.CloudSync?.detach?.();
+      renderAccount();
+      requireEntry();
+      return;
+    }
 
-      const membershipBeforeInvite=await getMembership();
+    recoverInviteFromSessionMetadata();
+    if(pendingInvite()&&!invitePreview)await loadInvitePreview();
 
-      if(membershipBeforeInvite){
-        // Eine bereits aktive Betriebsrolle hat IMMER Vorrang.
-        // Alte oder versehentlich gespeicherte Einladungs-Tokens dürfen
-        // Chef/Büro/Mitarbeiter niemals aus ihrem bestehenden Betrieb sperren.
-        localStorage.removeItem(INVITE_KEY);
-        invitePreview=null;
-        blockingInviteError='';
-        inviteConflictInfo=null;
-        try{
-          if(session.user.user_metadata?.pending_invite_token){
-            await client.auth.updateUser({data:{pending_invite_token:null}});
-          }
-        }catch(e){console.warn('Invite-Metadaten konnten nicht bereinigt werden',e)}
-      }else if(pendingInvite()&&session.user.email_confirmed_at){
+    let membership=await getMembership();
+
+    if(membership){
+      // Bereits vorhandene aktive Rolle gewinnt immer.
+      localStorage.removeItem(INVITE_KEY);
+      invitePreview=null;
+      blockingInviteError='';
+      inviteConflictInfo=null;
+      cloudMembership=membership;
+
+      try{
+        if(session.user.user_metadata?.pending_invite_token){
+          client.auth.updateUser({data:{pending_invite_token:null}}).catch(()=>{});
+        }
+      }catch(e){}
+    }else{
+      if(pendingInvite()&&session.user.email_confirmed_at){
         await acceptPendingInvitation();
       }else if(session.user.email_confirmed_at){
-        // Browserwechsel bei E-Mail-Bestätigung: Nur Konten OHNE
-        // bestehende Mitgliedschaft dürfen eine offene Einladung beanspruchen.
         await acceptInvitationByVerifiedEmail();
       }
+      membership=await getMembership();
+      cloudMembership=membership;
+    }
 
-      await ensureExistingCompany();
+    if(cloudMembership){
+      cloudCompany=await getCompany(cloudMembership.company_id);
 
-      if(cloudCompany&&cloudMembership){
+      // Lokale Browserdaten sind nur Cache. Selbst wenn Safari-Speicher
+      // voll/defekt ist, muss das Cloud-Konto geöffnet werden können.
+      try{
         globalThis.ensureWorkspaceForCloudAccount?.(
           session.user.id,
           cloudCompany.id,
           cloudMembership.role
         );
-        syncLocalIdentity();
+      }catch(localError){
+        console.error('Lokaler Workspace konnte nicht aktiviert werden',localError);
+        globalThis.activateEmergencyCloudWorkspace?.(
+          session.user.id,
+          cloudCompany.id,
+          cloudMembership.role
+        );
+      }
 
-        // Cloud-Sync darf den Zugang zur App niemals blockieren.
-        try{
-          await globalThis.CloudSync?.attach?.(
-            client,session,cloudCompany,cloudMembership
-          );
-        }catch(syncError){
-          console.error('Cloud-Sync beim Login fehlgeschlagen',syncError);
-          globalThis.toast?.('Angemeldet · Cloud-Sync wird erneut versucht');
+      try{syncLocalIdentity()}
+      catch(identityError){
+        console.error('Lokale Cloud-Identität konnte nicht gespeichert werden',identityError);
+        if(globalThis.data){
+          globalThis.data.privacy=globalThis.data.privacy||{};
+          globalThis.data.privacy.role=cloudMembership.role;
+          globalThis.data.meta=globalThis.data.meta||{};
+          globalThis.data.meta.authUserId=session.user.id;
+          globalThis.data.meta.cloudCompanyId=cloudCompany.id;
+          globalThis.data.settings=globalThis.data.settings||{};
+          globalThis.data.settings.companyName=cloudCompany.name||'';
+          globalThis.applyRoleUI?.();
         }
       }
-    }else{
-      globalThis.CloudSync?.detach?.();
+
+      // WICHTIG: Erst Zugang freigeben, dann Cloud-Sync im Hintergrund.
+      renderAccount();
+      requireEntry();
+
+      Promise.resolve(
+        globalThis.CloudSync?.attach?.(
+          client,session,cloudCompany,cloudMembership
+        )
+      ).catch(syncError=>{
+        console.error('Cloud-Sync im Hintergrund fehlgeschlagen',syncError);
+        globalThis.toast?.('Cloud-Sync wird später erneut versucht');
+      });
+      return;
     }
 
     renderAccount();
@@ -357,11 +399,25 @@
 
   async function refresh(){
     if(refreshPromise)return refreshPromise;
-    refreshPromise=refreshCore().catch(e=>{
+    refreshPromise=refreshCore().catch(async e=>{
       console.error('Cloud refresh failed',e);
+
+      // Niemals auf „Neues Konto erstellen“ zurückwerfen, wenn Supabase
+      // bereits eine gültige Session kennt.
+      try{
+        const {data}=await client.auth.getSession();
+        session=data?.session||session||null;
+      }catch(ignore){}
+
       if(localStorage.getItem('dh_onboarding_v8_done')==='1'){
-        showStep('entryChoice');
-        error('Verbindung konnte nicht vollständig geladen werden. Bitte erneut versuchen.');
+        if(session?.user){
+          showStep('entryLoading');
+          error('Dein Konto ist angemeldet. Der Betrieb wird erneut geladen …');
+          setTimeout(()=>refresh(),900);
+        }else{
+          showStep('entryChoice');
+          error('Verbindung konnte nicht geladen werden. Bitte erneut versuchen.');
+        }
       }
     }).finally(()=>{refreshPromise=null});
     return refreshPromise;
@@ -564,12 +620,11 @@
     }
 
     session=data.session;
-    try{
-      await refresh();
-    }catch(e){
-      showStep('entryLogin');
-      error('Anmeldung war erfolgreich, aber der Betrieb konnte nicht geladen werden.');
-    }
+    await refresh();
+    if(cloudCompany&&cloudMembership)return;
+    // Kein falsches „Passwort/Account“-Problem anzeigen. Die Session ist gültig.
+    showStep('entryLoading');
+    error('Anmeldung erfolgreich. Betrieb wird geladen …');
   };
 
   globalThis.entryRecoverNext=function(){
