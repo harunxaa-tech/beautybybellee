@@ -1079,6 +1079,200 @@ function renderCalendar(){
     return `<div class="item"><div class="itemTop"><div><span class="badge sent">${escapeHTML(e.type)}</span><h3 style="margin-top:8px">${escapeHTML(e.title)}</h3><p>${dateDE(e.date)} · ${e.time} Uhr · ${escapeHTML(c?.name||'')}</p></div>${action}</div><div class="itemActions">${e.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(e.address)}')">📍 Route</button>`:''}${!worker?`<button class="btn small" onclick="googleCalendar('${e.id}')">Google Kalender</button><button class="btn small" onclick="downloadICS('${e.id}')">Apple / Outlook</button>`:''}</div></div>`;
   }).join(''):'<div class="empty">Noch keine Termine.</div>';
 }
+function changeMonth(n){calDate=new Date(calDate.getFullYear(),calDate.getMonth()+n,1);renderCalendar()}
+function eventDates(e){const start=new Date(`${e.date}T${e.time}:00`),end=new Date(start.getTime()+e.duration*60000);const fmt=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');return{start:fmt(start),end:fmt(end)}}
+async function googleCalendar(id){if(!await ensureExternalConsent('Google Kalender'))return;const e=data.events.find(x=>x.id===id),d=eventDates(e);location.href=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${d.start}/${d.end}&details=${encodeURIComponent(e.notes||'')}&location=${encodeURIComponent(e.address||'')}`}
+function downloadICS(id){const e=data.events.find(x=>x.id===id),d=eventDates(e),ics=`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//AngebotsPilot//Digitaler Handwerker//DE\nBEGIN:VEVENT\nUID:${e.id}@angebotspilot\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}\nDTSTART:${d.start}\nDTEND:${d.end}\nSUMMARY:${e.title}\nLOCATION:${e.address||''}\nDESCRIPTION:${e.notes||''}\nEND:VEVENT\nEND:VCALENDAR`;downloadBlob(ics,`${e.title}.ics`,'text/calendar')}
+function acceptedOfferOptions(selected='',customerId=''){const offers=data.offers.filter(o=>o.status==='accepted'&&(!customerId||o.customerId===customerId));return ['<option value="">– Kein Angebot verknüpft –</option>',...offers.map(o=>`<option value="${o.id}" ${o.id===selected?'selected':''}>${escapeHTML(o.number)} · ${escapeHTML(o.subject)} · ${euro(o.total)}</option>`)].join('')}
+function refreshJobOfferOptions(){const el=document.getElementById('jobOffer');if(el)el.innerHTML=acceptedOfferOptions(el.value,document.getElementById('jobCustomer').value)}
+let jobDraftPhotos=[];
+function renderJobPhotos(){
+  const grid=document.getElementById('jobPhotoGrid'),count=document.getElementById('jobPhotoCount');if(!grid)return;
+  if(count)count.textContent=`${jobDraftPhotos.length} Foto${jobDraftPhotos.length===1?'':'s'}`;
+  grid.innerHTML=jobDraftPhotos.length?jobDraftPhotos.map((p,i)=>`<div class="photoTile"><img src="${p.data}" alt="Baustellenfoto"><button type="button" onclick="removeJobPhoto(${i})">×</button><small>${dateDE((p.at||'').slice(0,10))}</small></div>`).join(''):'<div class="photoEmpty">Noch keine Fotos</div>';
+}
+function removeJobPhoto(i){jobDraftPhotos.splice(i,1);renderJobPhotos()}
+function compressPhoto(file){
+  return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const max=1100,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.72))};img.src=reader.result};reader.readAsDataURL(file)});
+}
+async function addJobPhotos(event){
+  const files=[...(event.target.files||[])];if(!files.length)return;
+  toast('Fotos werden vorbereitet …');
+  for(const file of files.slice(0,8)){
+    try{const dataUrl=await compressPhoto(file);jobDraftPhotos.push({id:uid(),data:dataUrl,at:new Date().toISOString()})}catch(e){}
+  }
+  event.target.value='';renderJobPhotos();toast('📸 Foto zur Baustelle hinzugefügt');
+}
+
+
+
+function upsertCalendarEventForOffer(offer){
+  if(!offer||!offer.id)return;
+  const customer=getCustomerById(offer.customerId);
+  let ev=(data.events||[]).find(e=>e.offerId===offer.id);
+  if(ev){
+    ev.title=`Angebot: ${offer.subject||'Angebot'}`;
+    ev.customerId=offer.customerId||'';
+    ev.type='Angebot';
+    ev.address=customer?.address||ev.address||'';
+    ev.notes=`Angebot ${offer.number||''}${offer.status?` · ${statusLabel(offer.status)}`:''}`;
+    // Datum/Uhrzeit absichtlich nicht überschreiben:
+    // Der Nutzer darf den automatisch erzeugten Kalendereintrag später auf den echten Ausführungstag verschieben.
+  }else{
+    ev={
+      id:uid(),
+      title:`Angebot: ${offer.subject||'Angebot'}`,
+      customerId:offer.customerId||'',
+      date:offer.date||todayISO(),
+      time:'08:00',
+      duration:60,
+      type:'Angebot',
+      address:customer?.address||'',
+      notes:`Angebot ${offer.number||''}${offer.status?` · ${statusLabel(offer.status)}`:''}`,
+      offerId:offer.id,
+      jobId:''
+    };
+    data.events.push(ev);
+  }
+  offer.eventId=ev.id;
+}
+
+function upsertCalendarEventForJob(job){
+  if(!job||!job.start)return;
+  let ev=(data.events||[]).find(e=>e.jobId===job.id);
+  const payload={title:job.title||'Baustelle',customerId:job.customerId||'',date:job.start,time:ev?.time||'08:00',duration:ev?.duration||480,type:'Baustelle',address:job.address||'',notes:job.docNote||job.notes||'',jobId:job.id};
+  if(ev)Object.assign(ev,payload);else{ev={id:uid(),...payload};data.events.push(ev)}
+  job.eventId=ev.id;
+}
+function syncLinkedJobFromEvent(ev){
+  if(!ev?.jobId)return;const job=data.jobs.find(j=>j.id===ev.jobId);if(!job)return;
+  job.start=ev.date||job.start;job.address=ev.address||job.address;if(ev.customerId)job.customerId=ev.customerId;
+}
+
+function setJobEditorRoleMode(){
+  const worker=(data.privacy?.role||'owner')==='worker';
+  document.querySelectorAll('#jobEditor .jobProtectedField').forEach(el=>{
+    el.disabled=worker;
+    el.classList.toggle('readonlyField',worker);
+  });
+  const save=document.getElementById('jobSaveBtn');
+  if(save)save.textContent=worker?'Fortschritt speichern':'Baustelle speichern';
+  const sub=document.getElementById('jobEditorSubtitle');
+  if(sub)sub.textContent=worker?'Status & Dokumentation':'Auftrag & Dokumentation';
+}
+
+function newJob(){
+  document.getElementById('jobId').value='';
+  document.getElementById('jobTitle').value='';
+  document.getElementById('jobCustomer').innerHTML=customerOptions();
+  document.getElementById('jobAddress').value='';
+  document.getElementById('jobAddress').dataset.autoFilled='1';
+  document.getElementById('jobStart').value=todayISO();
+  document.getElementById('jobStatus').value='open';
+  document.getElementById('jobNotes').value='';
+  document.getElementById('jobOffer').innerHTML=acceptedOfferOptions();
+  jobDraftPhotos=[];
+  document.getElementById('jobDocNote').value='';
+  renderJobPhotos();
+  setJobEditorRoleMode();
+  globalThis.JobAssignments?.open([],[]);
+  globalThis.TimeTracking?.open(null);
+  showScreen('jobEditor');
+}
+function editJob(id){
+  const j=data.jobs.find(x=>x.id===id);if(!j)return;
+  document.getElementById('jobId').value=j.id;
+  document.getElementById('jobTitle').value=j.title;
+  document.getElementById('jobCustomer').innerHTML=customerOptions(j.customerId);
+  document.getElementById('jobAddress').value=j.address||'';
+  document.getElementById('jobAddress').dataset.autoFilled='0';
+  document.getElementById('jobStart').value=j.start;
+  document.getElementById('jobStatus').value=j.status;
+  document.getElementById('jobNotes').value=j.notes||'';
+  document.getElementById('jobOffer').innerHTML=acceptedOfferOptions(j.offerId||'',j.customerId);
+  jobDraftPhotos=structuredClone(j.photos||[]);
+  document.getElementById('jobDocNote').value=j.docNote||'';
+  renderJobPhotos();
+  setJobEditorRoleMode();
+  globalThis.JobAssignments?.open(j.assignedUserIds||[],j.assignedNames||[]);
+  globalThis.TimeTracking?.open(j.id);
+  showScreen('jobEditor');
+}
+function saveJob(){
+  const id=document.getElementById('jobId').value;
+  const old=id?data.jobs.find(x=>x.id===id):null;
+  const role=data.privacy?.role||'owner';
+  const worker=role==='worker';
+  const assignmentState=worker
+    ?{ids:old?.assignedUserIds||[],names:old?.assignedNames||[]}
+    :(globalThis.JobAssignments?.selection?.()||{ids:old?.assignedUserIds||[],names:old?.assignedNames||[]});
+
+  const obj={
+    id:id||uid(),
+    title:document.getElementById('jobTitle').value.trim(),
+    customerId:document.getElementById('jobCustomer').value,
+    address:document.getElementById('jobAddress').value.trim(),
+    start:document.getElementById('jobStart').value,
+    status:document.getElementById('jobStatus').value,
+    notes:document.getElementById('jobNotes').value.trim(),
+    offerId:worker?(old?.offerId||''):(document.getElementById('jobOffer').value||''),
+    invoiceId:old?.invoiceId||'',
+    eventId:old?.eventId||'',
+    photos:structuredClone(jobDraftPhotos),
+    docNote:document.getElementById('jobDocNote').value.trim(),
+    assignedUserIds:assignmentState.ids,
+    assignedNames:assignmentState.names
+  };
+  if(!obj.title)return toast('Name fehlt');
+
+  if(id)data.jobs[data.jobs.findIndex(x=>x.id===id)]=obj;else data.jobs.push(obj);
+
+  if(!worker)upsertCalendarEventForJob(obj);
+
+  let invoiceResult=null,invoiceWasNew=false;
+  if(!worker&&obj.status==='done'&&old?.status!=='done'&&!obj.invoiceId){
+    const before=data.invoices.length;
+    invoiceResult=createInvoiceFromJobObject(obj);
+    invoiceWasNew=data.invoices.length>before;
+    if(invoiceResult)obj.invoiceId=invoiceResult.id;
+    data.jobs[data.jobs.findIndex(x=>x.id===obj.id)]=obj;
+  }
+
+  saveData(worker?'Baustellenfortschritt gespeichert':'Baustelle gespeichert',obj.title);
+
+  if(worker){
+    globalThis.JobAssignments?.saveWorkerProgress?.(obj)
+      .then(()=>globalThis.toast?.('✓ Fortschritt in der Cloud gespeichert'))
+      .catch(e=>{console.error(e);globalThis.toast?.('Fortschritt lokal gespeichert · Cloud bitte erneut versuchen')});
+  }
+
+  showScreen(invoiceResult?'invoices':'jobs');
+  toast(worker
+    ?'Fortschritt gespeichert'
+    :invoiceResult
+      ?(invoiceWasNew?'Baustelle abgeschlossen · Rechnungsentwurf erstellt':'Baustelle abgeschlossen · vorhandene Rechnung verknüpft')
+      :`Baustelle gespeichert${obj.assignedUserIds?.length?` · ${obj.assignedUserIds.length} Mitarbeiter zugewiesen`:''}`);
+}
+function renderJobs(){
+  const box=document.getElementById('jobList');if(!box)return;
+  const role=data.privacy?.role||'owner',worker=role==='worker';
+  const title=document.getElementById('jobsScreenTitle');if(title)title.textContent=worker?'Meine Baustellen':'Baustellen';
+
+  box.innerHTML=data.jobs.length?data.jobs.map(j=>{
+    const c=data.customers.find(x=>x.id===j.customerId),inv=data.invoices.find(x=>x.id===j.invoiceId);
+    const assignees=!worker?globalThis.JobAssignments?.chips?.(j.assignedUserIds||[],j.assignedNames||[]):'';
+    const financeActions=!worker
+      ?`${j.status==='done'&&!inv?`<button class="btn small primary" onclick="createInvoiceFromJob('${j.id}')">🧾 Rechnung</button>`:''}${inv?`<button class="btn small" onclick="editInvoice('${inv.id}')">🧾 Rechnung öffnen</button>`:''}`
+      :'';
+    return `<div class="item jobCard">
+      <div class="itemTop">
+        <div><span class="badge ${j.status==='done'?'done':'open'}">${statusLabel(j.status)}</span><h3 style="margin-top:8px">${escapeHTML(j.title)}</h3><p>${escapeHTML(c?.name||'')} · Start ${dateDE(j.start)}${!worker&&inv?' · Rechnung '+escapeHTML(inv.number):''}</p>${assignees}</div>
+        <button class="btn small" onclick="editJob('${j.id}')">${worker?'Öffnen':'Bearbeiten'}</button>
+      </div>
+      <div class="itemActions">${j.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(j.address)}')">📍 Navigation</button><button class="btn small" onclick="openJobWeather('${j.id}')">🌦️ Wetter</button>`:''}${!worker?`<button class="btn small" onclick="jobToCalendar('${j.id}')">📅 Termin</button>`:''}${financeActions}</div>
+    </div>`;
+  }).join(''):`<div class="empty">${worker?'Dir ist aktuell keine Baustelle zugewiesen.':'Noch keine Baustellen.'}</div>`;
+}
 function jobToCalendar(id){const j=data.jobs.find(x=>x.id===id);if(!j)return;upsertCalendarEventForJob(j);persistAppState();const ev=data.events.find(e=>e.jobId===j.id);if(ev)editEvent(ev.id)}
 function renderCatalog(){
   const el=document.getElementById('catalogList');if(!el)return;
@@ -1523,6 +1717,20 @@ function editCatalog(id){openCatalogEditor(id)}
 function loadSettingsForm(){const s=data.settings;document.getElementById('companyName').value=s.companyName||'';document.getElementById('ownerName').value=s.ownerName||'';document.getElementById('companyPhone').value=s.phone||'';document.getElementById('companyAddress').value=s.address||'';document.getElementById('weatherLocation').value=s.weatherLocation||s.address||'';document.getElementById('companyEmail').value=s.email||'';document.getElementById('taxMode').value=String(s.tax||0);document.getElementById('paymentTerm').value=s.paymentTerm||'';document.getElementById('taxNumber').value=s.taxNumber||'';document.getElementById('vatId').value=s.vatId||'';document.getElementById('iban').value=s.iban||'';document.getElementById('bankName').value=s.bankName||''}
 function saveSettings(){data.settings={...data.settings,companyName:document.getElementById('companyName').value.trim(),ownerName:document.getElementById('ownerName').value.trim(),phone:document.getElementById('companyPhone').value.trim(),address:document.getElementById('companyAddress').value.trim(),weatherLocation:document.getElementById('weatherLocation').value.trim(),email:document.getElementById('companyEmail').value.trim(),tax:Number(document.getElementById('taxMode').value),paymentTerm:document.getElementById('paymentTerm').value.trim(),taxNumber:document.getElementById('taxNumber').value.trim(),vatId:document.getElementById('vatId').value.trim(),iban:document.getElementById('iban').value.trim(),bankName:document.getElementById('bankName').value.trim()};localStorage.removeItem(WEATHER_CACHE_KEY);saveData();refreshWeather(true);toast('Betrieb gespeichert')}
 
+const WEATHER_FETCH_TIMEOUT_MS=12000;
+async function weatherFetch(url,timeoutMs=WEATHER_FETCH_TIMEOUT_MS){
+  const controller=typeof AbortController!=='undefined'?new AbortController():null;
+  let timer;
+  try{
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{try{controller?.abort()}catch(e){}reject(new Error('Wetterdienst antwortet gerade nicht. Bitte erneut versuchen.'))},timeoutMs)});
+    const request=fetch(url,controller?{signal:controller.signal}:undefined);
+    return await Promise.race([request,timeout]);
+  }catch(e){
+    if(e?.name==='AbortError')throw new Error('Wetterdienst antwortet gerade nicht. Bitte erneut versuchen.');
+    throw e;
+  }finally{clearTimeout(timer)}
+}
+
 const weatherCodes={0:['Klar','☀️'],1:['Überwiegend klar','🌤️'],2:['Teilweise bewölkt','⛅'],3:['Bewölkt','☁️'],45:['Nebel','🌫️'],48:['Reifnebel','🌫️'],51:['Leichter Nieselregen','🌦️'],53:['Nieselregen','🌦️'],55:['Starker Nieselregen','🌧️'],61:['Leichter Regen','🌦️'],63:['Regen','🌧️'],65:['Starker Regen','🌧️'],71:['Leichter Schnee','🌨️'],73:['Schnee','🌨️'],75:['Starker Schnee','❄️'],80:['Leichte Schauer','🌦️'],81:['Schauer','🌧️'],82:['Starke Schauer','⛈️'],95:['Gewitter','⛈️'],96:['Gewitter mit Hagel','⛈️'],99:['Starkes Gewitter','⛈️']};
 function weatherText(code){return weatherCodes[code]||['Wechselhaft','🌦️']}
 function weatherRisk(day){const reasons=[];if((day.precipProbability||0)>=60)reasons.push(`${Math.round(day.precipProbability)} % Regenrisiko`);if((day.precipitation||0)>=5)reasons.push(`${Number(day.precipitation).toFixed(1)} mm Niederschlag`);if((day.gust||0)>=50)reasons.push(`Böen bis ${Math.round(day.gust)} km/h`);if((day.minTemp??99)<=2)reasons.push(`Tiefstwert ${Math.round(day.minTemp)} °C`);if((day.maxTemp??0)>=32)reasons.push(`Hitze bis ${Math.round(day.maxTemp)} °C`);return reasons}
@@ -1564,7 +1772,7 @@ async function geocodeWeatherPlace(place){
   let serviceReached=false;
   for(const candidate of candidates){
     const url=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(candidate)}&count=5&language=de&format=json`;
-    const r=await fetch(url);
+    const r=await weatherFetch(url);
     if(!r.ok)continue;
     serviceReached=true;
     const j=await r.json();
@@ -1585,7 +1793,7 @@ async function geocodeWeatherPlace(place){
   if(!serviceReached)throw new Error('Ortssuche ist gerade nicht erreichbar.');
   throw new Error('Ort nicht gefunden. Bitte nur Ort oder PLZ + Ort eingeben.');
 }
-async function fetchWeather(lat,lon,label){const current='temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,precipitation';const daily='weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max';const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${current}&daily=${daily}&timezone=auto&forecast_days=7`;const r=await fetch(url);if(!r.ok)throw new Error('Wetterdienst nicht erreichbar.');const j=await r.json();const days=j.daily.time.map((date,i)=>({date,code:j.daily.weather_code[i],maxTemp:j.daily.temperature_2m_max[i],minTemp:j.daily.temperature_2m_min[i],precipitation:j.daily.precipitation_sum[i],precipProbability:j.daily.precipitation_probability_max[i],gust:j.daily.wind_gusts_10m_max[i]}));return{label,lat,lon,current:j.current,days,fetchedAt:Date.now()}}
+async function fetchWeather(lat,lon,label){const current='temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,precipitation';const daily='weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max';const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${current}&daily=${daily}&timezone=auto&forecast_days=7`;const r=await weatherFetch(url);if(!r.ok)throw new Error('Wetterdienst nicht erreichbar.');const j=await r.json();const days=j.daily.time.map((date,i)=>({date,code:j.daily.weather_code[i],maxTemp:j.daily.temperature_2m_max[i],minTemp:j.daily.temperature_2m_min[i],precipitation:j.daily.precipitation_sum[i],precipProbability:j.daily.precipitation_probability_max[i],gust:j.daily.wind_gusts_10m_max[i]}));return{label,lat,lon,current:j.current,days,fetchedAt:Date.now()}}
 function selectedWeatherDay(w,date){return w.days.find(x=>x.date===date)||w.days[0]}
 function renderWeatherData(w,date=todayISO()){
  const c=w.current||{},desc=weatherText(c.weather_code),day=selectedWeatherDay(w,date),risk=weatherRisk(day);
@@ -1602,7 +1810,10 @@ async function refreshWeather(force=false){
   const place=(data.settings.weatherLocation||data.settings.address||'').trim();
   // Bei einem frischen Konto erst warten, bis der Betrieb/die Adresse geladen ist.
   if(!place){
-    if(force)renderWeatherError('Bitte unter Betrieb eine Firmenadresse oder einen Wetter-Standort eintragen.');
+    renderWeatherError(force
+      ?'Bitte unter Betrieb eine Firmenadresse oder einen Wetter-Standort eintragen.'
+      :'Wetter wartet noch auf den Betriebsstandort.');
+    const loc=document.getElementById('weatherLocationLabel');if(loc)loc.textContent='Standort noch nicht geladen';
     return;
   }
   if(!data.privacy?.consents?.weather){

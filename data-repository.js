@@ -17,9 +17,11 @@
   function safeParse(raw,fallback={}){try{return JSON.parse(raw)}catch(e){return fallback}}
   function getDeviceId(){
     const key='angebotspilot_device_id';
-    let id=localStorage.getItem(key);
-    if(!id){id=makeId();localStorage.setItem(key,id)}
-    return id;
+    try{
+      let id=localStorage.getItem(key);
+      if(!id){id=makeId();try{localStorage.setItem(key,id)}catch(e){}}
+      return id||makeId();
+    }catch(e){return makeId()}
   }
   function comparable(entity){
     if(!entity||typeof entity!=='object')return entity;
@@ -91,20 +93,28 @@
     if(data.meta.deletedEntities.length>500)data.meta.deletedEntities=data.meta.deletedEntities.slice(-500);
     return data;
   }
-  function loadRaw(key=DEFAULT_KEY){return safeParse(localStorage.getItem(key)||'{}',{})}
+  function loadRaw(key=DEFAULT_KEY){try{return safeParse(localStorage.getItem(key)||'{}',{})}catch(e){return {}}}
   function load(key=DEFAULT_KEY){return loadRaw(key)}
+  function writeLocal(key,data){
+    try{localStorage.setItem(key,JSON.stringify(data));return true}
+    catch(e){
+      console.warn('Lokaler Safari-Speicher nicht verfügbar oder voll',e);
+      data.meta=data.meta||{};data.meta.localStorageError='Lokaler Gerätespeicher konnte nicht aktualisiert werden.';
+      return false;
+    }
+  }
   function save(data,key=DEFAULT_KEY){
     const previous=loadRaw(key);
     prepare(data,previous);
-    localStorage.setItem(key,JSON.stringify(data));
+    writeLocal(key,data);
     if(cloudAdapter?.pushSnapshot){
       Promise.resolve(cloudAdapter.pushSnapshot(toCloudPayload(data)))
-        .then(()=>{lastSyncError='';data.meta.lastCloudPushAt=now();data.meta.lastSyncError='';localStorage.setItem(key,JSON.stringify(data))})
-        .catch(err=>{lastSyncError=String(err?.message||err||'Cloud-Sync fehlgeschlagen');data.meta.lastSyncError=lastSyncError;localStorage.setItem(key,JSON.stringify(data))});
+        .then(()=>{lastSyncError='';data.meta.lastCloudPushAt=now();data.meta.lastSyncError='';writeLocal(key,data)})
+        .catch(err=>{lastSyncError=String(err?.message||err||'Cloud-Sync fehlgeschlagen');data.meta.lastSyncError=lastSyncError;writeLocal(key,data)});
     }
     return data;
   }
-  function clear(key=DEFAULT_KEY){localStorage.removeItem(key)}
+  function clear(key=DEFAULT_KEY){try{localStorage.removeItem(key)}catch(e){}}
   function setCloudAdapter(adapter){cloudAdapter=adapter||null}
   function getContext(data){return{companyId:data?.meta?.companyId||'',userId:data?.meta?.currentUserId||'',deviceId:data?.meta?.deviceId||'',schemaVersion:SCHEMA_VERSION}}
   function fileMeta(data){const c=getContext(data),t=now();return{companyId:c.companyId,createdBy:c.userId,createdAt:t,updatedAt:t,syncState:cloudAdapter?'pending':'local'}}

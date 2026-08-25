@@ -37,6 +37,13 @@
     }
   }
   function localData(){return globalThis.data||{}}
+  function persistLocal(d){
+    try{
+      if(globalThis.safePersistCloudIdentity)return globalThis.safePersistCloudIdentity(d);
+      persistLocal(d);
+      return true;
+    }catch(e){console.warn('Lokaler Sync-Cache konnte nicht gespeichert werden',e);return false}
+  }
   function localCounts(d=localData()){return{
     customers:(d.customers||[]).length,offers:(d.offers||[]).length,jobs:(d.jobs||[]).length,
     events:(d.events||[]).length,tasks:(d.tasks||[]).length,invoices:(d.invoices||[]).length,
@@ -214,7 +221,7 @@
         d.meta=d.meta||{};
         d.meta.lastCloudPushAt=new Date().toISOString();
         d.meta.lastSyncError='';
-        localStorage.setItem(KEY,JSON.stringify(d));
+        persistLocal(d);
         lastSuccessAt=d.meta.lastCloudPushAt;
         setProgress(100,'Synchronisiert','Dein Baustellenfortschritt ist gespeichert.');
         renderStatus();
@@ -240,11 +247,11 @@
       await syncInvoices(d,custMap,offerMap,jobMap);
       await applyTombstones(d);
       d.meta=d.meta||{};d.meta.cloudCompanyId=company.id;d.meta.authUserId=session.user.id;d.meta.storageMode='cloud-sync';d.meta.cloudInitialSyncDone=true;d.meta.lastCloudPushAt=new Date().toISOString();d.meta.lastSyncError='';
-      localStorage.setItem(KEY,JSON.stringify(d));
+      persistLocal(d);
       lastSuccessAt=d.meta.lastCloudPushAt;setProgress(100,'Synchronisiert','Alles gespeichert.');renderStatus();
     }catch(e){
       console.error('Cloud push failed',e);lastError=String(e?.message||e||'Cloud-Sync fehlgeschlagen');
-      const d=localData();d.meta=d.meta||{};d.meta.lastSyncError=lastError;localStorage.setItem(KEY,JSON.stringify(d));
+      const d=localData();d.meta=d.meta||{};d.meta.lastSyncError=lastError;persistLocal(d);
       throw e;
     }finally{
       syncing=false;emit();
@@ -318,7 +325,7 @@
     d.invoices.forEach(inv=>{if(inv.jobId){const j=d.jobs.find(x=>x.id===inv.jobId);if(j)j.invoiceId=inv.id}});
     d.events.forEach(ev=>{if(ev.jobId){const j=d.jobs.find(x=>x.id===ev.jobId);if(j)j.eventId=ev.id}if(ev.offerId){const o=d.offers.find(x=>x.id===ev.offerId);if(o)o.eventId=ev.id}});
     d.meta=d.meta||{};d.meta.cloudCompanyId=company.id;d.meta.authUserId=session.user.id;d.meta.storageMode='cloud-sync';d.meta.cloudInitialSyncDone=true;d.meta.lastCloudPullAt=new Date().toISOString();d.meta.deletedEntities=[];
-    localStorage.setItem(KEY,JSON.stringify(d));
+    persistLocal(d);
     setProgress(100,'Cloud geladen','Dein Betrieb ist auf diesem Gerät bereit.');
     globalThis.renderAll?.();
     setTimeout(()=>{
@@ -328,44 +335,45 @@
     return d;
   }
   async function initialSync(){
-    if(!client||!session||!company)return;
+    if(!client||!session||!company)return false;
     const d=localData();
-    if(d.meta?.cloudInitialSyncDone&&d.meta?.cloudCompanyId===company.id){
-      globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
-      lastSuccessAt=d.meta?.lastCloudPushAt||d.meta?.lastCloudPullAt||'';
-      if(membership?.role==='worker'){
-        syncing=true;emit();
-        try{await pullCloud();lastSuccessAt=new Date().toISOString()}finally{syncing=false;emit()}
-      }
-      renderStatus();return;
-    }
-    showEntrySync(true);emit();backupLocalOnce();
+    showEntrySync(!d.meta?.cloudInitialSyncDone);emit();backupLocalOnce();
     try{
+      // Bei jedem App-Start wird die Cloud als gemeinsamer Team-Stand geladen.
+      // So sieht der Chef auch Änderungen, die Mitarbeiter auf anderen Geräten gemacht haben.
+      if(d.meta?.cloudInitialSyncDone&&d.meta?.cloudCompanyId===company.id){
+        syncing=true;emit();
+        await pullCloud();
+        globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
+        lastSuccessAt=new Date().toISOString();lastError='';
+        return true;
+      }
+
       const cc=await cloudCount(),lc=localCounts(d);
       if(membership?.role==='worker'){
-        syncing=true;emit();
-        try{await pullCloud()}finally{syncing=false;emit()}
+        syncing=true;emit();await pullCloud();
       }else if(cc.total===0 && (lc.customers+lc.offers+lc.jobs+lc.invoices+lc.events+lc.tasks)>0){
         setProgress(8,'Lokale Daten werden gesichert','Sicherheitskopie auf diesem Gerät erstellt.');
         await pushSnapshot();
       }else if(cc.total>0){
-        syncing=true;emit();
-        try{await pullCloud()}finally{syncing=false;emit()}
+        syncing=true;emit();await pullCloud();
       }else{
-        // Fresh account with no meaningful local data: mark ready, then upload catalog/settings
         d.meta=d.meta||{};d.meta.cloudCompanyId=company.id;d.meta.authUserId=session.user.id;d.meta.storageMode='cloud-sync';d.meta.cloudInitialSyncDone=true;
-        localStorage.setItem(KEY,JSON.stringify(d));
+        persistLocal(d);
         await pushSnapshot();
       }
       globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
       lastSuccessAt=new Date().toISOString();lastError='';
+      return true;
     }catch(e){
       lastError=String(e?.message||e||'Erste Synchronisierung fehlgeschlagen');
       console.error(e);
+      return false;
     }finally{
-      syncing=false;emit();setTimeout(()=>{showEntrySync(false);globalThis.requireCloudEntry?.()},500)
+      syncing=false;emit();setTimeout(()=>{showEntrySync(false);globalThis.requireCloudEntry?.()},350)
     }
   }
+  let attachPromise=null;
   async function attach(c,s,co,m){
     client=c;session=s;company=co;membership=m;
     if(!client||!session||!company)return;
@@ -374,12 +382,14 @@
     if(active?.meta?.cloudCompanyId!==company.id||active?.meta?.authUserId!==session.user.id){
       throw new Error('Sicherheitsstopp: Lokaler Arbeitsbereich und Cloud-Konto stimmen nicht überein.');
     }
-
-    if(initializedCompanyId===company.id){
-      globalThis.AppRepository?.setCloudAdapter({pushSnapshot});renderStatus();return;
-    }
-    initializedCompanyId=company.id;
-    await initialSync();
+    if(attachPromise)return attachPromise;
+    attachPromise=(async()=>{
+      const ok=await initialSync();
+      if(ok){initializedCompanyId=company.id;renderStatus();return true}
+      initializedCompanyId='';
+      throw new Error(lastError||'Cloud-Synchronisierung fehlgeschlagen');
+    })();
+    try{return await attachPromise}finally{attachPromise=null}
   }
   function detach(){client=session=company=membership=null;initializedCompanyId='';globalThis.AppRepository?.setCloudAdapter(null);renderStatus()}
   async function manual(){if(!client||!company)throw new Error('Nicht mit der Cloud verbunden');showEntrySync(true);syncing=true;emit();try{await pushSnapshot();await pullCloud();lastSuccessAt=new Date().toISOString();lastError=''}finally{syncing=false;emit();setTimeout(()=>{showEntrySync(false);globalThis.requireCloudEntry?.()},450)}}
