@@ -1,7 +1,7 @@
 {
   "name": "Digitaler Handwerker – AngebotsPilot",
   "short_name": "Handwerker",
-  "description": "AngebotsPilot v11.4 – einfache Team-Einladung, serverseitige Baustellen-Zeiterfassung und optimierte mobile Wetterkarte.",
+  "description": "AngebotsPilot v11.4.2 – eigenständiges Büro-Dashboard mit Terminen, Angeboten, Rechnungen und Büro-Fokus.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

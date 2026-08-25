@@ -888,3 +888,75 @@ body[data-role="worker"] #jobCustomer,body[data-role="worker"] #jobStart{pointer
 
 /* v11.4 – Einladung ohne Chef-E-Mail-Eingabe */
 #teamInviteCard .teamRolePicker{margin-top:2px}
+
+/* v11.4.1 – eigenständige Mitarbeiter-Startseite */
+.workerDashboard{margin-top:12px}
+.workerStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.workerStat{appearance:none;-webkit-appearance:none;text-align:left;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 15px;min-height:104px;box-shadow:none}
+.workerStat span,.workerStat strong,.workerStat small{display:block}.workerStat span{font-size:9px;color:var(--muted)}.workerStat strong{font-size:26px;line-height:1;margin-top:9px;letter-spacing:-.04em}.workerStat small{font-size:8px;color:var(--muted);margin-top:6px}
+.workerStat.timeStat strong{color:var(--accent)}
+.workerClockHome{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;background:linear-gradient(135deg,rgba(216,255,62,.07),rgba(42,51,63,.18));border:1px solid rgba(216,255,62,.16);border-radius:18px;padding:12px;margin-bottom:16px}
+.workerClockHome.running{border-color:rgba(216,255,62,.42);box-shadow:inset 0 0 0 1px rgba(216,255,62,.05)}
+.workerClockIcon{width:40px;height:40px;border-radius:13px;background:rgba(216,255,62,.1);display:grid;place-items:center;font-size:20px}.workerClockText{min-width:0}.workerClockText b,.workerClockText small{display:block}.workerClockText b{font-size:10px}.workerClockText small{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.35}
+.workerSectionTitle{align-items:flex-end}.workerSectionTitle>div span{font-size:8px;color:var(--muted)}
+.workerHomeJobs{display:grid;gap:9px;margin-bottom:4px}.workerJobHomeCard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:13px}.workerJobHomeCard.activeJob{border-color:rgba(216,255,62,.38)}
+.workerJobHomeTop{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}.workerJobHomeTop>div{min-width:0}.workerJobHomeTop h3{font-size:14px;margin:6px 0 3px}.workerJobHomeTop p{font-size:8.5px;color:var(--muted);margin:0;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.workerJobDate{font-size:7px;font-weight:950;letter-spacing:.1em;color:var(--muted)}.workerJobDate.today{color:var(--accent)}
+.workerJobHomeActions{display:flex;gap:7px;margin-top:11px}.workerJobHomeActions .btn:first-child{flex:1}.workerEmptyHome{display:flex;flex-direction:column;gap:5px;text-align:left;padding:18px}.workerEmptyHome b{color:var(--text)}.workerEmptyHome span{font-size:9px;line-height:1.45}
+body[data-role="worker"] #today .hero{background:radial-gradient(circle at 90% 5%,rgba(216,255,62,.13),transparent 42%),var(--card)}
+body[data-role="worker"] #today .hero p{max-width:95%}
+body[data-role="worker"] #customers{display:none!important}
+body[data-role="worker"] .bottomNav{grid-template-columns:repeat(4,1fr)}
+body[data-role="worker"] .bottomNav #navOffers{display:none!important}
+body[data-role="worker"] #calendar .calendarGrid .day:not(button){cursor:default}
+@media(max-width:390px){.workerClockHome{grid-template-columns:auto minmax(0,1fr)}.workerClockHome>.btn{grid-column:1/-1;width:100%}.workerStat{min-height:96px;padding:12px}.workerStat strong{font-size:23px}}
+
+/* v11.4.2 – eigenständiges Büro-Dashboard */
+.office-only{display:none!important}
+body[data-role="office"] .office-only{display:block!important}
+
+.officeDashboard{margin-top:0}
+.officeStats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+.officeStat{
+  appearance:none;-webkit-appearance:none;text-align:left;color:var(--text);
+  border:1px solid var(--line);background:var(--card);border-radius:19px;
+  padding:15px 14px;min-height:104px
+}
+.officeStat span,.officeStat strong,.officeStat small{display:block}
+.officeStat span{font-size:9px;color:var(--muted);font-weight:800}
+.officeStat strong{font-size:25px;margin-top:8px;letter-spacing:-.04em}
+.officeStat small{font-size:8px;color:var(--muted);margin-top:3px}
+.officeStat.overdueStat strong{color:#ff8d89}
+
+.officeFocusCard{
+  background:var(--card);border:1px solid var(--line);border-radius:20px;
+  padding:15px;margin-bottom:18px
+}
+.officeFocusHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.officeFocusHead h3{margin:7px 0 0;font-size:18px}
+.officeFocusList{display:grid;gap:8px;margin-top:13px}
+.officeFocusItem{
+  width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
+  gap:10px;text-align:left;color:var(--text);background:var(--card2);border:1px solid var(--line);
+  border-radius:14px;padding:11px 10px
+}
+.officeFocusItem.urgent{border-color:rgba(255,141,137,.28);background:rgba(255,141,137,.05)}
+.officeFocusIcon{font-size:18px}
+.officeFocusItem b,.officeFocusItem small{display:block}
+.officeFocusItem b{font-size:10px}
+.officeFocusItem small{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.35}
+.officeFocusItem>span:last-child{font-size:20px;color:var(--muted)}
+.officeFocusEmpty{display:flex;gap:10px;align-items:center;padding:12px 4px}
+.officeFocusEmpty>span{width:34px;height:34px;border-radius:11px;background:rgba(216,255,62,.09);display:grid;place-items:center;color:var(--accent);font-weight:900}
+.officeFocusEmpty b,.officeFocusEmpty small{display:block}
+.officeFocusEmpty small{font-size:8px;color:var(--muted);margin-top:2px}
+
+.officeSectionTitle{margin-top:0!important}
+.officeQuickGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}
+.officeQuickGrid .quick{min-height:108px}
+
+@media(max-width:390px){
+  .officeStats{gap:7px}
+  .officeStat{padding:13px 12px;min-height:96px}
+  .officeStat strong{font-size:22px}
+  .officeQuickGrid{gap:7px}
+}

@@ -11,6 +11,8 @@
   let ownOpenEntry=null;
   let ticker=null;
   let loading=false;
+  let dashboardLoadedAt=0;
+  let dashboardTicker=null;
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
@@ -206,6 +208,8 @@
         '✓ Arbeitszeit gespeichert'
       );
       await load();
+      dashboardLoadedAt=0;
+      refreshDashboard(true);
     }catch(e){
       console.error(e);
       const msg=String(e.message||e);
@@ -232,5 +236,36 @@
     globalThis.toast?.('Zeiten aktualisiert');
   }
 
-  globalThis.TimeTracking={open,refresh,action};
+  async function refreshDashboard(force=false){
+    const {client,session,membership}=cloud();
+    if(membership?.role!=='worker'||!client||!session)return;
+    if(!force&&Date.now()-dashboardLoadedAt<15000)return;
+    dashboardLoadedAt=Date.now();
+    try{
+      const start=new Date();start.setHours(0,0,0,0);
+      const {data,error}=await client.from('time_entries')
+        .select('id,job_id,started_at,pause_started_at,break_seconds,ended_at')
+        .eq('user_id',session.user.id)
+        .gte('started_at',start.toISOString())
+        .order('started_at',{ascending:false});
+      if(error)throw error;
+      const rows=data||[],now=Date.now(),total=rows.reduce((sum,e)=>sum+seconds(e,now),0),open=rows.find(e=>!e.ended_at)||null;
+      const stat=q('workerStatTime');if(stat)stat.textContent=hoursLabel(total).replace(' Std.','');
+      const title=q('workerClockHomeTitle'),text=q('workerClockHomeText'),box=q('workerClockHome');
+      if(open){
+        const paused=!!open.pause_started_at;
+        if(title)title.textContent=paused?'Pause läuft':'Arbeitszeit läuft';
+        if(text)text.textContent=`Heute ${hoursLabel(total)} erfasst · ${paused?'Timer pausiert':'Timer aktiv'}`;
+        box?.classList.add('running');
+      }else{
+        if(title)title.textContent=total>0?'Arbeitszeit für heute gespeichert':'Zeiterfassung bereit';
+        if(text)text.textContent=total>0?`Heute bisher ${hoursLabel(total)} erfasst.`:'Öffne eine Baustelle, um deine Arbeitszeit zu starten.';
+        box?.classList.remove('running');
+      }
+      if(dashboardTicker)clearInterval(dashboardTicker);
+      if(open){dashboardTicker=setInterval(()=>{dashboardLoadedAt=0;refreshDashboard(true)},30000)}
+    }catch(e){console.warn('Dashboard time failed',e)}
+  }
+
+  globalThis.TimeTracking={open,refresh,action,refreshDashboard};
 })();

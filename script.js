@@ -547,7 +547,108 @@ function migrateLegacyTravelV108(){
 }
 
 function renderAll(){renderToday();renderOffers();renderInvoices();renderCustomers();renderCalendar();renderTasks();renderJobs();renderCatalog();loadSettingsForm();renderPrivacy();renderCachedWeather();applyRoleUI();if(document.getElementById('customerDetail')?.classList.contains('active'))renderCustomerFolder()}
-function renderToday(){const d=new Date();document.getElementById('todayDate').textContent=d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'});document.getElementById('ownerGreeting').textContent=data.settings.ownerName||'Handwerker';const t=todayISO(),todayTasks=data.tasks.filter(x=>x.date===t),openTasks=todayTasks.filter(x=>!x.done),todayEvents=data.events.filter(x=>x.date===t).sort((a,b)=>a.time.localeCompare(b.time));const openOffers=data.offers.filter(o=>['draft','sent'].includes(o.status));document.getElementById('statTasks').textContent=openTasks.length;document.getElementById('statEvents').textContent=todayEvents.length;document.getElementById('statOffers').textContent=openOffers.length;document.getElementById('statValue').textContent=euro(openOffers.reduce((s,o)=>s+(o.total||0),0));document.getElementById('taskProgress').textContent=`${todayTasks.filter(x=>x.done).length} von ${todayTasks.length} erledigt`;document.getElementById('todayTasks').innerHTML=todayTasks.length?todayTasks.map(taskHTML).join(''):'<div class="empty">Heute ist noch nichts eingetragen.</div>';document.getElementById('todayEvents').innerHTML=todayEvents.length?todayEvents.map(e=>`<div class="event"><div class="eventTime">${e.time} Uhr · ${escapeHTML(e.type)}</div><b>${escapeHTML(e.title)}</b><div class="mini">${escapeHTML(e.address||'')}</div></div>`).join(''):'<div class="empty">Heute keine Termine.</div>';document.getElementById('dailyMessage').textContent=openTasks.length||todayEvents.length?'Dein Tag ist vorbereitet. Arbeite die wichtigsten Punkte nacheinander ab.':'Heute ist noch frei – ideal für Angebote, Akquise oder Planung.'}
+function greetingForNow(){
+  const h=new Date().getHours();
+  return h<11?'Guten Morgen':h<18?'Guten Tag':'Guten Abend';
+}
+function workerJobStatusLabel(status){return status==='done'?'Abgeschlossen':status==='active'?'In Arbeit':'Geplant'}
+function renderWorkerHome(todayTasks=[]){
+  const worker=(data.privacy?.role||'owner')==='worker';
+  if(!worker)return;
+  const jobs=[...(data.jobs||[])].sort((a,b)=>String(a.start||'9999').localeCompare(String(b.start||'9999')));
+  const today=todayISO();
+  const todayJobs=jobs.filter(j=>j.start===today&&j.status!=='done');
+  const openTasks=(todayTasks||[]).filter(x=>!x.done);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+  set('workerStatJobs',jobs.filter(j=>j.status!=='done').length);
+  set('workerStatToday',todayJobs.length);
+  set('workerStatTasks',openTasks.length);
+  set('workerHomeJobMeta',todayJobs.length?`${todayJobs.length} ${todayJobs.length===1?'Einsatz':'Einsätze'} heute`:'Deine nächsten Einsätze');
+
+  const box=document.getElementById('workerHomeJobs');
+  if(box){
+    const visible=[...todayJobs,...jobs.filter(j=>j.start!==today&&j.status!=='done')].filter((j,i,a)=>a.findIndex(x=>x.id===j.id)===i).slice(0,3);
+    box.innerHTML=visible.length?visible.map(j=>{
+      const c=data.customers.find(x=>x.id===j.customerId);
+      const isToday=j.start===today;
+      return `<div class="workerJobHomeCard ${j.status==='active'?'activeJob':''}">
+        <div class="workerJobHomeTop"><div><span class="workerJobDate ${isToday?'today':''}">${isToday?'HEUTE':dateDE(j.start)}</span><h3>${escapeHTML(j.title||'Baustelle')}</h3><p>${escapeHTML(c?.name||'')}${j.address?' · '+escapeHTML(j.address):''}</p></div><span class="badge ${j.status==='done'?'done':'open'}">${workerJobStatusLabel(j.status)}</span></div>
+        <div class="workerJobHomeActions"><button class="btn primary small" onclick="editJob('${j.id}')">${j.status==='active'?'⏱️ Weiterarbeiten':'Baustelle öffnen'}</button>${j.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(j.address)}')">📍 Route</button>`:''}</div>
+      </div>`;
+    }).join(''):'<div class="empty workerEmptyHome"><b>Heute nichts zugewiesen.</b><span>Neue Baustellen erscheinen hier automatisch, sobald der Betrieb sie dir zuweist.</span></div>';
+  }
+  globalThis.TimeTracking?.refreshDashboard?.();
+}
+
+function renderOfficeHome(todayEvents,openOffers,openTasks){
+  const role=data.privacy?.role||'owner';
+  if(role!=='office')return;
+
+  const today=todayISO();
+  const invoices=(data.invoices||[]);
+  const openInvoices=invoices.filter(i=>i.status==='open');
+  const overdue=openInvoices.filter(i=>i.dueDate&&i.dueDate<today);
+  const acceptedOffers=(data.offers||[]).filter(o=>o.status==='accepted');
+
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value)};
+  set('officeStatEvents',todayEvents.length);
+  set('officeStatOffers',openOffers.length);
+  set('officeStatInvoices',openInvoices.length);
+  set('officeStatOverdue',overdue.length);
+
+  const focus=[];
+  if(overdue.length){
+    focus.push(`<button class="officeFocusItem urgent" onclick="showScreen('invoices')"><span class="officeFocusIcon">⚠️</span><div><b>${overdue.length} ${overdue.length===1?'Rechnung ist':'Rechnungen sind'} überfällig</b><small>Zahlungsstatus prüfen und ggf. erinnern.</small></div><span>›</span></button>`);
+  }
+  if(todayEvents.length){
+    const next=todayEvents[0];
+    focus.push(`<button class="officeFocusItem" onclick="showScreen('calendar')"><span class="officeFocusIcon">📅</span><div><b>${todayEvents.length} ${todayEvents.length===1?'Termin':'Termine'} heute</b><small>Nächster: ${escapeHTML(next.time||'')} Uhr · ${escapeHTML(next.title||'Termin')}</small></div><span>›</span></button>`);
+  }
+  if(acceptedOffers.length){
+    focus.push(`<button class="officeFocusItem" onclick="showScreen('offers')"><span class="officeFocusIcon">✅</span><div><b>${acceptedOffers.length} angenommene ${acceptedOffers.length===1?'Angebot':'Angebote'}</b><small>Baustelle und Ausführung im Blick behalten.</small></div><span>›</span></button>`);
+  }
+  if(openTasks.length){
+    focus.push(`<button class="officeFocusItem" onclick="showScreen('tasks')"><span class="officeFocusIcon">☑️</span><div><b>${openTasks.length} offene ${openTasks.length===1?'Aufgabe':'Aufgaben'} heute</b><small>Prioritäten für den Tag abarbeiten.</small></div><span>›</span></button>`);
+  }
+  if(!focus.length){
+    focus.push(`<div class="officeFocusEmpty"><span>✓</span><div><b>Alles im Blick.</b><small>Aktuell gibt es nichts Dringendes für das Büro.</small></div></div>`);
+  }
+
+  const box=document.getElementById('officeFocusList');
+  if(box)box.innerHTML=focus.slice(0,4).join('');
+}
+
+function renderToday(){
+  const d=new Date(),role=data.privacy?.role||'owner',worker=role==='worker',office=role==='office';
+  document.getElementById('todayDate').textContent=d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'});
+  document.getElementById('ownerGreeting').textContent=data.settings.ownerName||'Handwerker';
+  const hero=document.querySelector('#today .hero h2');if(hero)hero.firstChild.textContent=`${greetingForNow()}, `;
+  const t=todayISO(),todayTasks=data.tasks.filter(x=>x.date===t),openTasks=todayTasks.filter(x=>!x.done),todayEvents=data.events.filter(x=>x.date===t).sort((a,b)=>a.time.localeCompare(b.time));
+  const openOffers=data.offers.filter(o=>['draft','sent'].includes(o.status));
+  document.getElementById('statTasks').textContent=openTasks.length;
+  document.getElementById('statEvents').textContent=todayEvents.length;
+  document.getElementById('statOffers').textContent=openOffers.length;
+  document.getElementById('statValue').textContent=euro(openOffers.reduce((s,o)=>s+(o.total||0),0));
+  document.getElementById('taskProgress').textContent=`${todayTasks.filter(x=>x.done).length} von ${todayTasks.length} erledigt`;
+  document.getElementById('todayTasks').innerHTML=todayTasks.length?todayTasks.map(taskHTML).join(''):'<div class="empty">Heute ist noch nichts eingetragen.</div>';
+  document.getElementById('todayEvents').innerHTML=todayEvents.length?todayEvents.map(e=>`<div class="event"><div class="eventTime">${e.time} Uhr · ${escapeHTML(e.type)}</div><b>${escapeHTML(e.title)}</b><div class="mini">${escapeHTML(e.address||'')}</div></div>`).join(''):'<div class="empty">Heute keine Termine.</div>';
+  const tasksTitle=document.getElementById('todayTasksTitle');if(tasksTitle)tasksTitle.textContent=worker?'Meine Aufgaben':office?'Büro-Aufgaben heute':'Heute erledigen';
+  if(worker){
+    const activeJobs=(data.jobs||[]).filter(j=>j.status==='active').length,todayJobs=(data.jobs||[]).filter(j=>j.start===t&&j.status!=='done').length;
+    document.getElementById('dailyMessage').textContent=activeJobs?'Eine Baustelle läuft gerade. Zeiten und Dokumentation findest du direkt im Auftrag.':todayJobs?'Deine Einsätze für heute sind vorbereitet. Öffne eine Baustelle für Navigation und Zeiterfassung.':'Dir ist heute keine Baustelle zugewiesen.';
+    renderWorkerHome(todayTasks);
+  }else if(office){
+    renderOfficeHome(todayEvents,openOffers,openTasks);
+    const overdue=(data.invoices||[]).filter(i=>i.status==='open'&&i.dueDate&&i.dueDate<t).length;
+    document.getElementById('dailyMessage').textContent=overdue
+      ?`${overdue} ${overdue===1?'Rechnung ist':'Rechnungen sind'} überfällig. Termine und Büroaufgaben sind darunter zusammengefasst.`
+      :todayEvents.length||openTasks.length
+        ?'Termine, Angebote und offene Büroaufgaben für heute sind vorbereitet.'
+        :'Im Büro ist aktuell nichts Dringendes offen.';
+  }else{
+    document.getElementById('dailyMessage').textContent=openTasks.length||todayEvents.length?'Dein Tag ist vorbereitet. Arbeite die wichtigsten Punkte nacheinander ab.':'Heute ist noch frei – ideal für Angebote, Akquise oder Planung.';
+  }
+}
 function taskHTML(t){return `<div class="item"><div class="taskRow"><button class="taskCheck ${t.done?'checked':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</button><div class="taskContent ${t.done?'doneText':''}"><h3>${escapeHTML(t.title)}</h3><p>${dateDE(t.date)}${t.notes?' · '+escapeHTML(t.notes):''}</p></div><button class="btn small" onclick="editTask('${t.id}')">✎</button></div></div>`}
 function toggleTask(id){const t=data.tasks.find(x=>x.id===id);if(t){t.done=!t.done;saveData()}}
 function newTask(){document.getElementById('taskId').value='';document.getElementById('taskTitle').value='';document.getElementById('taskDate').value=todayISO();document.getElementById('taskPriority').value='normal';document.getElementById('taskNotes').value='';showScreen('taskEditor')}
@@ -921,8 +1022,9 @@ function setEventType(type){
   if(navigator.vibrate)navigator.vibrate(8);
 }
 
-function newEventForDate(date){newEvent();document.getElementById('eventDate').value=date;document.getElementById('eventEditorTitle').textContent=`Termin am ${dateDE(date)}`}
+function newEventForDate(date){if((data.privacy?.role||'owner')==='worker')return toast('Termine werden vom Büro über deine Baustellen geplant');newEvent();document.getElementById('eventDate').value=date;document.getElementById('eventEditorTitle').textContent=`Termin am ${dateDE(date)}`}
 function newEvent(){
+  if((data.privacy?.role||'owner')==='worker')return toast('Termine werden vom Büro geplant');
   document.getElementById('eventEditorTitle').textContent='Neuer Termin';
   document.getElementById('eventId').value='';
   document.getElementById('eventTitle').value='';
@@ -958,200 +1060,24 @@ function saveEvent(){
   if(id)data.events[data.events.findIndex(x=>x.id===id)]=obj;else data.events.push(obj);
   syncLinkedJobFromEvent(obj);saveData('Termin gespeichert',obj.title);showScreen('calendar');toast(obj.jobId?'Termin gespeichert · Baustelle aktualisiert':'Termin gespeichert');
 }
-function renderCalendar(){document.getElementById('monthTitle').textContent=calDate.toLocaleDateString('de-DE',{month:'long',year:'numeric'});const y=calDate.getFullYear(),m=calDate.getMonth(),first=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),heads=['Mo','Di','Mi','Do','Fr','Sa','So'].map(x=>`<div class="calHead">${x}</div>`).join('');let cells='';for(let i=0;i<first;i++)cells+='<div class="day muted"></div>';for(let d=1;d<=days;d++){const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,count=data.events.filter(e=>e.date===iso).length;cells+=`<button type="button" class="day ${iso===todayISO()?'today':''} ${count?'hasEvent':''}" onclick="newEventForDate('${iso}')"><span>${d}</span>${count?`<small>${count}</small>`:''}</button>`}document.getElementById('calendarGrid').innerHTML=heads+cells;const list=[...data.events].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));document.getElementById('eventList').innerHTML=list.length?list.map(e=>{const c=data.customers.find(x=>x.id===e.customerId);return `<div class="item"><div class="itemTop"><div><span class="badge sent">${escapeHTML(e.type)}</span><h3 style="margin-top:8px">${escapeHTML(e.title)}</h3><p>${dateDE(e.date)} · ${e.time} Uhr · ${escapeHTML(c?.name||'')}</p></div><button class="btn small" onclick="editEvent('${e.id}')">✎</button></div><div class="itemActions">${e.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(e.address)}')">📍 Route</button>`:''}<button class="btn small" onclick="googleCalendar('${e.id}')">Google Kalender</button><button class="btn small" onclick="downloadICS('${e.id}')">Apple / Outlook</button></div></div>`}).join(''):'<div class="empty">Noch keine Termine.</div>'}
-function changeMonth(n){calDate=new Date(calDate.getFullYear(),calDate.getMonth()+n,1);renderCalendar()}
-function eventDates(e){const start=new Date(`${e.date}T${e.time}:00`),end=new Date(start.getTime()+e.duration*60000);const fmt=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');return{start:fmt(start),end:fmt(end)}}
-async function googleCalendar(id){if(!await ensureExternalConsent('Google Kalender'))return;const e=data.events.find(x=>x.id===id),d=eventDates(e);location.href=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${d.start}/${d.end}&details=${encodeURIComponent(e.notes||'')}&location=${encodeURIComponent(e.address||'')}`}
-function downloadICS(id){const e=data.events.find(x=>x.id===id),d=eventDates(e),ics=`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//AngebotsPilot//Digitaler Handwerker//DE\nBEGIN:VEVENT\nUID:${e.id}@angebotspilot\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}\nDTSTART:${d.start}\nDTEND:${d.end}\nSUMMARY:${e.title}\nLOCATION:${e.address||''}\nDESCRIPTION:${e.notes||''}\nEND:VEVENT\nEND:VCALENDAR`;downloadBlob(ics,`${e.title}.ics`,'text/calendar')}
-function acceptedOfferOptions(selected='',customerId=''){const offers=data.offers.filter(o=>o.status==='accepted'&&(!customerId||o.customerId===customerId));return ['<option value="">– Kein Angebot verknüpft –</option>',...offers.map(o=>`<option value="${o.id}" ${o.id===selected?'selected':''}>${escapeHTML(o.number)} · ${escapeHTML(o.subject)} · ${euro(o.total)}</option>`)].join('')}
-function refreshJobOfferOptions(){const el=document.getElementById('jobOffer');if(el)el.innerHTML=acceptedOfferOptions(el.value,document.getElementById('jobCustomer').value)}
-let jobDraftPhotos=[];
-function renderJobPhotos(){
-  const grid=document.getElementById('jobPhotoGrid'),count=document.getElementById('jobPhotoCount');if(!grid)return;
-  if(count)count.textContent=`${jobDraftPhotos.length} Foto${jobDraftPhotos.length===1?'':'s'}`;
-  grid.innerHTML=jobDraftPhotos.length?jobDraftPhotos.map((p,i)=>`<div class="photoTile"><img src="${p.data}" alt="Baustellenfoto"><button type="button" onclick="removeJobPhoto(${i})">×</button><small>${dateDE((p.at||'').slice(0,10))}</small></div>`).join(''):'<div class="photoEmpty">Noch keine Fotos</div>';
-}
-function removeJobPhoto(i){jobDraftPhotos.splice(i,1);renderJobPhotos()}
-function compressPhoto(file){
-  return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const max=1100,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.72))};img.src=reader.result};reader.readAsDataURL(file)});
-}
-async function addJobPhotos(event){
-  const files=[...(event.target.files||[])];if(!files.length)return;
-  toast('Fotos werden vorbereitet …');
-  for(const file of files.slice(0,8)){
-    try{const dataUrl=await compressPhoto(file);jobDraftPhotos.push({id:uid(),data:dataUrl,at:new Date().toISOString()})}catch(e){}
-  }
-  event.target.value='';renderJobPhotos();toast('📸 Foto zur Baustelle hinzugefügt');
-}
-
-
-
-function upsertCalendarEventForOffer(offer){
-  if(!offer||!offer.id)return;
-  const customer=getCustomerById(offer.customerId);
-  let ev=(data.events||[]).find(e=>e.offerId===offer.id);
-  if(ev){
-    ev.title=`Angebot: ${offer.subject||'Angebot'}`;
-    ev.customerId=offer.customerId||'';
-    ev.type='Angebot';
-    ev.address=customer?.address||ev.address||'';
-    ev.notes=`Angebot ${offer.number||''}${offer.status?` · ${statusLabel(offer.status)}`:''}`;
-    // Datum/Uhrzeit absichtlich nicht überschreiben:
-    // Der Nutzer darf den automatisch erzeugten Kalendereintrag später auf den echten Ausführungstag verschieben.
-  }else{
-    ev={
-      id:uid(),
-      title:`Angebot: ${offer.subject||'Angebot'}`,
-      customerId:offer.customerId||'',
-      date:offer.date||todayISO(),
-      time:'08:00',
-      duration:60,
-      type:'Angebot',
-      address:customer?.address||'',
-      notes:`Angebot ${offer.number||''}${offer.status?` · ${statusLabel(offer.status)}`:''}`,
-      offerId:offer.id,
-      jobId:''
-    };
-    data.events.push(ev);
-  }
-  offer.eventId=ev.id;
-}
-
-function upsertCalendarEventForJob(job){
-  if(!job||!job.start)return;
-  let ev=(data.events||[]).find(e=>e.jobId===job.id);
-  const payload={title:job.title||'Baustelle',customerId:job.customerId||'',date:job.start,time:ev?.time||'08:00',duration:ev?.duration||480,type:'Baustelle',address:job.address||'',notes:job.docNote||job.notes||'',jobId:job.id};
-  if(ev)Object.assign(ev,payload);else{ev={id:uid(),...payload};data.events.push(ev)}
-  job.eventId=ev.id;
-}
-function syncLinkedJobFromEvent(ev){
-  if(!ev?.jobId)return;const job=data.jobs.find(j=>j.id===ev.jobId);if(!job)return;
-  job.start=ev.date||job.start;job.address=ev.address||job.address;if(ev.customerId)job.customerId=ev.customerId;
-}
-
-function setJobEditorRoleMode(){
-  const worker=(data.privacy?.role||'owner')==='worker';
-  document.querySelectorAll('#jobEditor .jobProtectedField').forEach(el=>{
-    el.disabled=worker;
-    el.classList.toggle('readonlyField',worker);
-  });
-  const save=document.getElementById('jobSaveBtn');
-  if(save)save.textContent=worker?'Fortschritt speichern':'Baustelle speichern';
-  const sub=document.getElementById('jobEditorSubtitle');
-  if(sub)sub.textContent=worker?'Status & Dokumentation':'Auftrag & Dokumentation';
-}
-
-function newJob(){
-  document.getElementById('jobId').value='';
-  document.getElementById('jobTitle').value='';
-  document.getElementById('jobCustomer').innerHTML=customerOptions();
-  document.getElementById('jobAddress').value='';
-  document.getElementById('jobAddress').dataset.autoFilled='1';
-  document.getElementById('jobStart').value=todayISO();
-  document.getElementById('jobStatus').value='open';
-  document.getElementById('jobNotes').value='';
-  document.getElementById('jobOffer').innerHTML=acceptedOfferOptions();
-  jobDraftPhotos=[];
-  document.getElementById('jobDocNote').value='';
-  renderJobPhotos();
-  setJobEditorRoleMode();
-  globalThis.JobAssignments?.open([],[]);
-  globalThis.TimeTracking?.open(null);
-  showScreen('jobEditor');
-}
-function editJob(id){
-  const j=data.jobs.find(x=>x.id===id);if(!j)return;
-  document.getElementById('jobId').value=j.id;
-  document.getElementById('jobTitle').value=j.title;
-  document.getElementById('jobCustomer').innerHTML=customerOptions(j.customerId);
-  document.getElementById('jobAddress').value=j.address||'';
-  document.getElementById('jobAddress').dataset.autoFilled='0';
-  document.getElementById('jobStart').value=j.start;
-  document.getElementById('jobStatus').value=j.status;
-  document.getElementById('jobNotes').value=j.notes||'';
-  document.getElementById('jobOffer').innerHTML=acceptedOfferOptions(j.offerId||'',j.customerId);
-  jobDraftPhotos=structuredClone(j.photos||[]);
-  document.getElementById('jobDocNote').value=j.docNote||'';
-  renderJobPhotos();
-  setJobEditorRoleMode();
-  globalThis.JobAssignments?.open(j.assignedUserIds||[],j.assignedNames||[]);
-  globalThis.TimeTracking?.open(j.id);
-  showScreen('jobEditor');
-}
-function saveJob(){
-  const id=document.getElementById('jobId').value;
-  const old=id?data.jobs.find(x=>x.id===id):null;
-  const role=data.privacy?.role||'owner';
-  const worker=role==='worker';
-  const assignmentState=worker
-    ?{ids:old?.assignedUserIds||[],names:old?.assignedNames||[]}
-    :(globalThis.JobAssignments?.selection?.()||{ids:old?.assignedUserIds||[],names:old?.assignedNames||[]});
-
-  const obj={
-    id:id||uid(),
-    title:document.getElementById('jobTitle').value.trim(),
-    customerId:document.getElementById('jobCustomer').value,
-    address:document.getElementById('jobAddress').value.trim(),
-    start:document.getElementById('jobStart').value,
-    status:document.getElementById('jobStatus').value,
-    notes:document.getElementById('jobNotes').value.trim(),
-    offerId:worker?(old?.offerId||''):(document.getElementById('jobOffer').value||''),
-    invoiceId:old?.invoiceId||'',
-    eventId:old?.eventId||'',
-    photos:structuredClone(jobDraftPhotos),
-    docNote:document.getElementById('jobDocNote').value.trim(),
-    assignedUserIds:assignmentState.ids,
-    assignedNames:assignmentState.names
-  };
-  if(!obj.title)return toast('Name fehlt');
-
-  if(id)data.jobs[data.jobs.findIndex(x=>x.id===id)]=obj;else data.jobs.push(obj);
-
-  if(!worker)upsertCalendarEventForJob(obj);
-
-  let invoiceResult=null,invoiceWasNew=false;
-  if(!worker&&obj.status==='done'&&old?.status!=='done'&&!obj.invoiceId){
-    const before=data.invoices.length;
-    invoiceResult=createInvoiceFromJobObject(obj);
-    invoiceWasNew=data.invoices.length>before;
-    if(invoiceResult)obj.invoiceId=invoiceResult.id;
-    data.jobs[data.jobs.findIndex(x=>x.id===obj.id)]=obj;
-  }
-
-  saveData(worker?'Baustellenfortschritt gespeichert':'Baustelle gespeichert',obj.title);
-
-  if(worker){
-    globalThis.JobAssignments?.saveWorkerProgress?.(obj)
-      .then(()=>globalThis.toast?.('✓ Fortschritt in der Cloud gespeichert'))
-      .catch(e=>{console.error(e);globalThis.toast?.('Fortschritt lokal gespeichert · Cloud bitte erneut versuchen')});
-  }
-
-  showScreen(invoiceResult?'invoices':'jobs');
-  toast(worker
-    ?'Fortschritt gespeichert'
-    :invoiceResult
-      ?(invoiceWasNew?'Baustelle abgeschlossen · Rechnungsentwurf erstellt':'Baustelle abgeschlossen · vorhandene Rechnung verknüpft')
-      :`Baustelle gespeichert${obj.assignedUserIds?.length?` · ${obj.assignedUserIds.length} Mitarbeiter zugewiesen`:''}`);
-}
-function renderJobs(){
-  const box=document.getElementById('jobList');if(!box)return;
+function renderCalendar(){
   const role=data.privacy?.role||'owner',worker=role==='worker';
-  const title=document.getElementById('jobsScreenTitle');if(title)title.textContent=worker?'Meine Baustellen':'Baustellen';
-
-  box.innerHTML=data.jobs.length?data.jobs.map(j=>{
-    const c=data.customers.find(x=>x.id===j.customerId),inv=data.invoices.find(x=>x.id===j.invoiceId);
-    const assignees=!worker?globalThis.JobAssignments?.chips?.(j.assignedUserIds||[],j.assignedNames||[]):'';
-    const financeActions=!worker
-      ?`${j.status==='done'&&!inv?`<button class="btn small primary" onclick="createInvoiceFromJob('${j.id}')">🧾 Rechnung</button>`:''}${inv?`<button class="btn small" onclick="editInvoice('${inv.id}')">🧾 Rechnung öffnen</button>`:''}`
-      :'';
-    return `<div class="item jobCard">
-      <div class="itemTop">
-        <div><span class="badge ${j.status==='done'?'done':'open'}">${statusLabel(j.status)}</span><h3 style="margin-top:8px">${escapeHTML(j.title)}</h3><p>${escapeHTML(c?.name||'')} · Start ${dateDE(j.start)}${!worker&&inv?' · Rechnung '+escapeHTML(inv.number):''}</p>${assignees}</div>
-        <button class="btn small" onclick="editJob('${j.id}')">${worker?'Öffnen':'Bearbeiten'}</button>
-      </div>
-      <div class="itemActions">${j.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(j.address)}')">📍 Navigation</button><button class="btn small" onclick="openJobWeather('${j.id}')">🌦️ Wetter</button>`:''}${!worker?`<button class="btn small" onclick="jobToCalendar('${j.id}')">📅 Termin</button>`:''}${financeActions}</div>
-    </div>`;
-  }).join(''):`<div class="empty">${worker?'Dir ist aktuell keine Baustelle zugewiesen.':'Noch keine Baustellen.'}</div>`;
+  document.getElementById('monthTitle').textContent=calDate.toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  const y=calDate.getFullYear(),m=calDate.getMonth(),first=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),heads=['Mo','Di','Mi','Do','Fr','Sa','So'].map(x=>`<div class="calHead">${x}</div>`).join('');
+  let cells='';for(let i=0;i<first;i++)cells+='<div class="day muted"></div>';
+  for(let d=1;d<=days;d++){
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,count=data.events.filter(e=>e.date===iso).length;
+    cells+=worker
+      ?`<div class="day ${iso===todayISO()?'today':''} ${count?'hasEvent':''}"><span>${d}</span>${count?`<small>${count}</small>`:''}</div>`
+      :`<button type="button" class="day ${iso===todayISO()?'today':''} ${count?'hasEvent':''}" onclick="newEventForDate('${iso}')"><span>${d}</span>${count?`<small>${count}</small>`:''}</button>`;
+  }
+  document.getElementById('calendarGrid').innerHTML=heads+cells;
+  const list=[...data.events].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  document.getElementById('eventList').innerHTML=list.length?list.map(e=>{
+    const c=data.customers.find(x=>x.id===e.customerId),job=e.jobId?data.jobs.find(j=>j.id===e.jobId):null;
+    const action=worker?(job?`<button class="btn small primary" onclick="editJob('${job.id}')">Baustelle öffnen</button>`:''):`<button class="btn small" onclick="editEvent('${e.id}')">✎</button>`;
+    return `<div class="item"><div class="itemTop"><div><span class="badge sent">${escapeHTML(e.type)}</span><h3 style="margin-top:8px">${escapeHTML(e.title)}</h3><p>${dateDE(e.date)} · ${e.time} Uhr · ${escapeHTML(c?.name||'')}</p></div>${action}</div><div class="itemActions">${e.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(e.address)}')">📍 Route</button>`:''}${!worker?`<button class="btn small" onclick="googleCalendar('${e.id}')">Google Kalender</button><button class="btn small" onclick="downloadICS('${e.id}')">Apple / Outlook</button>`:''}</div></div>`;
+  }).join(''):'<div class="empty">Noch keine Termine.</div>';
 }
 function jobToCalendar(id){const j=data.jobs.find(x=>x.id===id);if(!j)return;upsertCalendarEventForJob(j);persistAppState();const ev=data.events.find(e=>e.jobId===j.id);if(ev)editEvent(ev.id)}
 function renderCatalog(){
@@ -1855,15 +1781,39 @@ function applyRoleUI(){
     ?'Vollzugriff inklusive Betriebseinstellungen und Team.'
     :role==='office'
       ?'Kunden, Angebote, Rechnungen, Kalender, Aufgaben und Baustellen. Keine kritischen Betriebseinstellungen.'
-      :'Keine Preise oder Rechnungen. Baustellenzugriff wird serverseitig über Zuweisungen begrenzt.';
+      :'Dein Arbeitsbereich: zugewiesene Baustellen, Termine, Aufgaben, Navigation, Wetter, Dokumentation und Zeiterfassung.';
 
   const t=document.getElementById('rolePermissionText');
   if(t)t.innerHTML=role==='owner'
     ?'<b>Chef:</b> Vollzugriff auf Betrieb, Team, Kunden, Preise, Angebote, Rechnungen und Baustellen.'
     :role==='office'
       ?'<b>Büro:</b> Büro- und Auftragsbereiche. Betriebseinstellungen und Teamänderungen bleiben beim Chef.'
-      :'<b>Mitarbeiter:</b> Keine Preisliste, Angebote oder Rechnungen. Zugriff auf Baustellen wird über Zuweisungen gesteuert.';
-} 
+      :'<b>Mitarbeiter:</b> Nur Arbeitsinformationen. Keine Angebotspreise, Rechnungen oder Unternehmensumsätze.';
+
+  const privacyRole=document.getElementById('privacyRoleName');
+  if(privacyRole)privacyRole.textContent=role==='owner'?'👑 Chef / Inhaber':role==='office'?'🗂️ Büro':'🛠️ Mitarbeiter';
+  const roleDesc=document.getElementById('roleDescription');
+  if(roleDesc)roleDesc.textContent=role==='owner'?'Vollzugriff auf deinen Betrieb.':role==='office'?'Bürozugriff ohne kritische Kontoeinstellungen.':'Du siehst nur die Informationen, die du für deine Arbeit brauchst.';
+
+  const primary=document.getElementById('navPrimaryWork');
+  const offers=document.getElementById('navOffers');
+  if(primary){
+    if(role==='worker'){
+      primary.dataset.screen='jobs';
+      primary.innerHTML='<b>🏗️</b>Baustellen';
+    }else{
+      primary.dataset.screen='customers';
+      primary.innerHTML='<b>👥</b>Kunden';
+    }
+  }
+  if(offers)offers.hidden=false;
+  const label=document.getElementById('cloudModeLabel');
+  if(role==='worker'&&label)label.textContent='MITARBEITER · CLOUD';
+  else if(role==='office'&&label)label.textContent='BÜRO · CLOUD';
+  else if(role==='owner'&&label)label.textContent='DIGITALER HANDWERKER · CLOUD';
+
+  if(role==='worker')setTimeout(()=>globalThis.TimeTracking?.refreshDashboard?.(),100);
+}
 globalThis.applyRoleUI=applyRoleUI;
 applyRoleUI();
 renderAll();

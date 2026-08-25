@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Handwerker">
-<link rel="stylesheet" href="style.css?v=11.4">
+<link rel="stylesheet" href="style.css?v=11.4.2">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -30,10 +30,52 @@
   <div class="weatherMeta weatherMetaCompact" id="weatherMeta"></div>
   <div id="weatherRisk" class="riskBox weatherRiskCompact">Wetterdaten werden geladen …</div>
 </div>
-<div class="stats"><div class="stat"><span>Offene Aufgaben</span><strong id="statTasks">0</strong></div><div class="stat"><span>Termine heute</span><strong id="statEvents">0</strong></div><div class="stat"><span>Offene Angebote</span><strong id="statOffers">0</strong></div><div class="stat"><span>Angebotswert</span><strong id="statValue">0 €</strong></div></div>
-<div class="sectionTitle"><h2>Schnellstart</h2><span>1 Klick</span></div>
-<div class="quickGrid"><button class="quick" onclick="newOffer()"><span class="emoji">📄</span><b>Neues Angebot</b><small>Kunde, Positionen, PDF</small></button><button class="quick" onclick="newEvent()"><span class="emoji">📅</span><b>Termin planen</b><small>Baustelle oder Besichtigung</small></button><button class="quick" onclick="newCustomer()"><span class="emoji">👤</span><b>Kunde anlegen</b><small>Kontaktdaten und Adresse</small></button><button class="quick" onclick="newTask()"><span class="emoji">✅</span><b>Aufgabe erstellen</b><small>Nichts mehr vergessen</small></button></div>
-<div class="sectionTitle"><h2>Heute erledigen</h2><span id="taskProgress">0 erledigt</span></div><div class="card"><div id="todayTasks" class="list"></div><button class="btn ghost" style="width:100%;margin-top:10px" onclick="newTask()">＋ Aufgabe hinzufügen</button></div>
+<div class="stats owner-only" id="ownerTodayStats"><div class="stat"><span>Offene Aufgaben</span><strong id="statTasks">0</strong></div><div class="stat"><span>Termine heute</span><strong id="statEvents">0</strong></div><div class="stat"><span>Offene Angebote</span><strong id="statOffers">0</strong></div><div class="stat"><span>Angebotswert</span><strong id="statValue">0 €</strong></div></div>
+
+<div class="office-only officeDashboard" id="officeDashboard">
+  <div class="officeStats">
+    <button type="button" class="officeStat" onclick="showScreen('calendar')"><span>Termine heute</span><strong id="officeStatEvents">0</strong><small>im Kalender</small></button>
+    <button type="button" class="officeStat" onclick="showScreen('offers')"><span>Offene Angebote</span><strong id="officeStatOffers">0</strong><small>zu bearbeiten</small></button>
+    <button type="button" class="officeStat" onclick="showScreen('invoices')"><span>Offene Rechnungen</span><strong id="officeStatInvoices">0</strong><small>ausstehend</small></button>
+    <button type="button" class="officeStat overdueStat" onclick="showScreen('invoices')"><span>Überfällig</span><strong id="officeStatOverdue">0</strong><small>prüfen</small></button>
+  </div>
+
+  <div class="officeFocusCard">
+    <div class="officeFocusHead">
+      <div><span class="securityBadge">🗂️ BÜRO-FOKUS</span><h3>Was jetzt wichtig ist</h3></div>
+      <button type="button" class="btn small" onclick="renderAll()">↻</button>
+    </div>
+    <div id="officeFocusList" class="officeFocusList"></div>
+  </div>
+
+  <div class="sectionTitle officeSectionTitle"><div><h2>Schnell erledigen</h2><span>Direkt ins Tagesgeschäft</span></div></div>
+  <div class="officeQuickGrid">
+    <button class="quick" onclick="newOffer()"><span class="emoji">📄</span><b>Angebot</b><small>Neu erstellen</small></button>
+    <button class="quick" onclick="newEvent()"><span class="emoji">📅</span><b>Termin</b><small>Einplanen</small></button>
+    <button class="quick" onclick="newCustomer()"><span class="emoji">👤</span><b>Kunde</b><small>Anlegen</small></button>
+    <button class="quick" onclick="newJob()"><span class="emoji">🏗️</span><b>Baustelle</b><small>Erstellen</small></button>
+  </div>
+</div>
+<div class="worker-only workerDashboard" id="workerDashboard">
+  <div class="workerStats">
+    <button type="button" class="workerStat" onclick="showScreen('jobs')"><span>Meine Baustellen</span><strong id="workerStatJobs">0</strong><small>zugewiesen</small></button>
+    <button type="button" class="workerStat" onclick="showScreen('jobs')"><span>Heute geplant</span><strong id="workerStatToday">0</strong><small>Einsätze</small></button>
+    <button type="button" class="workerStat" onclick="showScreen('tasks')"><span>Offene Aufgaben</span><strong id="workerStatTasks">0</strong><small>für dich</small></button>
+    <button type="button" class="workerStat timeStat" onclick="showScreen('jobs')"><span>Arbeitszeit heute</span><strong id="workerStatTime">0:00</strong><small>Stunden</small></button>
+  </div>
+
+  <div class="workerClockHome" id="workerClockHome">
+    <div class="workerClockIcon">⏱️</div>
+    <div class="workerClockText"><b id="workerClockHomeTitle">Zeiterfassung bereit</b><small id="workerClockHomeText">Öffne eine Baustelle, um deine Arbeitszeit zu starten.</small></div>
+    <button type="button" class="btn small" onclick="showScreen('jobs')">Baustellen</button>
+  </div>
+
+  <div class="sectionTitle workerSectionTitle"><div><h2>Meine Baustellen</h2><span id="workerHomeJobMeta">Deine nächsten Einsätze</span></div><button type="button" class="btn small" onclick="refreshMyJobs()">↻</button></div>
+  <div id="workerHomeJobs" class="workerHomeJobs"></div>
+</div>
+<div class="sectionTitle owner-only"><h2>Schnellstart</h2><span>1 Klick</span></div>
+<div class="quickGrid owner-only"><button class="quick" onclick="newOffer()"><span class="emoji">📄</span><b>Neues Angebot</b><small>Kunde, Positionen, PDF</small></button><button class="quick" onclick="newEvent()"><span class="emoji">📅</span><b>Termin planen</b><small>Baustelle oder Besichtigung</small></button><button class="quick" onclick="newCustomer()"><span class="emoji">👤</span><b>Kunde anlegen</b><small>Kontaktdaten und Adresse</small></button><button class="quick" onclick="newTask()"><span class="emoji">✅</span><b>Aufgabe erstellen</b><small>Nichts mehr vergessen</small></button></div>
+<div class="sectionTitle"><h2 id="todayTasksTitle">Heute erledigen</h2><span id="taskProgress">0 erledigt</span></div><div class="card"><div id="todayTasks" class="list"></div><button class="btn ghost owner-office-only" style="width:100%;margin-top:10px" onclick="newTask()">＋ Aufgabe hinzufügen</button></div>
 <div class="sectionTitle"><h2>Heutige Termine</h2><span>Kalender</span></div><div class="card"><div id="todayEvents" class="timeline"></div></div>
 </section>
 
@@ -78,7 +120,7 @@
 </section>
 
 <section class="screen" id="calendar">
-<div class="sectionTitle"><h2>Kalender</h2><button class="btn primary small" onclick="newEvent()">＋ Termin</button></div>
+<div class="sectionTitle"><h2>Kalender</h2><button class="btn primary small owner-office-only" onclick="newEvent()">＋ Termin</button></div>
 <div class="card"><div class="itemTop"><button class="btn small" onclick="changeMonth(-1)">‹</button><h3 id="monthTitle" style="margin:8px 0"></h3><button class="btn small" onclick="changeMonth(1)">›</button></div><div class="calendarGrid" id="calendarGrid" style="margin-top:14px"></div></div>
 <div class="sectionTitle"><h2>Alle Termine</h2><span>Export möglich</span></div><div id="eventList" class="list"></div>
 </section>
@@ -98,7 +140,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.4</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.4.2</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -292,8 +334,8 @@
 <div class="switchRow"><div><b>Externe Apps öffnen</b><div class="mini">Für Google Maps, Google Kalender und WhatsApp können Kundendaten an den gewählten Dienst übergeben werden.</div></div><label class="switch"><input id="consentExternal" type="checkbox" onchange="updateConsent('external',this.checked)"><span class="slider"></span></label></div>
 <div class="switchRow"><div><b>Fehleranalyse</b><div class="mini">Derzeit technisch nicht eingebaut und standardmäßig ausgeschaltet.</div></div><label class="switch"><input id="consentAnalytics" type="checkbox" disabled><span class="slider"></span></label></div>
 </div>
-<div class="sectionTitle"><h2>Rolle & Zugriff</h2><span>Cloud-fähig</span></div>
-<div class="card"><div class="field"><label>Aktuelle Rolle</label><select id="currentRole" onchange="setRole(this.value)"><option value="owner">Chef / Inhaber</option><option value="office">Büro</option><option value="worker">Mitarbeiter</option></select><small>Ohne Cloud-Konto ist dies eine lokale Vorschau. Mit Cloud-Konto wird die echte Rolle zusätzlich serverseitig in Supabase abgesichert.</small></div><div id="roleDescription" class="notice"></div></div>
+<div class="sectionTitle"><h2>Rolle & Zugriff</h2><span>Serverseitig</span></div>
+<div class="card"><div class="itemTop"><div><b id="privacyRoleName">Rolle wird geladen …</b><p class="mini" id="roleDescription">Die Rolle wird vom Betriebskonto vorgegeben und kann auf diesem Gerät nicht selbst geändert werden.</p></div><span class="securityBadge">GESCHÜTZT</span></div></div>
 <div class="sectionTitle"><h2>Deine Daten</h2><span>Auskunft & Löschung</span></div>
 <div class="card"><div class="actions"><button class="btn" onclick="exportPrivacyData()">Datenkopie exportieren</button><button class="btn" onclick="exportBackup()">Vollständiges Backup</button></div><button class="btn danger" style="width:100%;margin-top:10px" onclick="resetAppPrivacy()">Alle App-Daten dauerhaft löschen</button></div>
 <div class="sectionTitle"><h2>Aktivitätsprotokoll</h2><span>Nur lokal</span></div><div class="card audit" id="auditLog"></div>
@@ -511,13 +553,13 @@
     <label class="photoAddBtn">＋ Foto hinzufügen<input id="jobPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="addJobPhotos(event)" hidden></label>
     <div id="jobPhotoGrid" class="photoGrid"></div>
     <div class="field" style="margin-top:12px"><label>Dokumentationsnotiz</label><textarea id="jobDocNote" class="cleanTextarea" placeholder="z. B. Untergrund vor Arbeitsbeginn dokumentiert …"></textarea></div>
-    <div class="worker-only jobLocalPhotoHint">Fotos bleiben in v11.3 noch auf diesem Gerät. Die gemeinsame Foto-Cloud folgt als nächster Schritt.</div>
+    <div class="worker-only jobLocalPhotoHint">Fotos bleiben aktuell noch auf diesem Gerät. Die gemeinsame Foto-Cloud folgt als nächster Schritt.</div>
   </div>
   <button class="btn primary" id="jobSaveBtn" style="width:100%" onclick="saveJob()">Baustelle speichern</button>
 </section>
 
 </div>
-<nav class="bottomNav"><button class="navBtn active" data-screen="today"><b>☀️</b>Heute</button><button class="navBtn" data-screen="offers"><b>📄</b>Angebote</button><button class="navBtn" data-screen="customers"><b>👥</b>Kunden</button><button class="navBtn" data-screen="calendar"><b>📅</b>Kalender</button><button class="navBtn" data-screen="more"><b>•••</b>Mehr</button></nav>
+<nav class="bottomNav"><button class="navBtn active" id="navToday" data-screen="today"><b>☀️</b>Heute</button><button class="navBtn" id="navOffers" data-screen="offers"><b>📄</b>Angebote</button><button class="navBtn" id="navPrimaryWork" data-screen="customers"><b>👥</b>Kunden</button><button class="navBtn" id="navCalendar" data-screen="calendar"><b>📅</b>Kalender</button><button class="navBtn" id="navMore" data-screen="more"><b>•••</b>Mehr</button></nav>
 
 
 <div id="customerPickerModal" class="sheetBackdrop hidden" onclick="closeCustomerPicker(event)">
@@ -839,14 +881,14 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.4" defer></script>
-<script src="data-repository.js?v=11.4" defer></script>
-<script src="script.js?v=11.4" defer></script>
-<script src="cloud-sync.js?v=11.4" defer></script>
-<script src="team.js?v=11.4" defer></script>
-<script src="assignments.js?v=11.4" defer></script>
-<script src="time-tracking.js?v=11.4" defer></script>
-<script src="cloud-auth.js?v=11.4" defer></script>
+<script src="cloud-config.js?v=11.4.2" defer></script>
+<script src="data-repository.js?v=11.4.2" defer></script>
+<script src="script.js?v=11.4.2" defer></script>
+<script src="cloud-sync.js?v=11.4.2" defer></script>
+<script src="team.js?v=11.4.2" defer></script>
+<script src="assignments.js?v=11.4.2" defer></script>
+<script src="time-tracking.js?v=11.4.2" defer></script>
+<script src="cloud-auth.js?v=11.4.2" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
