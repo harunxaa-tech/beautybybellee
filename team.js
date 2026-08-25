@@ -97,7 +97,7 @@
       const status=i.used_at?'Angenommen':i.revoked_at?'Zurückgezogen':expired?'Abgelaufen':'Offen';
       const canRevoke=status==='Offen';
       return `<div class="card teamInviteRow">
-        <div class="itemTop"><div><b>${esc(i.invitee_name||i.email)}</b><div class="mini">${esc(i.email)} · ${esc(roleLabel(i.role))}</div></div><span class="inviteStatus ${status.toLowerCase()}">${esc(status)}</span></div>
+        <div class="itemTop"><div><b>${esc(i.invitee_name||i.email||'Einladung')}</b><div class="mini">${esc(roleLabel(i.role))}${i.email?` · ${esc(i.email)}`:' · E-Mail legt Mitarbeiter fest'}</div></div><span class="inviteStatus ${status.toLowerCase()}">${esc(status)}</span></div>
         <div class="mini">Gültig bis ${new Date(i.expires_at).toLocaleString('de-DE')}</div>
         ${canRevoke?`<button class="btn small danger" onclick="revokeTeamInvitation('${i.id}')">Einladung zurückziehen</button>`:''}
       </div>`;
@@ -108,12 +108,10 @@
     const {client,membership}=cloud();
     if(!client||membership?.role!=='owner')return globalThis.toast?.('Nur der Chef kann einladen');
     const name=q('teamInviteName')?.value.trim()||'';
-    const email=q('teamInviteEmail')?.value.trim().toLowerCase()||'';
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return globalThis.toast?.('Bitte gültige E-Mail eingeben');
+    if(!name)return globalThis.toast?.('Bitte einen Namen eingeben');
 
     try{
-      const {data,error}=await client.rpc('create_team_invitation',{
-        invite_email:email,
+      const {data,error}=await client.rpc('create_team_invitation_simple',{
         invite_role:inviteRole,
         invitee_name:name
       });
@@ -121,17 +119,15 @@
       const base=(globalThis.AP_CLOUD_CONFIG?.appUrl||location.origin+location.pathname).replace(/\/?$/,'/');
       currentInviteLink=`${base}?invite=${encodeURIComponent(data.token)}`;
       q('teamInviteLinkText').textContent=currentInviteLink;
-      q('teamInviteResultText').textContent=`${name||email} · ${roleLabel(inviteRole)} · 72 Stunden gültig`;
+      q('teamInviteResultText').textContent=`${name} · ${roleLabel(inviteRole)} · 72 Stunden gültig`;
       q('teamInviteResult').classList.remove('hidden');
       q('teamInviteResult').hidden=false;
       q('teamInviteName').value='';
-      q('teamInviteEmail').value='';
       globalThis.toast?.('✓ Einladung erstellt');
       await loadTeam();
     }catch(e){
       console.error(e);
-      const msg=String(e.message||e).includes('already a member')?'Diese E-Mail gehört bereits zum Team.':(e.message||'Einladung fehlgeschlagen');
-      globalThis.toast?.(msg);
+      globalThis.toast?.(e.message||'Einladung fehlgeschlagen');
     }
   };
 
@@ -147,7 +143,7 @@
 
   globalThis.shareTeamInvitation=async function(){
     if(!currentInviteLink)return;
-    const text=`Du wurdest zu AngebotsPilot eingeladen. Öffne diesen Link und melde dich mit der eingeladenen E-Mail-Adresse an:`;
+    const text=`Du wurdest zu AngebotsPilot eingeladen. Öffne den Link, trage deine eigene E-Mail ein und lege dein persönliches Passwort fest:`;
     if(navigator.share){
       try{await navigator.share({title:'AngebotsPilot Einladung',text,url:currentInviteLink});return}catch(e){if(e?.name==='AbortError')return}
     }

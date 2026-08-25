@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Handwerker">
-<link rel="stylesheet" href="style.css?v=11.3">
+<link rel="stylesheet" href="style.css?v=11.4">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -98,7 +98,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.3</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.4</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -131,11 +131,10 @@
       <div>
         <span class="securityBadge">＋ EINLADEN</span>
         <h3>Person zum Betrieb hinzufügen</h3>
-        <p class="mini">Der Link gilt 72 Stunden und ist an die angegebene E-Mail-Adresse gebunden.</p>
+        <p class="mini">Nur Name und Rolle festlegen. E-Mail und persönliches Passwort trägt die eingeladene Person selbst ein.</p>
       </div>
     </div>
     <div class="field"><label>Name</label><input class="input" id="teamInviteName" placeholder="z. B. Max Mustermann"></div>
-    <div class="field"><label>E-Mail</label><input class="input" id="teamInviteEmail" type="email" placeholder="max@firma.de"></div>
     <div class="field"><label>Rolle</label>
       <div class="teamRolePicker">
         <button type="button" class="active" data-teamrole="worker" onclick="selectInviteRole('worker')"><span>🛠️</span><b>Mitarbeiter</b><small>Baustellenbereich</small></button>
@@ -152,7 +151,7 @@
       <button class="btn primary" onclick="shareTeamInvitation()">Teilen</button>
       <button class="btn" onclick="copyTeamInvitation()">Link kopieren</button>
     </div>
-    <p class="mini">Der Mitarbeiter legt sein Passwort selbst fest. Du siehst oder vergibst kein Passwort.</p>
+    <p class="mini">Die eingeladene Person trägt ihre eigene E-Mail ein und legt ihr Passwort selbst fest. Der Link ist einmalig und 72 Stunden gültig.</p>
   </div>
 
   <div class="sectionTitle"><h2>Mitglieder</h2><span id="teamMembersMeta">–</span></div>
@@ -485,6 +484,28 @@
     <div class="jobDocHead"><div><b>🛠️ Deine Baustelle</b><p>Du kannst Status und Dokumentation aktualisieren. Kundenzuordnung, Adresse und Preise bleiben beim Büro.</p></div><span class="securityBadge">ZUGEWIESEN</span></div>
   </div>
 
+  <div class="card jobTimeCard hidden" id="jobTimeCard" hidden>
+    <div class="jobDocHead">
+      <div><b>⏱️ Zeiterfassung</b><p id="jobTimeSubtitle">Arbeitszeit dieser Baustelle</p></div>
+      <span class="countPill" id="jobTimeTotal">0:00 Std.</span>
+    </div>
+
+    <div class="worker-only workerClockArea">
+      <div class="clockState" id="jobClockState">Noch nicht gestartet</div>
+      <div class="clockDisplay" id="jobClockDisplay">00:00:00</div>
+      <div class="clockButtons">
+        <button type="button" class="btn primary clockStartBtn" id="jobClockStart" onclick="TimeTracking.action('start')">▶ Arbeit starten</button>
+        <button type="button" class="btn clockPauseBtn hidden" id="jobClockPause" hidden onclick="TimeTracking.action('pause')">⏸ Pause</button>
+        <button type="button" class="btn primary clockResumeBtn hidden" id="jobClockResume" hidden onclick="TimeTracking.action('resume')">▶ Weiter</button>
+        <button type="button" class="btn danger clockStopBtn hidden" id="jobClockStop" hidden onclick="TimeTracking.action('stop')">■ Beenden</button>
+      </div>
+      <p class="mini clockOtherJob hidden" id="jobClockOtherJob" hidden></p>
+    </div>
+
+    <div id="jobTimeSummary" class="timeSummaryList"><div class="empty">Zeiten werden geladen …</div></div>
+    <button type="button" class="btn small" onclick="TimeTracking.refresh()">↻ Zeiten aktualisieren</button>
+  </div>
+
   <div class="card">
     <div class="jobDocHead"><div><b>📸 Baustellendokumentation</b><p>Fotos und kurze Notizen direkt dieser Baustelle zuordnen.</p></div><span id="jobPhotoCount" class="countPill">0 Fotos</span></div>
     <label class="photoAddBtn">＋ Foto hinzufügen<input id="jobPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="addJobPhotos(event)" hidden></label>
@@ -678,7 +699,7 @@
     </section>
 
     <section id="entryChoice" class="entryPanel entryStep" hidden>
-      <div id="entryInviteBanner" class="entryInviteBanner hidden" hidden><span>✉️</span><div><b>Teameinladung erkannt</b><small>Mit dem eingeladenen Konto anmelden oder neu registrieren.</small></div></div>
+      <div id="entryInviteBanner" class="entryInviteBanner hidden" hidden><span>✉️</span><div><b id="entryInviteTitle">Teameinladung erkannt</b><small id="entryInviteSubtitle">Anmelden oder neues Konto erstellen.</small></div></div>
       <div class="entryHeroIcon">👋</div>
       <div class="eyebrow">Willkommen</div>
       <h2>Wie möchtest du starten?</h2>
@@ -700,12 +721,12 @@
 
     <section id="entryRegister1" class="entryPanel entryStep" hidden>
       <button class="entryBack" onclick="entryGoChoice()">← Zurück</button>
-      <div class="entryProgressLabel"><span>Konto erstellen</span><b>1 von 3</b></div>
-      <div class="entryProgressTrack"><i style="width:33%"></i></div>
+      <div class="entryProgressLabel" id="entryRegisterProgressLabel"><span>Konto erstellen</span><b>1 von 3</b></div>
+      <div class="entryProgressTrack" id="entryRegisterProgressTrack"><i style="width:33%"></i></div>
       <div class="entryHeroIcon">👤</div>
-      <h2>Erst einmal du.</h2>
-      <p>Damit dein persönliches Betriebskonto erstellt werden kann.</p>
-      <div class="field"><label>Dein Name</label><input class="input" id="entryRegisterName" autocomplete="name" placeholder="z. B. Max Mustermann"></div>
+      <h2 id="entryRegisterHeading">Erst einmal du.</h2>
+      <p id="entryRegisterText">Damit dein persönliches Betriebskonto erstellt werden kann.</p>
+      <div class="field" id="entryRegisterNameField"><label>Dein Name</label><input class="input" id="entryRegisterName" autocomplete="name" placeholder="z. B. Max Mustermann"></div>
       <div class="field"><label>E-Mail</label><input class="input" id="entryRegisterEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
       <div class="field"><label>Passwort</label><input class="input" id="entryRegisterPassword" type="password" autocomplete="new-password" placeholder="Mindestens 6 Zeichen"></div>
       <button class="btn primary entryPrimary" onclick="entryRegisterNext1()">Weiter →</button>
@@ -775,7 +796,8 @@
       <div class="eyebrow">Einladung konnte nicht angenommen werden</div>
       <h2 id="entryInviteErrorTitle">Konto prüfen</h2>
       <p id="entryInviteErrorText">Diese Einladung passt nicht zu diesem Konto.</p>
-      <button class="btn primary entryPrimary" onclick="inviteSignOutAndRetry()">Abmelden & anderes Konto verwenden</button>
+      <button id="entryInviteRepairBtn" class="btn primary entryPrimary hidden" hidden onclick="repairEmptyCompanyAndAcceptInvitation()">Leeren Betrieb löschen & beitreten</button>
+      <button class="btn entrySecondary" onclick="inviteSignOutAndRetry()">Abmelden & anderes Konto verwenden</button>
       <button class="btn entrySecondary" onclick="cancelPendingInvitation()">Einladung verwerfen</button>
     </section>
     <section id="entrySyncing" class="entryPanel entryStep" hidden>
@@ -817,13 +839,14 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.3" defer></script>
-<script src="data-repository.js?v=11.3" defer></script>
-<script src="script.js?v=11.3" defer></script>
-<script src="cloud-sync.js?v=11.3" defer></script>
-<script src="team.js?v=11.3" defer></script>
-<script src="assignments.js?v=11.3" defer></script>
-<script src="cloud-auth.js?v=11.3" defer></script>
+<script src="cloud-config.js?v=11.4" defer></script>
+<script src="data-repository.js?v=11.4" defer></script>
+<script src="script.js?v=11.4" defer></script>
+<script src="cloud-sync.js?v=11.4" defer></script>
+<script src="team.js?v=11.4" defer></script>
+<script src="assignments.js?v=11.4" defer></script>
+<script src="time-tracking.js?v=11.4" defer></script>
+<script src="cloud-auth.js?v=11.4" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

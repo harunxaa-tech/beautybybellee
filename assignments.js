@@ -102,6 +102,33 @@
     }
   }
 
+  async function resolveCloudJobId(localJobId){
+    const {client,company}=cloud();
+    if(!client||!company||!localJobId)return '';
+    const {data,error}=await client.from('jobs')
+      .select('id')
+      .eq('company_id',company.id)
+      .eq('local_id',String(localJobId))
+      .is('deleted_at',null)
+      .maybeSingle();
+    if(error)throw error;
+    return data?.id||'';
+  }
+
+  async function saveWorkerProgress(job){
+    const {client,membership}=cloud();
+    if(!client||membership?.role!=='worker'||!job?.id)return;
+    const cloudJobId=await resolveCloudJobId(job.id);
+    if(!cloudJobId)throw new Error('Baustelle ist noch nicht in der Cloud verfügbar.');
+    const {error}=await client.from('jobs').update({
+      status:job.status||'open',
+      notes:job.notes||'',
+      doc_note:job.docNote||'',
+      client_updated_at:new Date().toISOString()
+    }).eq('id',cloudJobId);
+    if(error)throw error;
+  }
+
   globalThis.refreshMyJobs=refreshMyJobs;
-  globalThis.JobAssignments={open,toggle,selection,chips,refresh};
+  globalThis.JobAssignments={open,toggle,selection,chips,refresh,resolveCloudJobId,saveWorkerProgress};
 })();

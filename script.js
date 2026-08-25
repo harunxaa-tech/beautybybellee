@@ -1056,6 +1056,7 @@ function newJob(){
   renderJobPhotos();
   setJobEditorRoleMode();
   globalThis.JobAssignments?.open([],[]);
+  globalThis.TimeTracking?.open(null);
   showScreen('jobEditor');
 }
 function editJob(id){
@@ -1074,6 +1075,7 @@ function editJob(id){
   renderJobPhotos();
   setJobEditorRoleMode();
   globalThis.JobAssignments?.open(j.assignedUserIds||[],j.assignedNames||[]);
+  globalThis.TimeTracking?.open(j.id);
   showScreen('jobEditor');
 }
 function saveJob(){
@@ -1117,9 +1119,16 @@ function saveJob(){
   }
 
   saveData(worker?'Baustellenfortschritt gespeichert':'Baustelle gespeichert',obj.title);
+
+  if(worker){
+    globalThis.JobAssignments?.saveWorkerProgress?.(obj)
+      .then(()=>globalThis.toast?.('✓ Fortschritt in der Cloud gespeichert'))
+      .catch(e=>{console.error(e);globalThis.toast?.('Fortschritt lokal gespeichert · Cloud bitte erneut versuchen')});
+  }
+
   showScreen(invoiceResult?'invoices':'jobs');
   toast(worker
-    ?'Fortschritt gespeichert · wird synchronisiert'
+    ?'Fortschritt gespeichert'
     :invoiceResult
       ?(invoiceWasNew?'Baustelle abgeschlossen · Rechnungsentwurf erstellt':'Baustelle abgeschlossen · vorhandene Rechnung verknüpft')
       :`Baustelle gespeichert${obj.assignedUserIds?.length?` · ${obj.assignedUserIds.length} Mitarbeiter zugewiesen`:''}`);

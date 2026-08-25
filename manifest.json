@@ -1,7 +1,7 @@
 {
   "name": "Digitaler Handwerker – AngebotsPilot",
   "short_name": "Handwerker",
-  "description": "AngebotsPilot v11.3 – Baustellen an Mitarbeiter zuweisen, Mitarbeiter sehen nur ihre Aufträge und synchronisieren Fortschritt.",
+  "description": "AngebotsPilot v11.4 – einfache Team-Einladung, serverseitige Baustellen-Zeiterfassung und optimierte mobile Wetterkarte.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

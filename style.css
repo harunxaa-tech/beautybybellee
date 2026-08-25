@@ -843,3 +843,48 @@ body[data-role="worker"] .worker-only{display:block!important}
 .readonlyField:disabled{opacity:.82;color:#cfd4d8;-webkit-text-fill-color:#cfd4d8;background:#101318}
 body[data-role="worker"] #jobCustomer,body[data-role="worker"] #jobStart{pointer-events:none}
 @media(max-width:390px){.sectionActions{gap:5px}.sectionActions .btn{padding-left:9px;padding-right:9px}.assignmentEmpty{grid-template-columns:1fr}.assignmentEmpty>span{display:none}}
+
+/* v11.3.1 – Invite-Reparatur */
+#entryInviteRepairBtn{margin-top:12px}
+#entryInviteErrorText{line-height:1.55}
+
+/* v11.4 – kompakte Wetterkarte ohne mobile Überschneidungen */
+#today .weatherCompact{overflow:hidden}
+#today .weatherCompactTop{position:relative;padding-right:34px;align-items:flex-start}
+#today .weatherCompactArrow{position:absolute;right:2px;top:50%;transform:translateY(-50%);padding:0;line-height:1}
+#today .weatherCompactReading{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:8px;width:100%}
+#today .weatherCompactReading .mini{min-width:0;display:block}
+#today .weatherMetaCompact{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px!important;overflow:visible!important}
+#today .weatherMetaCompact .pill{min-width:0;text-align:center;overflow:hidden;text-overflow:ellipsis}
+#today .weatherRiskCompact{
+  width:100%;box-sizing:border-box;white-space:normal!important;overflow:visible!important;
+  text-overflow:clip!important;line-height:1.38!important;padding-right:10px!important
+}
+@media(max-width:390px){
+  #today .weatherCompact{padding:12px 13px!important}
+  #today .weatherCompactTop{padding-right:30px}
+  #today .weatherCompactReading{grid-template-columns:auto auto minmax(0,1fr);gap:7px}
+  #today .weatherCompactReading .weatherTemp{font-size:29px!important}
+  #today .weatherCompactReading .weatherIcon{font-size:25px!important}
+  #today .weatherMetaCompact{grid-template-columns:1fr 1fr!important}
+  #today .weatherMetaCompact .pill:nth-child(n+3){display:none}
+  #today .weatherRiskCompact{font-size:9.5px!important}
+}
+
+/* v11.4 – Zeiterfassung */
+.jobTimeCard{border-color:rgba(216,255,62,.16)}
+.workerClockArea{text-align:center;padding:13px 0 4px}
+.clockState{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:900}
+.clockDisplay{font-size:38px;font-weight:950;letter-spacing:-.04em;font-variant-numeric:tabular-nums;margin:7px 0 13px}
+.clockButtons{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.clockButtons .clockStartBtn{grid-column:1/-1}
+.clockButtons .btn{min-height:48px}
+.clockOtherJob{margin:10px 0 0!important;padding:9px;border-radius:11px;background:rgba(255,204,102,.08)}
+.timeSummaryList{display:grid;gap:7px;margin:12px 0}
+.timeRow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 11px;background:var(--card2);border:1px solid var(--line);border-radius:13px}
+.timeRow b,.timeRow small{display:block}.timeRow b{font-size:10px}.timeRow small{font-size:8px;color:var(--muted);margin-top:2px}
+.timeRow strong{white-space:nowrap;font-size:11px}
+.compactEmpty{padding:13px 8px}
+
+/* v11.4 – Einladung ohne Chef-E-Mail-Eingabe */
+#teamInviteCard .teamRolePicker{margin-top:2px}

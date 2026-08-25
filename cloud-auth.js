@@ -9,11 +9,21 @@
   const PENDING='angebotspilot_pending_company_v1';
   const INVITE_KEY='angebotspilot_pending_invite_v1';
   let blockingInviteError='';
+  let inviteConflictInfo=null;
+  let invitePreview=null;
   const q=id=>document.getElementById(id);
   const cfg=()=>globalThis.AP_CLOUD_CONFIG||{};
   const validEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e||'');
   const roleLabel=r=>r==='owner'?'Chef / Inhaber':r==='office'?'Büro':r==='worker'?'Mitarbeiter':r||'–';
   const appRedirectUrl=()=>cfg().appUrl||'https://harunxaa-tech.github.io/beautybybellee/';
+  const inviteRedirectUrl=()=>{
+    try{
+      const u=new URL(appRedirectUrl());
+      const token=pendingInvite();
+      if(token)u.searchParams.set('invite',token);
+      return u.toString();
+    }catch(e){return appRedirectUrl()}
+  };
 
   function pendingData(){try{return JSON.parse(localStorage.getItem(PENDING)||'null')}catch(e){return null}}
   function savePending(v){localStorage.setItem(PENDING,JSON.stringify(v))}
@@ -29,23 +39,108 @@
       }
     }catch(e){}
   }
+  function recoverInviteFromSessionMetadata(){
+    const token=session?.user?.user_metadata?.pending_invite_token||'';
+    if(token&&!pendingInvite())localStorage.setItem(INVITE_KEY,token);
+  }
+
+  async function loadInvitePreview(){
+    const token=pendingInvite();
+    invitePreview=null;
+    if(!token||!client)return null;
+    try{
+      const {data,error}=await client.rpc('get_team_invitation_preview',{invite_token:token});
+      if(error)throw error;
+      if(data?.status==='open'){
+        invitePreview=data;
+        return data;
+      }
+    }catch(e){console.warn('Invite preview failed',e)}
+    return null;
+  }
+
   function updateInviteUI(){
     const has=!!pendingInvite();
     setHidden(q('entryInviteBanner'),!has);
+
+    if(has&&invitePreview){
+      if(q('entryInviteTitle'))q('entryInviteTitle').textContent=`Einladung von ${invitePreview.company_name||'einem Betrieb'}`;
+      if(q('entryInviteSubtitle'))q('entryInviteSubtitle').textContent=`${invitePreview.invitee_name||'Teammitglied'} · ${roleLabel(invitePreview.role)}`;
+    }else{
+      if(q('entryInviteTitle'))q('entryInviteTitle').textContent='Teameinladung erkannt';
+      if(q('entryInviteSubtitle'))q('entryInviteSubtitle').textContent='Anmelden oder neues Konto erstellen.';
+    }
+
+    const invited=has&&!!invitePreview;
+    setHidden(q('entryRegisterNameField'),invited);
+    setHidden(q('entryRegisterProgressLabel'),invited);
+    setHidden(q('entryRegisterProgressTrack'),invited);
+
+    if(q('entryRegisterHeading'))q('entryRegisterHeading').textContent=invited
+      ?`Konto für ${invitePreview.invitee_name||'dich'}`
+      :'Erst einmal du.';
+    if(q('entryRegisterText'))q('entryRegisterText').textContent=invited
+      ?`Du trittst ${invitePreview.company_name||'dem Betrieb'} als ${roleLabel(invitePreview.role)} bei. Trage nur deine eigene E-Mail ein und lege dein Passwort fest.`
+      :'Damit dein persönliches Betriebskonto erstellt werden kann.';
+
+    if(invited&&q('entryRegisterName'))q('entryRegisterName').value=invitePreview.invitee_name||'Teammitglied';
+
     const regBtn=q('entryRegister1')?.querySelector('.entryPrimary');
-    if(regBtn)regBtn.textContent=has?'Konto erstellen & Einladung annehmen':'Weiter →';
+    if(regBtn)regBtn.textContent=has?'Konto erstellen & Betrieb beitreten':'Weiter →';
   }
+  function inviteStatusMessage(result){
+    const state=result?.status||'';
+    if(state==='wrong_email')return 'Dieser Einladungslink gehört zu einer anderen E-Mail-Adresse. Bitte mit der eingeladenen Adresse anmelden.';
+    if(state==='expired')return 'Diese Einladung ist abgelaufen. Bitte den Chef um einen neuen Einladungslink.';
+    if(state==='revoked')return 'Diese Einladung wurde zurückgezogen. Bitte den Chef um einen neuen Einladungslink.';
+    if(state==='used')return 'Diese Einladung wurde bereits verwendet.';
+    if(state==='multiple')return 'Für diese E-Mail liegen mehrere Einladungen vor. Bitte den ursprünglichen Einladungslink erneut öffnen.';
+    if(state==='invalid')return 'Diese Einladung ist ungültig. Bitte einen neuen Einladungslink erstellen lassen.';
+    return 'Einladung konnte nicht angenommen werden.';
+  }
+
+  async function claimInvitation(token=null,replaceEmptyCompany=false){
+    const {data,error:rpcError}=await client.rpc('claim_team_invitation',{
+      invite_token:token||null,
+      replace_empty_company:!!replaceEmptyCompany
+    });
+    if(rpcError){
+      blockingInviteError=rpcError.message||'Einladung konnte nicht angenommen werden.';
+      inviteConflictInfo=null;
+      return null;
+    }
+
+    if(data?.status==='accepted'){
+      localStorage.removeItem(INVITE_KEY);
+      blockingInviteError='';
+      inviteConflictInfo=null;
+      invitePreview=null;
+      try{await client.auth.updateUser({data:{pending_invite_token:null}})}catch(e){}
+      return data;
+    }
+
+    if(data?.status==='none')return null;
+
+    if(data?.status==='conflict'){
+      inviteConflictInfo=data;
+      blockingInviteError='INVITE_COMPANY_CONFLICT';
+      return null;
+    }
+
+    inviteConflictInfo=null;
+    blockingInviteError=inviteStatusMessage(data);
+    return null;
+  }
+
   async function acceptPendingInvitation(){
     const token=pendingInvite();
     if(!token||!session?.user?.email_confirmed_at)return null;
-    const {data,error}=await client.rpc('accept_team_invitation',{invite_token:token});
-    if(error){
-      blockingInviteError=error.message||'Einladung konnte nicht angenommen werden.';
-      return null;
-    }
-    localStorage.removeItem(INVITE_KEY);
-    blockingInviteError='';
-    return data;
+    return claimInvitation(token,false);
+  }
+
+  async function acceptInvitationByVerifiedEmail(){
+    if(!session?.user?.email_confirmed_at)return null;
+    return claimInvitation(null,false);
   }
 
   function setHidden(el,hidden){
@@ -204,8 +299,17 @@
     cloudMembership=null;
 
     if(session){
+      recoverInviteFromSessionMetadata();
+      if(pendingInvite()&&!invitePreview)await loadInvitePreview();
+      const membershipBeforeInvite=await getMembership();
       if(pendingInvite()&&session.user.email_confirmed_at){
         await acceptPendingInvitation();
+      }else if(!membershipBeforeInvite&&session.user.email_confirmed_at){
+        // Wichtig bei iPhone/WhatsApp/Mail: Die E-Mail-Bestätigung kann in
+        // einem anderen Browser landen. Dann ist localStorage mit dem Token
+        // eventuell weg. Die verifizierte E-Mail darf eine eindeutige offene
+        // Einladung trotzdem sicher beanspruchen.
+        await acceptInvitationByVerifiedEmail();
       }
       await ensureExistingCompany();
       if(cloudCompany&&cloudMembership){
@@ -267,11 +371,22 @@
     const ready=!!(confirmed&&cloudCompany&&cloudMembership);
 
     if(blockingInviteError){
-      if(q('entryInviteErrorText'))q('entryInviteErrorText').textContent=blockingInviteError.includes('another email')
-        ?'Dieser Einladungslink gehört zu einer anderen E-Mail-Adresse. Bitte mit der eingeladenen Adresse anmelden.'
-        :blockingInviteError.includes('another company')
-          ?'Dieses Konto gehört bereits zu einem anderen Betrieb. Bitte mit dem eingeladenen Konto anmelden.'
-          :blockingInviteError;
+      const repairBtn=q('entryInviteRepairBtn');
+      const canRepair=!!inviteConflictInfo?.can_replace_empty_company;
+      setHidden(repairBtn,!canRepair);
+
+      if(q('entryInviteErrorTitle'))q('entryInviteErrorTitle').textContent=canRepair?'Einladung reparieren':'Konto prüfen';
+      if(q('entryInviteErrorText')){
+        if(blockingInviteError==='INVITE_COMPANY_CONFLICT'){
+          const current=inviteConflictInfo?.current_company_name||'der versehentlich angelegte Betrieb';
+          const target=inviteConflictInfo?.target_company_name||'der eingeladene Betrieb';
+          q('entryInviteErrorText').textContent=canRepair
+            ?`Dieses Konto hat versehentlich den leeren Betrieb „${current}“ erhalten. Du kannst ihn entfernen und direkt „${target}“ beitreten.`
+            :'Dieses Konto gehört bereits zu einem anderen Betrieb. Eine bestehende Firma mit Geschäftsdaten wird niemals automatisch ersetzt.';
+        }else{
+          q('entryInviteErrorText').textContent=blockingInviteError;
+        }
+      }
       showStep('entryInviteError');
       return;
     }
@@ -309,10 +424,11 @@
     showStep('entryLogin');
   };
 
-  globalThis.entryStartRegister=function(){
+  globalThis.entryStartRegister=async function(){
     error('');
     signupDraft={};
     if(!pendingInvite())localStorage.removeItem(PENDING);
+    if(pendingInvite()&&!invitePreview)await loadInvitePreview();
     fillRegistrationDefaults();
     updateInviteUI();
     showStep('entryRegister1');
@@ -320,19 +436,24 @@
 
   globalThis.entryRegisterNext1=function(){
     error('');
-    const name=q('entryRegisterName')?.value.trim()||'';
+    const invited=!!pendingInvite();
+    const name=invited?(invitePreview?.invitee_name||q('entryRegisterName')?.value.trim()||'Teammitglied'):(q('entryRegisterName')?.value.trim()||'');
     const email=q('entryRegisterEmail')?.value.trim().toLowerCase()||'';
     const password=q('entryRegisterPassword')?.value||'';
-    if(!name)return error('Bitte deinen Namen eingeben.');
+    if(!invited&&!name)return error('Bitte deinen Namen eingeben.');
     if(!validEmail(email))return error('Bitte eine gültige E-Mail-Adresse eingeben.');
     if(password.length<6)return error('Das Passwort muss mindestens 6 Zeichen haben.');
     signupDraft={...signupDraft,name,email,password};
-    if(pendingInvite()){
+    if(invited){
       savePending({name,email});
       showStep('entryLoading');
+      const inviteToken=pendingInvite();
       client.auth.signUp({
         email,password,
-        options:{data:{full_name:name},emailRedirectTo:appRedirectUrl()}
+        options:{
+          data:{full_name:name,pending_invite_token:inviteToken},
+          emailRedirectTo:inviteRedirectUrl()
+        }
       }).then(async({data,error:signUpError})=>{
         if(signUpError){
           showStep('entryRegister1');
@@ -456,10 +577,33 @@
     }
   };
 
+  globalThis.repairEmptyCompanyAndAcceptInvitation=async function(){
+    if(!inviteConflictInfo?.can_replace_empty_company)return;
+    const current=inviteConflictInfo.current_company_name||'den leeren Betrieb';
+    const target=inviteConflictInfo.target_company_name||'den eingeladenen Betrieb';
+    const ok=await globalThis.appConfirm?.({
+      title:'Leeren Betrieb entfernen?',
+      text:`„${current}“ enthält keine Kunden, Angebote, Baustellen oder Rechnungen. Er wird gelöscht und dieses Konto tritt anschließend „${target}“ bei.`,
+      confirmLabel:'Löschen & beitreten',
+      icon:'👥'
+    });
+    if(!ok)return;
+
+    showStep('entryLoading');
+    const result=await claimInvitation(pendingInvite()||null,true);
+    if(result?.status==='accepted'){
+      cloudCompany=null;cloudMembership=null;
+      await refresh();
+      return;
+    }
+    requireEntry();
+  };
+
   globalThis.inviteSignOutAndRetry=async function(){
     await client.auth.signOut();
     session=cloudCompany=cloudMembership=null;
     blockingInviteError='';
+    inviteConflictInfo=null;
     globalThis.CloudSync?.detach?.();
     showStep('entryChoice');
     updateInviteUI();
@@ -468,6 +612,7 @@
   globalThis.cancelPendingInvitation=function(){
     localStorage.removeItem(INVITE_KEY);
     blockingInviteError='';
+    inviteConflictInfo=null;
     requireEntry();
   };
 
@@ -529,6 +674,8 @@
     });
 
     client.auth.onAuthStateChange(()=>setTimeout(()=>refresh(),0));
+
+    loadInvitePreview().then(()=>updateInviteUI());
 
     if(localStorage.getItem('dh_onboarding_v8_done')==='1'){
       showStep('entryLoading');
