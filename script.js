@@ -1737,6 +1737,8 @@ function ensureWorkspaceForCloudAccount(userId,companyId,role,options={}){
     data.privacy=data.privacy||{};
     data.privacy.role=role||data.privacy.role||'worker';
     globalThis.data=data;
+    try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
+    try{applyRoleUI()}catch(e){}
     return data;
   }
 
@@ -1761,7 +1763,12 @@ function ensureWorkspaceForCloudAccount(userId,companyId,role,options={}){
   data.privacy.role=role||'worker';
   globalThis.data=data;
   localStorage.setItem(KEY,JSON.stringify(data));
-  renderAll();
+  try{
+    renderAll();
+  }catch(renderError){
+    console.error('Workspace konnte beim Login nicht vollständig gerendert werden',renderError);
+    try{applyRoleUI()}catch(e){}
+  }
   return data;
 }
 globalThis.ensureWorkspaceForCloudAccount=ensureWorkspaceForCloudAccount;

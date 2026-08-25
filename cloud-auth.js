@@ -11,6 +11,7 @@
   let blockingInviteError='';
   let inviteConflictInfo=null;
   let invitePreview=null;
+  let inviteFromCurrentUrl=false;
   const q=id=>document.getElementById(id);
   const cfg=()=>globalThis.AP_CLOUD_CONFIG||{};
   const validEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e||'');
@@ -33,6 +34,7 @@
     try{
       const u=new URL(location.href),token=u.searchParams.get('invite');
       if(token){
+        inviteFromCurrentUrl=true;
         localStorage.setItem(INVITE_KEY,token);
         u.searchParams.delete('invite');
         history.replaceState({},'',u.pathname+(u.search||'')+(u.hash||''));
@@ -301,21 +303,49 @@
     if(session){
       recoverInviteFromSessionMetadata();
       if(pendingInvite()&&!invitePreview)await loadInvitePreview();
+
       const membershipBeforeInvite=await getMembership();
-      if(pendingInvite()&&session.user.email_confirmed_at){
+
+      if(membershipBeforeInvite){
+        // Eine bereits aktive Betriebsrolle hat IMMER Vorrang.
+        // Alte oder versehentlich gespeicherte Einladungs-Tokens dürfen
+        // Chef/Büro/Mitarbeiter niemals aus ihrem bestehenden Betrieb sperren.
+        localStorage.removeItem(INVITE_KEY);
+        invitePreview=null;
+        blockingInviteError='';
+        inviteConflictInfo=null;
+        try{
+          if(session.user.user_metadata?.pending_invite_token){
+            await client.auth.updateUser({data:{pending_invite_token:null}});
+          }
+        }catch(e){console.warn('Invite-Metadaten konnten nicht bereinigt werden',e)}
+      }else if(pendingInvite()&&session.user.email_confirmed_at){
         await acceptPendingInvitation();
-      }else if(!membershipBeforeInvite&&session.user.email_confirmed_at){
-        // Wichtig bei iPhone/WhatsApp/Mail: Die E-Mail-Bestätigung kann in
-        // einem anderen Browser landen. Dann ist localStorage mit dem Token
-        // eventuell weg. Die verifizierte E-Mail darf eine eindeutige offene
-        // Einladung trotzdem sicher beanspruchen.
+      }else if(session.user.email_confirmed_at){
+        // Browserwechsel bei E-Mail-Bestätigung: Nur Konten OHNE
+        // bestehende Mitgliedschaft dürfen eine offene Einladung beanspruchen.
         await acceptInvitationByVerifiedEmail();
       }
+
       await ensureExistingCompany();
+
       if(cloudCompany&&cloudMembership){
-        globalThis.ensureWorkspaceForCloudAccount?.(session.user.id,cloudCompany.id,cloudMembership.role);
+        globalThis.ensureWorkspaceForCloudAccount?.(
+          session.user.id,
+          cloudCompany.id,
+          cloudMembership.role
+        );
         syncLocalIdentity();
-        await globalThis.CloudSync?.attach?.(client,session,cloudCompany,cloudMembership);
+
+        // Cloud-Sync darf den Zugang zur App niemals blockieren.
+        try{
+          await globalThis.CloudSync?.attach?.(
+            client,session,cloudCompany,cloudMembership
+          );
+        }catch(syncError){
+          console.error('Cloud-Sync beim Login fehlgeschlagen',syncError);
+          globalThis.toast?.('Angemeldet · Cloud-Sync wird erneut versucht');
+        }
       }
     }else{
       globalThis.CloudSync?.detach?.();
@@ -370,6 +400,20 @@
     const confirmed=!!session?.user?.email_confirmed_at;
     const ready=!!(confirmed&&cloudCompany&&cloudMembership);
 
+    // Sobald ein bestätigtes Konto eine aktive Firmenmitgliedschaft hat,
+    // wird die App geöffnet. Invite-/Sync-Fehler dürfen das nicht überstimmen.
+    if(ready){
+      blockingInviteError='';
+      inviteConflictInfo=null;
+      const gateWasVisible=!q('entryGate')?.classList.contains('hidden');
+      hideGate();
+      globalThis.applyRoleUI?.();
+      if(gateWasVisible || !document.querySelector('.screen.active')){
+        globalThis.showScreen?.('today');
+      }
+      return;
+    }
+
     if(blockingInviteError){
       const repairBtn=q('entryInviteRepairBtn');
       const canRepair=!!inviteConflictInfo?.can_replace_empty_company;
@@ -388,12 +432,6 @@
         }
       }
       showStep('entryInviteError');
-      return;
-    }
-
-    if(ready){
-      hideGate();
-      globalThis.showScreen?.('today');
       return;
     }
 
