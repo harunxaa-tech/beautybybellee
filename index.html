@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Handwerker">
-<link rel="stylesheet" href="style.css?v=11.4.5">
+<link rel="stylesheet" href="style.css?v=11.5">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -33,6 +33,7 @@
 <div class="stats owner-only" id="ownerTodayStats"><div class="stat"><span>Offene Aufgaben</span><strong id="statTasks">0</strong></div><div class="stat"><span>Termine heute</span><strong id="statEvents">0</strong></div><div class="stat"><span>Offene Angebote</span><strong id="statOffers">0</strong></div><div class="stat"><span>Angebotswert</span><strong id="statValue">0 €</strong></div></div>
 
 <div class="office-only officeDashboard" id="officeDashboard">
+  <div class="officeModeBanner"><span>🗂️</span><div><b>Büro-Arbeitsplatz</b><small>Kunden · Angebote · Termine · Rechnungen · Baustellenplanung</small></div><strong>CLOUD</strong></div>
   <div class="officeStats">
     <button type="button" class="officeStat" onclick="showScreen('calendar')"><span>Termine heute</span><strong id="officeStatEvents">0</strong><small>im Kalender</small></button>
     <button type="button" class="officeStat" onclick="showScreen('offers')"><span>Offene Angebote</span><strong id="officeStatOffers">0</strong><small>zu bearbeiten</small></button>
@@ -129,7 +130,7 @@
 <div class="sectionTitle"><h2>Mehr</h2><span>Einstellungen & Werkzeuge</span></div>
 <div class="quickGrid">
 <button class="quick cloudQuick" onclick="openCloudAccount()"><span class="emoji">☁️</span><b>Konto & Cloud</b><small id="cloudQuickStatus">Noch nicht verbunden</small></button>
-<button class="quick office-owner-only" onclick="openTeam()"><span class="emoji">👥</span><b>Team</b><small>Mitarbeiter & Büro</small></button>
+<button class="quick owner-only" onclick="openTeam()"><span class="emoji">👥</span><b>Team</b><small>Mitarbeiter & Büro</small></button>
 <button class="quick" onclick="showScreen('jobs')"><span class="emoji">🏗️</span><b>Baustellen</b><small>Status, Wetter, Navigation</small></button>
 <button class="quick office-owner-only" onclick="showScreen('invoices')"><span class="emoji">🧾</span><b>Rechnungen</b><small>Automatisch nach Abschluss</small></button>
 <button class="quick" onclick="showScreen('weather')"><span class="emoji">🌦️</span><b>Wetter</b><small>7 Tage & Baustellenrisiko</small></button>
@@ -140,7 +141,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.4.5</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.5</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -478,7 +479,7 @@
   <div class="card">
     <input type="hidden" id="eventId">
     <div class="field"><label>Titel</label><input class="input" id="eventTitle"></div>
-    <div class="field"><label>Kunde</label><select id="eventCustomer" onchange="syncEventCustomerFields()"></select></div>
+    <div class="field"><label>Kunde</label><select id="eventCustomer" class="hiddenNativeSelect" onchange="syncEventCustomerFields()"></select><button type="button" id="eventCustomerButton" class="softSelectButton" onclick="openCustomerPicker('eventCustomer')"><span class="softSelectIcon">👤</span><span class="softSelectText"><b>Kunde auswählen</b><small>Name & Adresse</small></span><span class="softChevron">›</span></button></div>
     <div class="row">
       <div class="field"><label>Datum</label><input type="date" class="input" id="eventDate"></div>
       <div class="field"><label>Uhrzeit</label><input type="time" class="input" id="eventTime" value="08:00"></div>
@@ -509,9 +510,14 @@
   <div class="card">
     <input type="hidden" id="jobId">
     <div class="field"><label>Baustellenname</label><input class="input jobProtectedField" id="jobTitle"></div>
-    <div class="field"><label>Kunde</label><select class="jobProtectedField" id="jobCustomer" onchange="syncJobCustomerFields()"></select></div>
+    <div class="field"><label>Kunde</label><select class="jobProtectedField hiddenNativeSelect" id="jobCustomer" onchange="syncJobCustomerFields()"></select><button type="button" id="jobCustomerButton" class="softSelectButton jobProtectedField" onclick="openCustomerPicker('jobCustomer')"><span class="softSelectIcon">👤</span><span class="softSelectText"><b>Kunde auswählen</b><small>Name & Adresse</small></span><span class="softChevron">›</span></button></div>
     <div class="field"><label>Adresse</label><input class="input jobProtectedField" id="jobAddress"></div>
     <div class="row"><div class="field"><label>Start</label><input type="date" class="input jobProtectedField" id="jobStart"></div><div class="field"><label>Status</label><select id="jobStatus"><option value="open">Geplant</option><option value="active">In Arbeit</option><option value="done">Abgeschlossen</option></select></div></div>
+    <div class="jobDurationPanel">
+      <div class="field"><label>Geschätzte Dauer</label><div class="durationControl"><input type="number" min="0.25" step="1" class="input jobProtectedField" id="jobDurationValue" value="1"><select class="jobProtectedField" id="jobDurationUnit" onchange="syncJobDurationUI()"><option value="days">Tage</option><option value="hours">Stunden</option></select></div></div>
+      <div class="field"><label>Startzeit</label><input type="time" class="input jobProtectedField" id="jobStartTime" value="08:00"></div>
+    </div>
+    <div class="calendarBlockHint" id="jobDurationHint"><span>📅</span><div><b>Kalender wird automatisch blockiert</b><small>Arbeitstage werden bei mehreren Tagen automatisch berücksichtigt.</small></div></div>
     <div class="field owner-office-only" id="jobOfferField"><label>Angenommenes Angebot</label><select id="jobOffer" onchange="syncJobOfferFields()"></select><small>Wird beim Abschluss als Grundlage für den Rechnungsentwurf verwendet.</small></div>
     <div class="field"><label>Material / Notizen</label><textarea id="jobNotes"></textarea></div>
   </div>
@@ -553,7 +559,7 @@
     <label class="photoAddBtn">＋ Foto hinzufügen<input id="jobPhotoInput" type="file" accept="image/*" capture="environment" multiple onchange="addJobPhotos(event)" hidden></label>
     <div id="jobPhotoGrid" class="photoGrid"></div>
     <div class="field" style="margin-top:12px"><label>Dokumentationsnotiz</label><textarea id="jobDocNote" class="cleanTextarea" placeholder="z. B. Untergrund vor Arbeitsbeginn dokumentiert …"></textarea></div>
-    <div class="worker-only jobLocalPhotoHint">Fotos bleiben aktuell noch auf diesem Gerät. Die gemeinsame Foto-Cloud folgt als nächster Schritt.</div>
+    <div class="jobCloudPhotoHint" id="jobCloudPhotoHint">☁️ Fotos werden privat mit dem Betrieb synchronisiert und sind auf den berechtigten Geräten sichtbar.</div>
   </div>
   <button class="btn primary" id="jobSaveBtn" style="width:100%" onclick="saveJob()">Baustelle speichern</button>
 </section>
@@ -881,14 +887,15 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.4.5" defer></script>
-<script src="data-repository.js?v=11.4.5" defer></script>
-<script src="script.js?v=11.4.5" defer></script>
-<script src="cloud-sync.js?v=11.4.5" defer></script>
-<script src="team.js?v=11.4.5" defer></script>
-<script src="assignments.js?v=11.4.5" defer></script>
-<script src="time-tracking.js?v=11.4.5" defer></script>
-<script src="cloud-auth.js?v=11.4.5" defer></script>
+<script src="cloud-config.js?v=11.5" defer></script>
+<script src="data-repository.js?v=11.5" defer></script>
+<script src="script.js?v=11.5" defer></script>
+<script src="cloud-files.js?v=11.5" defer></script>
+<script src="cloud-sync.js?v=11.5" defer></script>
+<script src="team.js?v=11.5" defer></script>
+<script src="assignments.js?v=11.5" defer></script>
+<script src="time-tracking.js?v=11.5" defer></script>
+<script src="cloud-auth.js?v=11.5" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

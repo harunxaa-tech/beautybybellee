@@ -401,7 +401,7 @@ migrateLegacyTravelV108();
 
 
 function uid(){return AppRepository?.makeId?AppRepository.makeId():(globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,9))}
-function loadData(){try{const raw=AppRepository.load(KEY),base=structuredClone(defaultData),merged={...base,...raw,settings:{...base.settings,...(raw.settings||{})},privacy:{...base.privacy,...(raw.privacy||{}),consents:{...base.privacy.consents,...(raw.privacy?.consents||{})}},audit:Array.isArray(raw.audit)?raw.audit:[],users:Array.isArray(raw.users)?raw.users:[],invoices:Array.isArray(raw.invoices)?raw.invoices:[],customers:(Array.isArray(raw.customers)?raw.customers:base.customers).map(c=>({...c,folderNotes:c.folderNotes||'',photos:Array.isArray(c.photos)?c.photos:[]})),jobs:(Array.isArray(raw.jobs)?raw.jobs:base.jobs).map(j=>({...j,docNote:j.docNote||'',photos:Array.isArray(j.photos)?j.photos:[]}))};AppRepository.prepare(merged,raw);return merged}catch(e){const fresh=structuredClone(defaultData);AppRepository.prepare(fresh,{});return fresh}}
+function loadData(){try{const raw=AppRepository.load(KEY),base=structuredClone(defaultData),merged={...base,...raw,settings:{...base.settings,...(raw.settings||{})},privacy:{...base.privacy,...(raw.privacy||{}),consents:{...base.privacy.consents,...(raw.privacy?.consents||{})}},audit:Array.isArray(raw.audit)?raw.audit:[],users:Array.isArray(raw.users)?raw.users:[],invoices:Array.isArray(raw.invoices)?raw.invoices:[],customers:(Array.isArray(raw.customers)?raw.customers:base.customers).map(c=>({...c,folderNotes:c.folderNotes||'',photos:Array.isArray(c.photos)?c.photos:[]})),jobs:(Array.isArray(raw.jobs)?raw.jobs:base.jobs).map(j=>({...j,startTime:j.startTime||'08:00',durationValue:Number(j.durationValue)||1,durationUnit:j.durationUnit==='hours'?'hours':'days',docNote:j.docNote||'',photos:Array.isArray(j.photos)?j.photos:[]}))};AppRepository.prepare(merged,raw);return merged}catch(e){const fresh=structuredClone(defaultData);AppRepository.prepare(fresh,{});return fresh}}
 function addAudit(action,details=''){data.audit=data.audit||[];data.audit.unshift({id:uid(),at:new Date().toISOString(),action,details});data.audit=data.audit.slice(0,100)}
 function persistAppState(){AppRepository.save(data,KEY);return data}
 function saveData(action='Daten geändert',details=''){addAudit(action,details);persistAppState();renderAll()}
@@ -448,7 +448,7 @@ function syncJobOfferFields(){
   const o=(data.offers||[]).find(x=>x.id===id);if(!o)return;
   const title=document.getElementById('jobTitle');if(title&&!title.value.trim())title.value=o.subject||'';
   const c=getCustomerById(o.customerId);
-  if(c){document.getElementById('jobCustomer').value=c.id;document.getElementById('jobAddress').value=c.address||''}
+  if(c){document.getElementById('jobCustomer').value=c.id;updateSoftCustomerButton('jobCustomer');document.getElementById('jobAddress').value=c.address||''}
   const notes=document.getElementById('jobNotes');if(notes&&!notes.value.trim()&&o.notes)notes.value=o.notes;
 }
 
@@ -557,7 +557,7 @@ function renderWorkerHome(todayTasks=[]){
   if(!worker)return;
   const jobs=[...(data.jobs||[])].sort((a,b)=>String(a.start||'9999').localeCompare(String(b.start||'9999')));
   const today=todayISO();
-  const todayJobs=jobs.filter(j=>j.start===today&&j.status!=='done');
+  const todayJobs=jobs.filter(j=>jobWorkDates(j).includes(today)&&j.status!=='done');
   const openTasks=(todayTasks||[]).filter(x=>!x.done);
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
   set('workerStatJobs',jobs.filter(j=>j.status!=='done').length);
@@ -570,7 +570,7 @@ function renderWorkerHome(todayTasks=[]){
     const visible=[...todayJobs,...jobs.filter(j=>j.start!==today&&j.status!=='done')].filter((j,i,a)=>a.findIndex(x=>x.id===j.id)===i).slice(0,3);
     box.innerHTML=visible.length?visible.map(j=>{
       const c=data.customers.find(x=>x.id===j.customerId);
-      const isToday=j.start===today;
+      const isToday=jobWorkDates(j).includes(today);
       return `<div class="workerJobHomeCard ${j.status==='active'?'activeJob':''}">
         <div class="workerJobHomeTop"><div><span class="workerJobDate ${isToday?'today':''}">${isToday?'HEUTE':dateDE(j.start)}</span><h3>${escapeHTML(j.title||'Baustelle')}</h3><p>${escapeHTML(c?.name||'')}${j.address?' · '+escapeHTML(j.address):''}</p></div><span class="badge ${j.status==='done'?'done':'open'}">${workerJobStatusLabel(j.status)}</span></div>
         <div class="workerJobHomeActions"><button class="btn primary small" onclick="editJob('${j.id}')">${j.status==='active'?'⏱️ Weiterarbeiten':'Baustelle öffnen'}</button>${j.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(j.address)}')">📍 Route</button>`:''}</div>
@@ -623,7 +623,7 @@ function renderToday(){
   document.getElementById('todayDate').textContent=d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'});
   document.getElementById('ownerGreeting').textContent=data.settings.ownerName||'Handwerker';
   const hero=document.querySelector('#today .hero h2');if(hero)hero.firstChild.textContent=`${greetingForNow()}, `;
-  const t=todayISO(),todayTasks=data.tasks.filter(x=>x.date===t),openTasks=todayTasks.filter(x=>!x.done),todayEvents=data.events.filter(x=>x.date===t).sort((a,b)=>a.time.localeCompare(b.time));
+  const t=todayISO(),todayTasks=data.tasks.filter(x=>x.date===t),openTasks=todayTasks.filter(x=>!x.done),todayEvents=data.events.filter(x=>eventOccursOnDate(x,t)).sort((a,b)=>a.time.localeCompare(b.time));
   const openOffers=data.offers.filter(o=>['draft','sent'].includes(o.status));
   document.getElementById('statTasks').textContent=openTasks.length;
   document.getElementById('statEvents').textContent=todayEvents.length;
@@ -693,7 +693,7 @@ async function putCustomerFile(rec){
     tx.onerror=()=>reject(tx.error);
   });
 }
-async function getCustomerFile(id){
+async function getLocalCustomerFile(id){
   const db=await openCustomerFileDB();
   return new Promise((resolve,reject)=>{
     const req=db.transaction(CUSTOMER_FILE_STORE).objectStore(CUSTOMER_FILE_STORE).get(id);
@@ -701,7 +701,7 @@ async function getCustomerFile(id){
     req.onerror=()=>reject(req.error);
   });
 }
-async function listCustomerFiles(customerId){
+async function listLocalCustomerFiles(customerId){
   const db=await openCustomerFileDB();
   return new Promise((resolve,reject)=>{
     const req=db.transaction(CUSTOMER_FILE_STORE).objectStore(CUSTOMER_FILE_STORE).index('customerId').getAll(customerId);
@@ -709,7 +709,7 @@ async function listCustomerFiles(customerId){
     req.onerror=()=>reject(req.error);
   });
 }
-async function deleteCustomerFile(id){
+async function deleteLocalCustomerFile(id){
   const db=await openCustomerFileDB();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(CUSTOMER_FILE_STORE,'readwrite');
@@ -718,6 +718,10 @@ async function deleteCustomerFile(id){
     tx.onerror=()=>reject(tx.error);
   });
 }
+function looksCloudUuid(id=''){return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(id))}
+async function listCustomerFiles(customerId){let local=[];try{local=await listLocalCustomerFiles(customerId)}catch(e){}let cloud=[];try{if(globalThis.CloudFiles?.ready?.())cloud=await globalThis.CloudFiles.listCustomerFiles(customerId)}catch(e){console.warn('Cloud-Kundenakten konnten nicht geladen werden',e)}return[...cloud,...local].sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))}
+async function getCustomerFile(id){if(looksCloudUuid(id)&&globalThis.CloudFiles?.ready?.()){try{return await globalThis.CloudFiles.getCustomerFile(id)}catch(e){console.warn('Cloud-Datei konnte nicht geladen werden',e)}}return getLocalCustomerFile(id)}
+async function deleteCustomerFile(id){if(looksCloudUuid(id)&&globalThis.CloudFiles?.ready?.())return globalThis.CloudFiles.deleteCloudFile(id);return deleteLocalCustomerFile(id)}
 function formatFileSize(bytes=0){
   if(bytes<1024)return `${bytes} B`;
   if(bytes<1024*1024)return `${Math.round(bytes/1024)} KB`;
@@ -760,7 +764,8 @@ async function addCustomerGalleryPhotos(event){
   for(const f of files.slice(0,20)){
     try{
       const blob=await compressGalleryImage(f);
-      await putCustomerFile({id:uid(),customerId:currentCustomerId,kind:'photo',name:f.name||`Foto ${added+1}.jpg`,type:blob.type||'image/jpeg',size:blob.size,createdAt:new Date().toISOString(),blob});
+      if(globalThis.CloudFiles?.ready?.())await globalThis.CloudFiles.uploadCustomerFiles(currentCustomerId,[{blob,name:f.name||`Foto ${added+1}.jpg`}],'photo');
+      else await putCustomerFile({id:uid(),customerId:currentCustomerId,kind:'photo',name:f.name||`Foto ${added+1}.jpg`,type:blob.type||'image/jpeg',size:blob.size,createdAt:new Date().toISOString(),blob});
       added++;
     }catch(e){}
   }
@@ -778,7 +783,8 @@ async function addCustomerDocuments(event){
   let added=0;
   for(const f of files.slice(0,15)){
     try{
-      await putCustomerFile({id:uid(),customerId:currentCustomerId,kind:'document',name:f.name||'Dokument',type:f.type||'application/octet-stream',size:f.size,createdAt:new Date().toISOString(),blob:f});
+      if(globalThis.CloudFiles?.ready?.())await globalThis.CloudFiles.uploadCustomerFiles(currentCustomerId,[{blob:f,name:f.name||'Dokument'}],'document');
+      else await putCustomerFile({id:uid(),customerId:currentCustomerId,kind:'document',name:f.name||'Dokument',type:f.type||'application/octet-stream',size:f.size,createdAt:new Date().toISOString(),blob:f});
       added++;
     }catch(e){}
   }
@@ -845,7 +851,7 @@ async function renderCustomerFolder(){
   if(currentCustomerFolderTab==='sites'){
     box.innerHTML=`<div class="folderSectionHead"><div><h3>🏗️ Baustellen</h3><p>${jobs.length} Projekt${jobs.length===1?'':'e'} für diesen Kunden</p></div><button class="btn primary small owner-office-only" onclick="newJobForCustomer('${c.id}')">＋ Baustelle</button></div>${jobs.length?jobs.map(j=>`<button class="folderRow" onclick="editJob('${j.id}')"><span class="folderRowIcon">🏗️</span><span><b>${escapeHTML(j.title)}</b><small>${statusLabel(j.status)} · ${dateDE(j.start)} · ${(j.photos||[]).length} Fotos</small></span><strong>›</strong></button>`).join(''):'<div class="empty">Noch keine Baustelle angelegt.</div>'}`;
   }else if(currentCustomerFolderTab==='photos'){
-    const storedPhotoHTML=storedPhotos.map(f=>{const url=URL.createObjectURL(f.blob);window.customerPreviewUrls.push(url);return `<button class="customerPhoto" onclick="openCustomerStoredFile('${f.id}')"><img src="${url}" alt=""><span>Galerie</span></button>`}).join('');
+    const storedPhotoHTML=storedPhotos.map(f=>{let url=f.url||'';if(!url&&f.blob){url=URL.createObjectURL(f.blob);window.customerPreviewUrls.push(url)}return `<button class="customerPhoto" onclick="openCustomerStoredFile('${f.id}')"><img src="${url}" alt=""><span>${f.cloud?'☁️ Galerie':'Galerie'}</span></button>`}).join('');
     const jobPhotoHTML=jobPhotos.map(p=>`<button class="customerPhoto" onclick="editJob('${p.jobId}')"><img src="${p.data}" alt=""><span>${escapeHTML(p.jobTitle)}</span></button>`).join('');
     box.innerHTML=`<div class="folderSectionHead"><div><h3>📸 Fotos</h3><p>Galeriebilder und Baustellenfotos dieses Kunden.</p></div><label class="btn primary small customerInlineUpload">＋ Galerie<input type="file" accept="image/*" multiple hidden onchange="addCustomerGalleryPhotos(event)"></label></div>${(storedPhotos.length||jobPhotos.length)?`<div class="customerPhotoGrid">${storedPhotoHTML}${jobPhotoHTML}</div>`:'<div class="empty">Noch keine Fotos. Du kannst direkt Bilder aus deiner Fotomediathek hinzufügen.</div>'}`;
   }else if(currentCustomerFolderTab==='docs'){
@@ -856,7 +862,7 @@ async function renderCustomerFolder(){
   }
   applyRoleUI();
 }
-function newJobForCustomer(customerId){newJob();document.getElementById('jobCustomer').value=customerId;const c=getCustomerById(customerId);if(c){document.getElementById('jobAddress').value=c.address||'';document.getElementById('jobAddress').dataset.autoFilled='1'}refreshJobOfferOptions();const offers=(data.offers||[]).filter(o=>o.customerId===customerId&&o.status==='accepted');if(offers.length===1){document.getElementById('jobOffer').value=offers[0].id;syncJobOfferFields()}}
+function newJobForCustomer(customerId){newJob();document.getElementById('jobCustomer').value=customerId;updateSoftCustomerButton('jobCustomer');const c=getCustomerById(customerId);if(c){document.getElementById('jobAddress').value=c.address||'';document.getElementById('jobAddress').dataset.autoFilled='1'}refreshJobOfferOptions();const offers=(data.offers||[]).filter(o=>o.customerId===customerId&&o.status==='accepted');if(offers.length===1){document.getElementById('jobOffer').value=offers[0].id;syncJobOfferFields()}}
 async function ensureExternalConsent(service){
   if(data.privacy?.consents?.external)return true;
   const ok=await appConfirm({
@@ -1028,7 +1034,7 @@ function newEvent(){
   document.getElementById('eventEditorTitle').textContent='Neuer Termin';
   document.getElementById('eventId').value='';
   document.getElementById('eventTitle').value='';
-  document.getElementById('eventCustomer').innerHTML=customerOptions();
+  document.getElementById('eventCustomer').innerHTML=customerOptions();updateSoftCustomerButton('eventCustomer');
   document.getElementById('eventDate').value=todayISO();
   document.getElementById('eventTime').value='08:00';
   document.getElementById('eventDurationHours').value=1;
@@ -1042,7 +1048,7 @@ function editEvent(id){
   const e=data.events.find(x=>x.id===id);if(!e)return;
   document.getElementById('eventId').value=e.id;
   document.getElementById('eventTitle').value=e.title;
-  document.getElementById('eventCustomer').innerHTML=customerOptions(e.customerId);
+  document.getElementById('eventCustomer').innerHTML=customerOptions(e.customerId);updateSoftCustomerButton('eventCustomer');
   document.getElementById('eventDate').value=e.date;
   document.getElementById('eventTime').value=e.time;
   document.getElementById('eventDurationHours').value=Math.max(.25,(Number(e.duration)||60)/60);
@@ -1066,7 +1072,7 @@ function renderCalendar(){
   const y=calDate.getFullYear(),m=calDate.getMonth(),first=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),heads=['Mo','Di','Mi','Do','Fr','Sa','So'].map(x=>`<div class="calHead">${x}</div>`).join('');
   let cells='';for(let i=0;i<first;i++)cells+='<div class="day muted"></div>';
   for(let d=1;d<=days;d++){
-    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,count=data.events.filter(e=>e.date===iso).length;
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,count=data.events.filter(e=>eventOccursOnDate(e,iso)).length;
     cells+=worker
       ?`<div class="day ${iso===todayISO()?'today':''} ${count?'hasEvent':''}"><span>${d}</span>${count?`<small>${count}</small>`:''}</div>`
       :`<button type="button" class="day ${iso===todayISO()?'today':''} ${count?'hasEvent':''}" onclick="newEventForDate('${iso}')"><span>${d}</span>${count?`<small>${count}</small>`:''}</button>`;
@@ -1080,7 +1086,7 @@ function renderCalendar(){
   }).join(''):'<div class="empty">Noch keine Termine.</div>';
 }
 function changeMonth(n){calDate=new Date(calDate.getFullYear(),calDate.getMonth()+n,1);renderCalendar()}
-function eventDates(e){const start=new Date(`${e.date}T${e.time}:00`),end=new Date(start.getTime()+e.duration*60000);const fmt=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');return{start:fmt(start),end:fmt(end)}}
+function eventDates(e){const job=e?.jobId?(data.jobs||[]).find(j=>j.id===e.jobId):null;let start=new Date(`${e.date}T${e.time||'08:00'}:00`),end;if(job&&job.durationUnit==='days'){const dates=jobWorkDates(job),last=dates[dates.length-1]||job.start;start=new Date(`${job.start}T${job.startTime||'08:00'}:00`);end=new Date(`${last}T${job.startTime||'08:00'}:00`);end=new Date(end.getTime()+8*60*60000)}else if(job&&job.durationUnit==='hours'){start=new Date(`${job.start}T${job.startTime||'08:00'}:00`);end=new Date(start.getTime()+jobDurationMinutes(job)*60000)}else end=new Date(start.getTime()+(Number(e.duration)||60)*60000);const fmt=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');return{start:fmt(start),end:fmt(end)}}
 async function googleCalendar(id){if(!await ensureExternalConsent('Google Kalender'))return;const e=data.events.find(x=>x.id===id),d=eventDates(e);location.href=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(e.title)}&dates=${d.start}/${d.end}&details=${encodeURIComponent(e.notes||'')}&location=${encodeURIComponent(e.address||'')}`}
 function downloadICS(id){const e=data.events.find(x=>x.id===id),d=eventDates(e),ics=`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//AngebotsPilot//Digitaler Handwerker//DE\nBEGIN:VEVENT\nUID:${e.id}@angebotspilot\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}\nDTSTART:${d.start}\nDTEND:${d.end}\nSUMMARY:${e.title}\nLOCATION:${e.address||''}\nDESCRIPTION:${e.notes||''}\nEND:VEVENT\nEND:VCALENDAR`;downloadBlob(ics,`${e.title}.ics`,'text/calendar')}
 function acceptedOfferOptions(selected='',customerId=''){const offers=data.offers.filter(o=>o.status==='accepted'&&(!customerId||o.customerId===customerId));return ['<option value="">– Kein Angebot verknüpft –</option>',...offers.map(o=>`<option value="${o.id}" ${o.id===selected?'selected':''}>${escapeHTML(o.number)} · ${escapeHTML(o.subject)} · ${euro(o.total)}</option>`)].join('')}
@@ -1089,9 +1095,11 @@ let jobDraftPhotos=[];
 function renderJobPhotos(){
   const grid=document.getElementById('jobPhotoGrid'),count=document.getElementById('jobPhotoCount');if(!grid)return;
   if(count)count.textContent=`${jobDraftPhotos.length} Foto${jobDraftPhotos.length===1?'':'s'}`;
-  grid.innerHTML=jobDraftPhotos.length?jobDraftPhotos.map((p,i)=>`<div class="photoTile"><img src="${p.data}" alt="Baustellenfoto"><button type="button" onclick="removeJobPhoto(${i})">×</button><small>${dateDE((p.at||'').slice(0,10))}</small></div>`).join(''):'<div class="photoEmpty">Noch keine Fotos</div>';
+  grid.innerHTML=jobDraftPhotos.length?jobDraftPhotos.map((p,i)=>{const canDelete=globalThis.CloudFiles?.canDelete?.(p)!==false;return `<div class="photoTile"><img src="${p.data||p.url||''}" alt="Baustellenfoto">${p.cloud?'<span class="cloudPhotoBadge">☁️</span>':''}${canDelete?`<button type="button" onclick="removeJobPhoto(${i})">×</button>`:''}<small>${dateDE((p.at||p.createdAt||'').slice(0,10))}</small></div>`}).join(''):'<div class="photoEmpty">Noch keine Fotos</div>';
 }
-function removeJobPhoto(i){jobDraftPhotos.splice(i,1);renderJobPhotos()}
+async function removeJobPhoto(i){const p=jobDraftPhotos[i],jobId=document.getElementById('jobId')?.value||'';if(p?.cloud&&jobId){try{await globalThis.CloudFiles?.deleteJobPhoto?.(p,jobId);jobDraftPhotos.splice(i,1);renderJobPhotos();toast('Foto aus der Cloud gelöscht');return}catch(e){console.error(e);toast('Foto konnte nicht gelöscht werden');return}}jobDraftPhotos.splice(i,1);renderJobPhotos()}
+function refreshOpenJobPhotosFromCloud(jobId){if(document.getElementById('jobId')?.value!==jobId)return;const j=(data.jobs||[]).find(x=>x.id===jobId);if(!j)return;jobDraftPhotos=structuredClone(j.photos||[]);renderJobPhotos()}
+globalThis.refreshOpenJobPhotosFromCloud=refreshOpenJobPhotosFromCloud;
 function compressPhoto(file){
   return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const max=1100,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.72))};img.src=reader.result};reader.readAsDataURL(file)});
 }
@@ -1099,7 +1107,7 @@ async function addJobPhotos(event){
   const files=[...(event.target.files||[])];if(!files.length)return;
   toast('Fotos werden vorbereitet …');
   for(const file of files.slice(0,8)){
-    try{const dataUrl=await compressPhoto(file);jobDraftPhotos.push({id:uid(),data:dataUrl,at:new Date().toISOString()})}catch(e){}
+    try{const dataUrl=await compressPhoto(file);jobDraftPhotos.push({id:uid(),data:dataUrl,name:file.name||'Baustellenfoto.jpg',at:new Date().toISOString(),cloud:false})}catch(e){}
   }
   event.target.value='';renderJobPhotos();toast('📸 Foto zur Baustelle hinzugefügt');
 }
@@ -1137,16 +1145,22 @@ function upsertCalendarEventForOffer(offer){
   offer.eventId=ev.id;
 }
 
+function normalizeJobDurationUnit(v){return v==='hours'?'hours':'days'}
+function jobWorkDates(job){const start=job?.start;if(!start)return[];const unit=normalizeJobDurationUnit(job.durationUnit);if(unit==='hours')return[start];let remaining=Math.max(1,Math.round(Number(job.durationValue)||1)),d=new Date(start+'T12:00:00'),out=[],guard=0;while(remaining>0&&guard<500){guard++;const day=d.getDay();if(day!==0&&day!==6){out.push(d.toISOString().slice(0,10));remaining--}d.setDate(d.getDate()+1)}return out}
+function jobDurationMinutes(job){return normalizeJobDurationUnit(job?.durationUnit)==='hours'?Math.max(15,Math.round((Number(job?.durationValue)||1)*60)):Math.max(1,Math.round(Number(job?.durationValue)||1))*8*60}
+function eventOccursOnDate(e,iso){if(!e)return false;if(e.jobId){const j=(data.jobs||[]).find(x=>x.id===e.jobId);if(j)return jobWorkDates(j).includes(iso)}return e.date===iso}
+function syncJobDurationUI(){const unit=normalizeJobDurationUnit(document.getElementById('jobDurationUnit')?.value),input=document.getElementById('jobDurationValue'),hint=document.getElementById('jobDurationHint');if(input){input.step=unit==='hours'?'0.25':'1';input.min=unit==='hours'?'0.25':'1';if(unit==='days'&&Number(input.value)%1)input.value=Math.max(1,Math.round(Number(input.value)||1))}if(hint){const value=Math.max(unit==='hours'?.25:1,Number(input?.value)||1);const dates=unit==='days'?`${Math.round(value)} Arbeitstag${Math.round(value)===1?'':'e'}`:`${value.toLocaleString('de-DE',{maximumFractionDigits:2})} Std.`;hint.querySelector('small').textContent=`${dates} ab ${document.getElementById('jobStartTime')?.value||'08:00'} Uhr werden im Kalender reserviert.`}}
 function upsertCalendarEventForJob(job){
   if(!job||!job.start)return;
   let ev=(data.events||[]).find(e=>e.jobId===job.id);
-  const payload={title:job.title||'Baustelle',customerId:job.customerId||'',date:job.start,time:ev?.time||'08:00',duration:ev?.duration||480,type:'Baustelle',address:job.address||'',notes:job.docNote||job.notes||'',jobId:job.id};
+  const durationText=normalizeJobDurationUnit(job.durationUnit)==='hours'?`${Number(job.durationValue)||1} Std.`:`${Math.max(1,Math.round(Number(job.durationValue)||1))} Arbeitstag${Math.round(Number(job.durationValue)||1)===1?'':'e'}`;
+  const payload={title:job.title||'Baustelle',customerId:job.customerId||'',date:job.start,time:job.startTime||'08:00',duration:jobDurationMinutes(job),type:'Baustelle',address:job.address||'',notes:`Geplante Dauer: ${durationText}${job.docNote||job.notes?` · ${job.docNote||job.notes}`:''}`,jobId:job.id};
   if(ev)Object.assign(ev,payload);else{ev={id:uid(),...payload};data.events.push(ev)}
   job.eventId=ev.id;
 }
 function syncLinkedJobFromEvent(ev){
   if(!ev?.jobId)return;const job=data.jobs.find(j=>j.id===ev.jobId);if(!job)return;
-  job.start=ev.date||job.start;job.address=ev.address||job.address;if(ev.customerId)job.customerId=ev.customerId;
+  job.start=ev.date||job.start;job.startTime=ev.time||job.startTime||'08:00';job.address=ev.address||job.address;if(ev.customerId)job.customerId=ev.customerId;
 }
 
 function setJobEditorRoleMode(){
@@ -1164,10 +1178,13 @@ function setJobEditorRoleMode(){
 function newJob(){
   document.getElementById('jobId').value='';
   document.getElementById('jobTitle').value='';
-  document.getElementById('jobCustomer').innerHTML=customerOptions();
+  document.getElementById('jobCustomer').innerHTML=customerOptions();updateSoftCustomerButton('jobCustomer');
   document.getElementById('jobAddress').value='';
   document.getElementById('jobAddress').dataset.autoFilled='1';
   document.getElementById('jobStart').value=todayISO();
+  document.getElementById('jobStartTime').value='08:00';
+  document.getElementById('jobDurationValue').value=1;
+  document.getElementById('jobDurationUnit').value='days';syncJobDurationUI();
   document.getElementById('jobStatus').value='open';
   document.getElementById('jobNotes').value='';
   document.getElementById('jobOffer').innerHTML=acceptedOfferOptions();
@@ -1183,10 +1200,13 @@ function editJob(id){
   const j=data.jobs.find(x=>x.id===id);if(!j)return;
   document.getElementById('jobId').value=j.id;
   document.getElementById('jobTitle').value=j.title;
-  document.getElementById('jobCustomer').innerHTML=customerOptions(j.customerId);
+  document.getElementById('jobCustomer').innerHTML=customerOptions(j.customerId);updateSoftCustomerButton('jobCustomer');
   document.getElementById('jobAddress').value=j.address||'';
   document.getElementById('jobAddress').dataset.autoFilled='0';
   document.getElementById('jobStart').value=j.start;
+  document.getElementById('jobStartTime').value=j.startTime||'08:00';
+  document.getElementById('jobDurationValue').value=Number(j.durationValue)||1;
+  document.getElementById('jobDurationUnit').value=normalizeJobDurationUnit(j.durationUnit);syncJobDurationUI();
   document.getElementById('jobStatus').value=j.status;
   document.getElementById('jobNotes').value=j.notes||'';
   document.getElementById('jobOffer').innerHTML=acceptedOfferOptions(j.offerId||'',j.customerId);
@@ -1197,6 +1217,7 @@ function editJob(id){
   globalThis.JobAssignments?.open(j.assignedUserIds||[],j.assignedNames||[]);
   globalThis.TimeTracking?.open(j.id);
   showScreen('jobEditor');
+  globalThis.CloudFiles?.refreshJob?.(j.id,{render:true}).catch(e=>console.warn('Cloud-Fotos konnten noch nicht aktualisiert werden',e));
 }
 function saveJob(){
   const id=document.getElementById('jobId').value;
@@ -1213,6 +1234,9 @@ function saveJob(){
     customerId:document.getElementById('jobCustomer').value,
     address:document.getElementById('jobAddress').value.trim(),
     start:document.getElementById('jobStart').value,
+    startTime:worker?(old?.startTime||'08:00'):(document.getElementById('jobStartTime').value||'08:00'),
+    durationValue:worker?(Number(old?.durationValue)||1):(normalizeJobDurationUnit(document.getElementById('jobDurationUnit').value)==='days'?Math.max(1,Math.round(Number(document.getElementById('jobDurationValue').value)||1)):Math.max(.25,Number(document.getElementById('jobDurationValue').value)||1)),
+    durationUnit:worker?normalizeJobDurationUnit(old?.durationUnit):normalizeJobDurationUnit(document.getElementById('jobDurationUnit').value),
     status:document.getElementById('jobStatus').value,
     notes:document.getElementById('jobNotes').value.trim(),
     offerId:worker?(old?.offerId||''):(document.getElementById('jobOffer').value||''),
@@ -1239,6 +1263,7 @@ function saveJob(){
   }
 
   saveData(worker?'Baustellenfortschritt gespeichert':'Baustelle gespeichert',obj.title);
+  globalThis.CloudFiles?.uploadPendingForJob?.(obj.id).catch(e=>{console.error(e);globalThis.toast?.('Fotos lokal gespeichert · Cloud-Upload wird erneut versucht')});
 
   if(worker){
     globalThis.JobAssignments?.saveWorkerProgress?.(obj)
@@ -1266,7 +1291,7 @@ function renderJobs(){
       :'';
     return `<div class="item jobCard">
       <div class="itemTop">
-        <div><span class="badge ${j.status==='done'?'done':'open'}">${statusLabel(j.status)}</span><h3 style="margin-top:8px">${escapeHTML(j.title)}</h3><p>${escapeHTML(c?.name||'')} · Start ${dateDE(j.start)}${!worker&&inv?' · Rechnung '+escapeHTML(inv.number):''}</p>${assignees}</div>
+        <div><span class="badge ${j.status==='done'?'done':'open'}">${statusLabel(j.status)}</span><h3 style="margin-top:8px">${escapeHTML(j.title)}</h3><p>${escapeHTML(c?.name||'')} · Start ${dateDE(j.start)} ${escapeHTML(j.startTime||'08:00')} · ${normalizeJobDurationUnit(j.durationUnit)==='hours'?`${Number(j.durationValue)||1} Std.`:`${Math.max(1,Math.round(Number(j.durationValue)||1))} ${Math.max(1,Math.round(Number(j.durationValue)||1))===1?'Tag':'Tage'}`}${!worker&&inv?' · Rechnung '+escapeHTML(inv.number):''}</p>${assignees}</div>
         <button class="btn small" onclick="editJob('${j.id}')">${worker?'Öffnen':'Bearbeiten'}</button>
       </div>
       <div class="itemActions">${j.address?`<button class="btn small" onclick="openMaps('${encodeURIComponent(j.address)}')">📍 Navigation</button><button class="btn small" onclick="openJobWeather('${j.id}')">🌦️ Wetter</button>`:''}${!worker?`<button class="btn small" onclick="jobToCalendar('${j.id}')">📅 Termin</button>`:''}${financeActions}</div>
@@ -2091,6 +2116,8 @@ function applyRoleUI(){
   if(role==='worker')setTimeout(()=>globalThis.TimeTracking?.refreshDashboard?.(),100);
 }
 globalThis.applyRoleUI=applyRoleUI;
+
+['jobDurationValue','jobStartTime','jobStart'].forEach(id=>document.getElementById(id)?.addEventListener('input',syncJobDurationUI));
 applyRoleUI();
 renderAll();
 setTimeout(()=>{if(shouldShowOnboarding())openOnboarding();},120);

@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.1 – Kern-Geschäftsdaten Cloud-Synchronisierung */
+/* AngebotsPilot v11.5 – Kern-Geschäftsdaten Cloud-Synchronisierung */
 (function(){
   'use strict';
   const KEY='digitaler_handwerker_v3';
@@ -40,7 +40,7 @@
   function persistLocal(d){
     try{
       if(globalThis.safePersistCloudIdentity)return globalThis.safePersistCloudIdentity(d);
-      persistLocal(d);
+      localStorage.setItem(KEY,JSON.stringify(d));
       return true;
     }catch(e){console.warn('Lokaler Sync-Cache konnte nicht gespeichert werden',e);return false}
   }
@@ -102,7 +102,7 @@
     return offerMap;
   }
   async function syncJobs(d,custMap,offerMap){
-    const rows=(d.jobs||[]).map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,title:x.title||'Baustelle',address:x.address||'',start_date:x.start||null,status:x.status||'open',notes:x.notes||'',doc_note:x.docNote||''})).filter(x=>x.customer_id);
+    const rows=(d.jobs||[]).map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,title:x.title||'Baustelle',address:x.address||'',start_date:x.start||null,start_time:(x.startTime||'08:00')+':00',duration_value:Math.max(.25,Number(x.durationValue)||1),duration_unit:x.durationUnit==='hours'?'hours':'days',status:x.status||'open',notes:x.notes||'',doc_note:x.docNote||''})).filter(x=>x.customer_id);
     await upsertRows('jobs',rows);
     return mapFor('jobs');
   }
@@ -316,7 +316,7 @@
       const localId=x.local_id||x.id;
       const assignedUserIds=assignmentByJob.get(x.id)||[];
       const old=existingLocalJobs.get(localId);
-      return{id:localId,title:x.title,customerId:customerLocal.get(x.customer_id)||'',address:x.address,start:x.start_date,status:x.status,notes:x.notes,docNote:x.doc_note,offerId:x.offer_id?offerLocal.get(x.offer_id)||'':'',invoiceId:'',eventId:'',photos:structuredClone(old?.photos||[]),assignedUserIds,assignedNames:assignedUserIds.map(id=>memberNames.get(id)||'Mitarbeiter'),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at};
+      return{id:localId,title:x.title,customerId:customerLocal.get(x.customer_id)||'',address:x.address,start:x.start_date,startTime:(x.start_time||'08:00').slice(0,5),durationValue:Number(x.duration_value)||1,durationUnit:x.duration_unit==='hours'?'hours':'days',status:x.status,notes:x.notes,docNote:x.doc_note,offerId:x.offer_id?offerLocal.get(x.offer_id)||'':'',invoiceId:'',eventId:'',photos:structuredClone(old?.photos||[]),assignedUserIds,assignedNames:assignedUserIds.map(id=>memberNames.get(id)||'Mitarbeiter'),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at};
     });
     d.events=events.map(x=>({id:x.local_id||x.id,title:x.title,customerId:x.customer_id?customerLocal.get(x.customer_id)||'':'',offerId:x.offer_id?offerLocal.get(x.offer_id)||'':'',jobId:x.job_id?jobLocal.get(x.job_id)||'':'',date:x.event_date,time:(x.event_time||'08:00').slice(0,5),duration:Number(x.duration_minutes)||60,type:x.type,address:x.address,notes:x.notes,createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.tasks=tasks.map(x=>({id:x.local_id||x.id,title:x.title,date:x.due_date||'',priority:x.priority||'normal',notes:x.notes||'',done:!!x.done,customerId:x.customer_id?customerLocal.get(x.customer_id)||'':'',jobId:x.job_id?jobLocal.get(x.job_id)||'':'',createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
@@ -328,6 +328,7 @@
     persistLocal(d);
     setProgress(100,'Cloud geladen','Dein Betrieb ist auf diesem Gerät bereit.');
     globalThis.renderAll?.();
+    try{await globalThis.CloudFiles?.refresh?.({silent:false})}catch(e){console.warn('Cloud-Dateien konnten noch nicht geladen werden',e)}
     setTimeout(()=>{
       const place=(d.settings?.weatherLocation||d.settings?.address||'').trim();
       if(place)globalThis.refreshWeather?.(false);
@@ -377,6 +378,7 @@
   async function attach(c,s,co,m){
     client=c;session=s;company=co;membership=m;
     if(!client||!session||!company)return;
+    try{globalThis.CloudFiles?.attach?.(client,session,company,membership)}catch(e){console.warn('Cloud-Dateien konnten nicht vorbereitet werden',e)}
 
     const active=localData();
     if(active?.meta?.cloudCompanyId!==company.id||active?.meta?.authUserId!==session.user.id){
@@ -391,7 +393,7 @@
     })();
     try{return await attachPromise}finally{attachPromise=null}
   }
-  function detach(){client=session=company=membership=null;initializedCompanyId='';globalThis.AppRepository?.setCloudAdapter(null);renderStatus()}
+  function detach(){try{globalThis.CloudFiles?.detach?.()}catch(e){}client=session=company=membership=null;initializedCompanyId='';globalThis.AppRepository?.setCloudAdapter(null);renderStatus()}
   async function manual(){if(!client||!company)throw new Error('Nicht mit der Cloud verbunden');showEntrySync(true);syncing=true;emit();try{await pushSnapshot();await pullCloud();lastSuccessAt=new Date().toISOString();lastError=''}finally{syncing=false;emit();setTimeout(()=>{showEntrySync(false);globalThis.requireCloudEntry?.()},450)}}
   globalThis.CloudSync={attach,detach,pushSnapshot,pullCloud,manual,state,renderStatus};
   globalThis.manualCloudSync=async()=>{try{await manual();globalThis.toast?.('☁️ Synchronisiert')}catch(e){console.error(e);globalThis.toast?.('Cloud-Sync fehlgeschlagen')}};

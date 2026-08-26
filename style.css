@@ -960,3 +960,15 @@ body[data-role="office"] .office-only{display:block!important}
   .officeStat strong{font-size:22px}
   .officeQuickGrid{gap:7px}
 }
+
+/* v11.5 – Büro klarer getrennt */
+.officeModeBanner{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:11px;align-items:center;padding:13px 14px;margin:0 0 12px;border:1px solid rgba(184,217,255,.18);background:linear-gradient(135deg,rgba(184,217,255,.08),rgba(255,255,255,.015));border-radius:17px}
+.officeModeBanner>span{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:rgba(184,217,255,.09);font-size:20px}.officeModeBanner b,.officeModeBanner small{display:block}.officeModeBanner b{font-size:13px}.officeModeBanner small{color:var(--muted);font-size:8px;margin-top:3px;line-height:1.35}.officeModeBanner strong{font-size:8px;letter-spacing:.14em;color:#b8d9ff;border:1px solid rgba(184,217,255,.2);padding:6px 7px;border-radius:999px}
+
+/* v11.5 – Baustellenplanung */
+.jobDurationPanel{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(120px,.65fr);gap:9px;align-items:end}.durationControl{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:8px}.calendarBlockHint{display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(216,255,62,.14);background:rgba(216,255,62,.045);padding:11px 12px;border-radius:14px;margin-top:3px}.calendarBlockHint>span{font-size:18px}.calendarBlockHint b,.calendarBlockHint small{display:block}.calendarBlockHint b{font-size:10px}.calendarBlockHint small{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.4}.jobCloudPhotoHint{margin-top:10px;padding:9px 10px;border-radius:12px;background:rgba(106,184,255,.07);border:1px solid rgba(106,184,255,.13);color:var(--muted);font-size:8.5px;line-height:1.45}.softSelectButton:disabled{opacity:.72;cursor:not-allowed}.photoTile .cloudPhotoBadge{position:absolute;left:6px;top:6px;background:rgba(9,11,15,.76);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px 5px;font-size:8px}
+
+/* v11.5 – Wetter-Hinweis mit sauberem Abstand */
+#today .weatherRiskCompact{margin-top:12px!important}
+
+@media(max-width:520px){.jobDurationPanel{grid-template-columns:1fr}.durationControl{grid-template-columns:minmax(0,1fr) 110px}.officeModeBanner{grid-template-columns:38px minmax(0,1fr) auto;padding:11px}.officeModeBanner>span{width:38px;height:38px}}

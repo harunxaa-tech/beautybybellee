@@ -1,9 +1,9 @@
-const CACHE='digitaler-handwerker-v11-4-5';
+const CACHE='digitaler-handwerker-v11-5';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.4.5','./cloud-config.js?v=11.4.5',
-  './data-repository.js?v=11.4.5','./script.js?v=11.4.5','./cloud-sync.js?v=11.4.5',
-  './team.js?v=11.4.5','./assignments.js?v=11.4.5','./time-tracking.js?v=11.4.5',
-  './cloud-auth.js?v=11.4.5','./manifest.json','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.5','./cloud-config.js?v=11.5',
+  './data-repository.js?v=11.5','./script.js?v=11.5','./cloud-files.js?v=11.5','./cloud-sync.js?v=11.5',
+  './team.js?v=11.5','./assignments.js?v=11.5','./time-tracking.js?v=11.5',
+  './cloud-auth.js?v=11.5','./manifest.json','./icon-192.svg','./icon-512.svg'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

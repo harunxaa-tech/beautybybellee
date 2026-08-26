@@ -4,7 +4,7 @@
 (function(){
   'use strict';
   const DEFAULT_KEY='digitaler_handwerker_v3';
-  const SCHEMA_VERSION=8;
+  const SCHEMA_VERSION=9;
   const ENTITY_COLLECTIONS=['customers','offers','events','tasks','jobs','invoices','catalog'];
   let cloudAdapter=null;
   let lastSyncError='';

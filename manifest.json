@@ -1,7 +1,7 @@
 {
   "name": "Digitaler Handwerker – AngebotsPilot",
   "short_name": "Handwerker",
-  "description": "AngebotsPilot v11.4.5 – Stabilitätsbuild mit wiederhergestellten Baustellen-/Kalenderfunktionen, robustem Wetter und vollständigem PWA-Cache.",
+  "description": "AngebotsPilot v11.5 – Baustellendauer mit Kalenderblockierung, private Cloud-Fotos/Dokumente, einheitliche Kundenauswahl und klarere Büro-Ansicht.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
