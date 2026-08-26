@@ -898,6 +898,8 @@ async function openMaps(a){
   if(!await ensureExternalConsent('Google Maps'))return;
   location.href='https://www.google.com/maps/search/?api=1&query='+a;
 }
+function normalizeOfferDurationUnit(v){return v==='hours'?'hours':'days'}
+function syncOfferDurationUI(){const unit=normalizeOfferDurationUnit(document.getElementById('offerDurationUnit')?.value),input=document.getElementById('offerDurationValue'),hint=document.getElementById('offerDurationHint');if(input){input.step=unit==='hours'?'0.25':'1';input.min=unit==='hours'?'0.25':'1';if(unit==='days'&&Number(input.value)%1)input.value=Math.max(1,Math.round(Number(input.value)||1))}if(hint){const value=Math.max(unit==='hours'?.25:1,Number(input?.value)||1);hint.textContent=`${unit==='hours'?value.toLocaleString('de-DE',{maximumFractionDigits:2})+' Std.':Math.round(value)+' Arbeitstag'+(Math.round(value)===1?'':'e')} werden bei einer späteren Auftragsannahme für die Kalenderplanung verwendet.`}}
 function newOffer(){
   document.getElementById('offerId').value='';
   document.getElementById('offerCustomer').innerHTML=customerOptions();updateSoftCustomerButton('offerCustomer');
@@ -905,12 +907,14 @@ function newOffer(){
   document.getElementById('offerStatus').value='draft';
   document.getElementById('offerSubject').value='';
   document.getElementById('offerNotes').value='';
+  document.getElementById('offerDurationValue').value=1;
+  document.getElementById('offerDurationUnit').value='days';syncOfferDurationUI();
   document.getElementById('offerDiscount').value=0;setDiscountType('offer','euro');
   draftLines=[];
   renderOfferLines();
   showScreen('offerEditor');
 }
-function editOffer(id){const o=data.offers.find(x=>x.id===id);if(!o)return;document.getElementById('offerId').value=o.id;document.getElementById('offerCustomer').innerHTML=customerOptions(o.customerId);updateSoftCustomerButton('offerCustomer');document.getElementById('offerDate').value=o.date;document.getElementById('offerStatus').value=o.status;document.getElementById('offerSubject').value=o.subject;document.getElementById('offerNotes').value=o.notes||'';document.getElementById('offerDiscount').value=Number(o.discountValue ?? o.discount ?? 0)||0;setDiscountType('offer',normalizeDiscountType(o.discountType));draftLines=structuredClone(o.lines||[]);renderOfferLines();showScreen('offerEditor')}
+function editOffer(id){const o=data.offers.find(x=>x.id===id);if(!o)return;document.getElementById('offerId').value=o.id;document.getElementById('offerCustomer').innerHTML=customerOptions(o.customerId);updateSoftCustomerButton('offerCustomer');document.getElementById('offerDate').value=o.date;document.getElementById('offerStatus').value=o.status;document.getElementById('offerSubject').value=o.subject;document.getElementById('offerNotes').value=o.notes||'';document.getElementById('offerDurationValue').value=Math.max((o.durationUnit==='hours')?.25:1,Number(o.durationValue)||1);document.getElementById('offerDurationUnit').value=o.durationUnit==='hours'?'hours':'days';syncOfferDurationUI();document.getElementById('offerDiscount').value=Number(o.discountValue ?? o.discount ?? 0)||0;setDiscountType('offer',normalizeDiscountType(o.discountType));draftLines=structuredClone(o.lines||[]);renderOfferLines();showScreen('offerEditor')}
 function addOfferLine(line={name:'',qty:1,unit:'Std.',price:0}){draftLines.push({id:uid(),...line});renderOfferLines()}
 
 function isLaborLine(line){
@@ -957,7 +961,7 @@ function renderOfferLines(){
     </div>`;
   }).join(''):'<div class="empty">Noch keine Positionen. Tippe auf „＋ Position“.</div>';
 }
-function offerObject(){const id=document.getElementById('offerId').value,cid=document.getElementById('offerCustomer').value,baseSubtotal=draftLines.reduce((s,l)=>s+(Number(l.qty)||0)*(Number(l.price)||0),0),discountType=normalizeDiscountType(document.getElementById('offerDiscountType')?.value),discountValue=Number(document.getElementById('offerDiscount').value)||0,discount=discountAmount(baseSubtotal,discountValue,discountType),sub=baseSubtotal-discount,tax=Number(data.settings.tax)||0,total=sub*(1+tax/100),old=id?data.offers.find(x=>x.id===id):null;return{id:id||uid(),number:id?old?.number:'AP-'+new Date().getFullYear()+'-'+String(data.offers.length+1).padStart(4,'0'),customerId:cid,date:document.getElementById('offerDate').value,status:document.getElementById('offerStatus').value,subject:document.getElementById('offerSubject').value.trim(),notes:document.getElementById('offerNotes').value.trim(),lines:structuredClone(draftLines),travel:0,discountType,discountValue,discount,baseSubtotal,subtotal:sub,tax,total,eventId:old?.eventId||''}}
+function offerObject(){const id=document.getElementById('offerId').value,cid=document.getElementById('offerCustomer').value,baseSubtotal=draftLines.reduce((s,l)=>s+(Number(l.qty)||0)*(Number(l.price)||0),0),discountType=normalizeDiscountType(document.getElementById('offerDiscountType')?.value),discountValue=Number(document.getElementById('offerDiscount').value)||0,discount=discountAmount(baseSubtotal,discountValue,discountType),sub=baseSubtotal-discount,tax=Number(data.settings.tax)||0,total=sub*(1+tax/100),old=id?data.offers.find(x=>x.id===id):null,durationUnit=normalizeOfferDurationUnit(document.getElementById('offerDurationUnit')?.value),durationValue=Math.max(durationUnit==='hours'?.25:1,Number(document.getElementById('offerDurationValue')?.value)||1);return{id:id||uid(),number:id?old?.number:'AP-'+new Date().getFullYear()+'-'+String(data.offers.length+1).padStart(4,'0'),customerId:cid,date:document.getElementById('offerDate').value,status:document.getElementById('offerStatus').value,subject:document.getElementById('offerSubject').value.trim(),notes:document.getElementById('offerNotes').value.trim(),durationValue,durationUnit,lines:structuredClone(draftLines),travel:0,discountType,discountValue,discount,baseSubtotal,subtotal:sub,tax,total,eventId:old?.eventId||''}}
 function persistOfferFromEditor({validate=true,audit=true}={}){
   const o=offerObject();
   if(validate){
@@ -1005,7 +1009,7 @@ function autoSaveOfferAndClose(){
     toast('Unvollständiger neuer Entwurf wurde nicht gespeichert');
   }
 }
-function renderOffers(){const list=data.offers.filter(o=>currentOfferFilter==='all'||o.status===currentOfferFilter).sort((a,b)=>b.date.localeCompare(a.date));document.getElementById('offerList').innerHTML=list.length?list.map(o=>{const c=data.customers.find(x=>x.id===o.customerId);return `<div class="item"><div class="itemTop"><div><span class="badge ${o.status}">${statusLabel(o.status)}</span><h3 style="margin-top:8px">${escapeHTML(o.subject)}</h3><p>${escapeHTML(c?.name||'Unbekannter Kunde')} · ${dateDE(o.date)} · ${o.number}</p></div><strong>${euro(o.total)}</strong></div><div class="itemActions"><button class="btn small" onclick="editOffer('${o.id}')">Bearbeiten</button><button class="btn small" onclick="quickOfferStatus('${o.id}')">Status</button><button class="btn small" onclick="previewSavedOffer('${o.id}')">PDF</button></div></div>`}).join(''):'<div class="empty">Noch keine Angebote.</div>'}
+function renderOffers(){const list=data.offers.filter(o=>currentOfferFilter==='all'||o.status===currentOfferFilter).sort((a,b)=>b.date.localeCompare(a.date));document.getElementById('offerList').innerHTML=list.length?list.map(o=>{const c=data.customers.find(x=>x.id===o.customerId);return `<div class="item"><div class="itemTop"><div><span class="badge ${o.status}">${statusLabel(o.status)}</span><h3 style="margin-top:8px">${escapeHTML(o.subject)}</h3><p>${escapeHTML(c?.name||'Unbekannter Kunde')} · ${dateDE(o.date)} · ${o.number}${o.durationValue?` · ${o.durationUnit==='hours'?Number(o.durationValue).toLocaleString('de-DE')+' Std.':Math.round(Number(o.durationValue))+' Tag'+(Math.round(Number(o.durationValue))===1?'':'e')}`:''}</p></div><strong>${euro(o.total)}</strong></div><div class="itemActions"><button class="btn small" onclick="editOffer('${o.id}')">Bearbeiten</button><button class="btn small" onclick="quickOfferStatus('${o.id}')">Status</button><button class="btn small" onclick="previewSavedOffer('${o.id}')">PDF</button></div></div>`}).join(''):'<div class="empty">Noch keine Angebote.</div>'}
 document.querySelectorAll('#offerTabs .tab').forEach(b=>b.onclick=()=>{currentOfferFilter=b.dataset.filter;document.querySelectorAll('#offerTabs .tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderOffers()});
 function quickOfferStatus(id){
   const o=data.offers.find(x=>x.id===id);if(!o)return;

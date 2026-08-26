@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.7.1">
+<link rel="stylesheet" href="style.css?v=11.8">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -131,6 +131,7 @@
 <div class="quickGrid">
 <button class="quick cloudQuick" onclick="openCloudAccount()"><span class="emoji">☁️</span><b>Konto & Cloud</b><small id="cloudQuickStatus">Noch nicht verbunden</small></button>
 <button class="quick" onclick="openNotifications()"><span class="emoji">🔔</span><b>Benachrichtigungen <span id="moreNotificationBadge" class="miniInlineBadge hidden" hidden>0</span></b><small>Push & wichtige Hinweise</small></button>
+<button class="quick office-owner-only emailAssistantQuick" onclick="openEmailAssistant()"><span class="emoji">✉️</span><b>E-Mail-Sekretärin <span class="miniInlineBadge betaBadge">MVP</span></b><small>Zusage, Absage, Fragen & Termine prüfen</small></button>
 <button class="quick owner-office-only" onclick="openTeam()"><span class="emoji">👥</span><b>Team & Zeiten</b><small>Mitarbeiter & Arbeitszeiten</small></button>
 <button class="quick" onclick="showScreen('jobs')"><span class="emoji">🏗️</span><b>Baustellen</b><small>Status, Wetter, Navigation</small></button>
 <button class="quick office-owner-only" onclick="showScreen('invoices')"><span class="emoji">🧾</span><b>Rechnungen</b><small>Automatisch nach Abschluss</small></button>
@@ -142,7 +143,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.7.1</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.8</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -150,6 +151,34 @@
 </section>
 
 
+
+<section class="screen" id="emailAssistant">
+  <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETÄRIN · TESTMODUS</div><h2>E-Mail-Sekretärin</h2><p class="mini">Nachrichten sicher prüfen, bevor später ein Postfach verbunden wird.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
+  <div class="card emailAssistantIntro">
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">MVP · KEIN AUTOMATISCHER VERSAND</span><h3>Sicher testen – ohne API-Kosten</h3><p>Füge eine Kundenmail ein. AngebotsPilot erkennt den wahrscheinlichen Vorgang, ordnet Kunde und Angebot zu und bereitet nur einen Vorschlag vor. <b>Keine Mail wird automatisch verschickt und kein Auftrag ohne deine Freigabe angelegt.</b></p></div>
+  </div>
+  <div class="card">
+    <div class="flowStep"><span>1</span><div><b>Kundenmail einfügen</b><small>Später kommt sie automatisch aus Gmail / Outlook.</small></div></div>
+    <div class="row"><div class="field"><label>Absender E-Mail</label><input id="emailAssistSender" class="input" type="email" placeholder="kunde@email.de"></div><div class="field"><label>Name (optional)</label><input id="emailAssistSenderName" class="input" placeholder="Max Mustermann"></div></div>
+    <div class="field"><label>Betreff</label><input id="emailAssistSubject" class="input" placeholder="z. B. Angebot AP-2026-0004"></div>
+    <div class="field"><label>Nachricht</label><textarea id="emailAssistBody" class="cleanTextarea emailAssistBody" placeholder="Kundenmail hier einfügen …"></textarea></div>
+    <div class="field"><label>Angebot manuell zuordnen <span class="mini">optional</span></label><select id="emailAssistOfferHint"><option value="">Automatisch zuordnen</option></select><small>Nur verwenden, wenn die automatische Zuordnung nicht eindeutig ist.</small></div>
+    <div class="actions"><button class="btn" type="button" onclick="EmailAssistant.clearForm()">Leeren</button><button class="btn primary" id="emailAssistAnalyze" type="button" onclick="EmailAssistant.analyze()">Nachricht prüfen</button></div>
+  </div>
+  <div class="card emailAssistResult hidden" id="emailAssistResult">
+    <div class="flowStep"><span>2</span><div><b>Prüfergebnis</b><small>Regelbasiertes MVP – immer vor Aktion kontrollieren.</small></div></div>
+    <div class="emailAssistIntent" id="emailAssistIntent"></div>
+    <div class="emailAssistMatches" id="emailAssistMatches"></div>
+    <div class="calendarBlockHint hidden" id="emailAssistSchedule"></div>
+    <div class="field"><label>Antwortvorschlag</label><textarea id="emailAssistReply" class="cleanTextarea emailAssistReply"></textarea><small id="emailAssistSafety">Nichts wird automatisch versendet.</small></div>
+    <div class="actions"><button class="btn" type="button" onclick="EmailAssistant.copyReply()">📋 Antwort kopieren</button><button class="btn primary" id="emailAssistPrimaryAction" type="button" onclick="EmailAssistant.prepare()" hidden></button></div>
+  </div>
+  <div class="card emailConnectionLater">
+    <div><span class="securityBadge">NÄCHSTER AUSBAU</span><h3>📨 Postfach verbinden</h3><p class="mini">Wenn dieser Ablauf zuverlässig ist, verbinden wir Gmail / Outlook sicher per OAuth. Erst danach kommt eine echte KI-Klassifikation dazu.</p></div><span class="countPill">noch aus</span>
+  </div>
+  <div class="sectionTitle"><h2>Geprüfte Nachrichten</h2><span>Cloud-Verlauf</span></div>
+  <div id="emailAssistHistory" class="list"><div class="empty">Verlauf wird geladen …</div></div>
+</section>
 
 <section class="screen" id="notifications">
   <div class="sectionTitle"><div><h2>Benachrichtigungen</h2><p class="mini" id="notificationMeta">Alles gelesen</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
@@ -434,6 +463,11 @@
             <option value="completed">Abgeschlossen</option>
           </select>
         </div>
+      </div>
+      <div class="field offerDurationField">
+        <label>Geschätzte Ausführungsdauer</label>
+        <div class="durationControl"><input type="number" min="0.25" step="1" class="input" id="offerDurationValue" value="1"><select id="offerDurationUnit" onchange="syncOfferDurationUI()"><option value="days">Tage</option><option value="hours">Stunden</option></select></div>
+        <small id="offerDurationHint">Wird später für Kalenderplanung und E-Mail-Sekretärin verwendet.</small>
       </div>
       <div class="field discountField">
         <div class="discountFieldHead"><label>Rabatt</label><span class="mini">Optional</span></div>
@@ -927,18 +961,19 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.7.1" defer></script>
-<script src="country-config.js?v=11.7.1" defer></script>
-<script src="data-repository.js?v=11.7.1" defer></script>
-<script src="script.js?v=11.7.1" defer></script>
-<script src="cloud-files.js?v=11.7.1" defer></script>
-<script src="cloud-sync.js?v=11.7.1" defer></script>
-<script src="team.js?v=11.7.1" defer></script>
-<script src="assignments.js?v=11.7.1" defer></script>
-<script src="time-tracking.js?v=11.7.1" defer></script>
-<script src="notifications.js?v=11.7.1" defer></script>
-<script src="custom-selects.js?v=11.7.1" defer></script>
-<script src="cloud-auth.js?v=11.7.1" defer></script>
+<script src="cloud-config.js?v=11.8" defer></script>
+<script src="country-config.js?v=11.8" defer></script>
+<script src="data-repository.js?v=11.8" defer></script>
+<script src="script.js?v=11.8" defer></script>
+<script src="cloud-files.js?v=11.8" defer></script>
+<script src="cloud-sync.js?v=11.8" defer></script>
+<script src="team.js?v=11.8" defer></script>
+<script src="assignments.js?v=11.8" defer></script>
+<script src="time-tracking.js?v=11.8" defer></script>
+<script src="notifications.js?v=11.8" defer></script>
+<script src="email-assistant.js?v=11.8" defer></script>
+<script src="custom-selects.js?v=11.8" defer></script>
+<script src="cloud-auth.js?v=11.8" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

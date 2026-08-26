@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.7.1 – alle normalen Auswahlfelder im einheitlichen AngebotsPilot-Bottom-Sheet statt nativer iPhone-Dropdowns.",
+  "description": "AngebotsPilot v11.8 – sichere E-Mail-Sekretärin MVP: Nachricht prüfen, Angebot zuordnen, freie Zeit finden und Auftrag erst nach Freigabe vorbereiten.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

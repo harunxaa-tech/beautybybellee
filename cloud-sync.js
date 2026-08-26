@@ -89,7 +89,7 @@
     await upsertRows('catalog_items',(d.catalog||[]).map(x=>({...base(x),trade:x.trade||d.settings?.trade||'garden',type:x.type||'service',name:x.name||'',unit:x.unit||'Stk.',price:n(x.price),purchase_price:n(x.purchasePrice),markup:n(x.markup)})));
   }
   async function syncOffers(d,custMap){
-    const rows=(d.offers||[]).map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,number:x.number||'',offer_date:x.date||new Date().toISOString().slice(0,10),status:x.status||'draft',subject:x.subject||'Angebot',notes:x.notes||'',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total)})).filter(x=>x.customer_id);
+    const rows=(d.offers||[]).map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,number:x.number||'',offer_date:x.date||new Date().toISOString().slice(0,10),status:x.status||'draft',subject:x.subject||'Angebot',notes:x.notes||'',duration_value:Math.max(x.durationUnit==='hours'?.25:1,Number(x.durationValue)||1),duration_unit:x.durationUnit==='hours'?'hours':'days',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total)})).filter(x=>x.customer_id);
     await upsertRows('offers',rows);
     const offerMap=await mapFor('offers');
     for(const offer of d.offers||[]){
@@ -311,7 +311,7 @@
     d.settings=s;
     d.customers=customers.map(x=>({id:x.local_id||x.id,name:x.name,contact:x.contact,address:x.address,phone:x.phone,email:x.email,notes:x.notes,createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.catalog=catalog.map(x=>({id:x.local_id||x.id,trade:x.trade,type:x.type,name:x.name,unit:x.unit,price:Number(x.price),purchasePrice:Number(x.purchase_price),markup:Number(x.markup),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
-    d.offers=offers.map(x=>({id:x.local_id||x.id,number:x.number,customerId:customerLocal.get(x.customer_id)||'',date:x.offer_date,status:x.status,subject:x.subject,notes:x.notes,discountType:x.discount_type,discountValue:Number(x.discount_value),tax:Number(x.tax_rate),subtotal:Number(x.subtotal),total:Number(x.total),travel:0,lines:(linesByOffer.get(x.id)||[]).map(l=>({id:l.local_id||l.id,name:l.name,qty:Number(l.qty),unit:l.unit,price:Number(l.price),type:l.type,workers:l.workers||undefined,hoursPerWorker:l.hours_per_worker?Number(l.hours_per_worker):undefined})),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
+    d.offers=offers.map(x=>({id:x.local_id||x.id,number:x.number,customerId:customerLocal.get(x.customer_id)||'',date:x.offer_date,status:x.status,subject:x.subject,notes:x.notes,durationValue:Number(x.duration_value)||1,durationUnit:x.duration_unit==='hours'?'hours':'days',discountType:x.discount_type,discountValue:Number(x.discount_value),tax:Number(x.tax_rate),subtotal:Number(x.subtotal),total:Number(x.total),travel:0,lines:(linesByOffer.get(x.id)||[]).map(l=>({id:l.local_id||l.id,name:l.name,qty:Number(l.qty),unit:l.unit,price:Number(l.price),type:l.type,workers:l.workers||undefined,hoursPerWorker:l.hours_per_worker?Number(l.hours_per_worker):undefined})),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.jobs=jobs.map(x=>{
       const localId=x.local_id||x.id;
       const assignedUserIds=assignmentByJob.get(x.id)||[];
