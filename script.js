@@ -827,7 +827,10 @@ async function openCustomerStoredFile(id){
     }catch(e){}
     const a=document.createElement('a');a.href=url;a.download=rec.name;a.target='_blank';a.click();
   };
-  document.getElementById('fileViewerDeleteBtn').onclick=()=>removeCustomerStoredFile(id);
+  const deleteBtn=document.getElementById('fileViewerDeleteBtn');
+  deleteBtn.onclick=()=>removeCustomerStoredFile(id);
+  deleteBtn.hidden=rec.kind==='acceptance';
+  deleteBtn.classList.toggle('hidden',rec.kind==='acceptance');
   document.getElementById('customerFileViewer').classList.remove('hidden');
   applyRoleUI();
 }
@@ -862,7 +865,7 @@ async function renderCustomerFolder(){
   const jobs=data.jobs.filter(j=>j.customerId===c.id),offers=data.offers.filter(o=>o.customerId===c.id),invoices=data.invoices.filter(i=>i.customerId===c.id);
   const jobPhotos=jobs.flatMap(j=>(j.photos||[]).map(p=>({...p,jobTitle:j.title,jobId:j.id})));
   let storedFiles=[];try{storedFiles=await listCustomerFiles(c.id)}catch(e){}
-  const storedPhotos=storedFiles.filter(f=>f.kind==='photo'),storedDocs=storedFiles.filter(f=>f.kind==='document');
+  const storedPhotos=storedFiles.filter(f=>f.kind==='photo'),storedDocs=storedFiles.filter(f=>f.kind==='document'||f.kind==='acceptance');
 
   if(currentCustomerFolderTab==='sites'){
     box.innerHTML=`<div class="folderSectionHead"><div><h3>🏗️ Baustellen</h3><p>${jobs.length} Projekt${jobs.length===1?'':'e'} für diesen Kunden</p></div><button class="btn primary small owner-office-only" onclick="newJobForCustomer('${c.id}')">＋ Baustelle</button></div>${jobs.length?jobs.map(j=>`<button class="folderRow" onclick="editJob('${j.id}')"><span class="folderRowIcon">🏗️</span><span><b>${escapeHTML(j.title)}</b><small>${statusLabel(j.status)} · ${dateDE(j.start)} · ${(j.photos||[]).length} Fotos</small></span><strong>›</strong></button>`).join(''):'<div class="empty">Noch keine Baustelle angelegt.</div>'}`;
@@ -1273,6 +1276,8 @@ function saveJob(){
     assignedNames:assignmentState.names
   };
   if(!obj.title)return toast('Name fehlt');
+  if(obj.status==='done'&&!old){document.getElementById('jobStatus').value='active';globalThis.APCustomSelect?.sync?.();return toast('Baustelle zuerst speichern, danach vor Ort abschließen.');}
+  if(obj.status==='done'&&old?.status!=='done'&&globalThis.Acceptance?.shouldIntercept?.(obj,old)){globalThis.Acceptance.begin(obj,old);return;}
   const previousAssignees=new Set(old?.assignedUserIds||[]);
   const newlyAssigned=worker?[]:(obj.assignedUserIds||[]).filter(uid=>!previousAssignees.has(uid));
 

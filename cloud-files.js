@@ -35,7 +35,7 @@
     if(error)throw error;return data;
   }
   async function uploadBlob({blob,fileName,kind='photo',cloudCustomerId,cloudJobId=null}){
-    const branch=cloudJobId?`jobs/${cloudJobId}`:`customers/${cloudCustomerId}/${kind}`;
+    const branch=cloudJobId?(kind==='acceptance'?`jobs/${cloudJobId}/acceptance`:`jobs/${cloudJobId}`):`customers/${cloudCustomerId}/${kind}`;
     const path=`${company.id}/${branch}/${uuid()}-${safeName(fileName)}`;
     const {error:upErr}=await client.storage.from(BUCKET).upload(path,blob,{contentType:blob.type||'application/octet-stream',upsert:false,cacheControl:'3600'});
     if(upErr)throw upErr;
@@ -124,7 +124,7 @@
   async function listCustomerFiles(localCustomerId){
     if(!ready())return [];
     const cc=await cloudCustomer(localCustomerId);if(!cc)return [];
-    const {data,error}=await client.from('customer_files').select('*').eq('company_id',company.id).eq('customer_id',cc.id).is('job_id',null).order('created_at',{ascending:false});
+    const {data,error}=await client.from('customer_files').select('*').eq('company_id',company.id).eq('customer_id',cc.id).or('job_id.is.null,kind.eq.acceptance').order('created_at',{ascending:false});
     if(error)throw error;return signRows(data||[]);
   }
   async function uploadCustomerFiles(localCustomerId,files,kind='document'){
@@ -137,6 +137,12 @@
       out.push(await uploadBlob({blob,fileName:f.name||blob.name||'Datei',kind,cloudCustomerId:cc.id}));
     }
     return out;
+  }
+  async function uploadJobFile(localJobId,blob,fileName='Datei.pdf',kind='document'){
+    if(!ready())throw new Error('Cloud ist nicht verbunden');
+    if(!(blob instanceof Blob))throw new Error('Ungültige Datei');
+    const cj=await waitForCloudJob(localJobId);if(!cj)throw new Error('Baustelle ist noch nicht in der Cloud. Bitte kurz synchronisieren.');
+    return uploadBlob({blob,fileName,kind,cloudCustomerId:cj.customer_id,cloudJobId:cj.id});
   }
   async function getCustomerFile(id){
     const cached=cache.get(String(id));
@@ -164,5 +170,5 @@
   function detach(){client=session=company=membership=null;cache.clear()}
   function state(){return{ready:ready(),companyId:company?.id||'',role:membership?.role||'',userId:session?.user?.id||''}}
   function canDelete(photo){if(!photo?.cloud)return true;return ['owner','office'].includes(membership?.role||'')||photo.createdBy===session?.user?.id}
-  globalThis.CloudFiles={attach,detach,state,ready,canDelete,refresh,refreshJob,uploadPendingForJob,listCustomerFiles,uploadCustomerFiles,getCustomerFile,deleteCloudFile,deleteJobPhoto};
+  globalThis.CloudFiles={attach,detach,state,ready,canDelete,refresh,refreshJob,uploadPendingForJob,uploadJobFile,listCustomerFiles,uploadCustomerFiles,getCustomerFile,deleteCloudFile,deleteJobPhoto};
 })();

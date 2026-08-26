@@ -17,7 +17,7 @@
   function isStandalone(){return window.matchMedia?.('(display-mode: standalone)')?.matches||window.navigator.standalone===true}
   function isIos(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}
   function fmtDateTime(v){try{return new Date(v).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return''}}
-  function iconFor(type){return({assignment:'🏗️',time_start:'▶️',time_stop:'⏱️',offer_accepted:'✅',reminder_job:'📅',reminder_event:'🗓️',invoice_overdue:'🧾'})[type]||'🔔'}
+  function iconFor(type){return({assignment:'🏗️',time_start:'▶️',time_stop:'⏱️',offer_accepted:'✅',reminder_job:'📅',reminder_event:'🗓️',invoice_overdue:'🧾',acceptance:'✍️'})[type]||'🔔'}
   function relative(v){const d=Date.now()-new Date(v).getTime();if(d<60000)return'gerade eben';if(d<3600000)return`${Math.floor(d/60000)} Min.`;if(d<86400000)return`${Math.floor(d/3600000)} Std.`;return fmtDateTime(v)}
 
   async function attach(c,s,co,m){

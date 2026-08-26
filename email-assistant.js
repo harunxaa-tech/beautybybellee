@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.8 – E-Mail-Sekretärin MVP
+/* AngebotsPilot v11.9 – E-Mail-Sekretärin MVP
    Sicherer Testmodus ohne automatischen Mailversand und ohne kostenpflichtige KI-API.
    Klassifikation ist regelbasiert. Aktionen werden erst nach ausdrücklicher Bestätigung ausgeführt. */
 (function(){
@@ -26,12 +26,44 @@
 
   function classify(subject,body){
     const t=normalize(`${subject} ${body}`);
-    const declined=[/nicht annehmen/,/nicht beauftragen/,/kein interesse/,/zu teuer/,/anderweitig entschieden/,/lehnen .* ab/,/lehne .* ab/,/absagen/,/abgelehnt/,/möchten wir nicht/,/moechten wir nicht/];
-    const accepted=[/angebot .* annehmen/,/nehmen .* angebot .* an/,/hiermit .* beauftrag/,/auftrag .* erteilen/,/erteilen .* auftrag/,/akzeptier/,/einverstanden/,/passt für uns/,/passt fuer uns/,/machen sie das/,/können sie loslegen/,/koennen sie loslegen/,/zugesagt/,/angenommen/];
+
+    // Negationen haben immer Vorrang vor positiven Treffern.
+    // So darf z. B. "wir nehmen das Angebot nicht an" nie als Zusage gelten.
+    const declined=[
+      /nicht\s+(?:annehmen|annehmen\s+wollen|beauftragen|akzeptieren)/,
+      /(?:angebot|auftrag).{0,70}nicht.{0,35}(?:annehmen|an|beauftragen|akzeptieren)/,
+      /(?:nehme|nehmen).{0,45}(?:angebot|auftrag).{0,35}nicht.{0,20}an/,
+      /kein interesse/,/zu teuer/,/anderweitig entschieden/,
+      /lehnen .{0,80} ab/,/lehne .{0,80} ab/,/absagen/,/abgelehnt/,
+      /möchten wir nicht/,/moechten wir nicht/,/kommt für uns nicht infrage/,/kommt fuer uns nicht infrage/
+    ];
+
+    // Starke Zusageformulierungen. Begrenzte Abstände verhindern zu breite Zufallstreffer.
+    const acceptedStrong=[
+      /hiermit.{0,30}(?:bestätige|bestaetige|bestätigen|bestaetigen).{0,60}(?:angebot|auftrag)/,
+      /(?:ich|wir).{0,20}(?:bestätige|bestaetige|bestätigen|bestaetigen).{0,60}(?:angebot|auftrag)/,
+      /(?:ich|wir).{0,25}(?:nehme|nehmen).{0,45}(?:angebot|auftrag).{0,30}an/,
+      /(?:angebot|auftrag).{0,90}(?:nehme|nehmen).{0,35}(?:es|dies|das|ihn|diesen)?\s*an/,
+      /(?:ich|wir).{0,25}(?:beauftrage|beauftragen).{0,70}(?:sie|ihnen|den auftrag|die arbeiten)/,
+      /(?:ich|wir).{0,30}(?:möchte|möchten|moechte|moechten).{0,45}(?:sie|ihnen).{0,45}beauftragen/,
+      /(?:ich|wir).{0,30}beauftragen.{0,45}(?:sie|ihnen)/,
+      /hiermit.{0,40}(?:beauftrage|beauftragen|erteile|erteilen).{0,70}(?:auftrag|arbeiten|sie)/,
+      /(?:auftrag|beauftragung).{0,35}(?:erteilt|bestätigt|bestaetigt)/,
+      /(?:angebot|auftrag).{0,35}(?:akzeptiert|angenommen)/
+    ];
+
+    const accepted=[
+      /angebot.{0,70}annehmen/,
+      /nehmen.{0,50}angebot.{0,30}an/,
+      /akzeptier/,/einverstanden/,/passt für uns/,/passt fuer uns/,
+      /machen sie das/,/können sie loslegen/,/koennen sie loslegen/,/zugesagt/,/angenommen/
+    ];
     const appointment=[/termin/,/wann können/,/wann koennen/,/wann wäre/,/wann waere/,/start/,/beginn/,/ab wann/,/vorbeikommen/,/besichtigung/,/welcher tag/,/zeitlich/];
     const question=[/\?/,/frage/,/können sie/,/koennen sie/,/wie /,/was /,/warum /,/bitte um rückmeldung/,/bitte um rueckmeldung/];
-    if(declined.some(r=>r.test(t)))return{intent:'declined',base:.93};
-    if(accepted.some(r=>r.test(t)))return{intent:'accepted',base:.93};
+
+    if(declined.some(r=>r.test(t)))return{intent:'declined',base:.96};
+    if(acceptedStrong.some(r=>r.test(t)))return{intent:'accepted',base:.96};
+    if(accepted.some(r=>r.test(t)))return{intent:'accepted',base:.91};
     if(appointment.some(r=>r.test(t)))return{intent:'appointment',base:.82};
     if(question.some(r=>r.test(t)))return{intent:'question',base:.76};
     return{intent:'unknown',base:.45};

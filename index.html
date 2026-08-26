@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.8">
+<link rel="stylesheet" href="style.css?v=11.9">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -143,7 +143,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.8</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.9</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -445,30 +445,34 @@
     <button class="btn ghost addFirstPosition" onclick="openPositionPicker()">＋ Position hinzufügen</button>
   </div>
 
+  <div class="card compactOfferCard offerPlanningCard">
+    <div class="flowStep"><span>4</span><div><b>Planung</b><small>Datum, Status &amp; geschätzte Dauer</small></div></div>
+    <div class="row">
+      <div class="field simpleField">
+        <label>Datum</label>
+        <input type="date" class="input cleanInput" id="offerDate">
+      </div>
+      <div class="field simpleField">
+        <label>Status</label>
+        <select id="offerStatus">
+          <option value="draft">Entwurf</option>
+          <option value="sent">Versendet</option>
+          <option value="accepted">Angenommen</option>
+          <option value="declined">Abgelehnt</option>
+          <option value="completed">Abgeschlossen</option>
+        </select>
+      </div>
+    </div>
+    <div class="field offerDurationField simpleField">
+      <label>Geschätzte Ausführungsdauer</label>
+      <div class="durationControl"><input type="number" min="0.25" step="1" class="input" id="offerDurationValue" value="1"><select id="offerDurationUnit" onchange="syncOfferDurationUI()"><option value="days">Tage</option><option value="hours">Stunden</option></select></div>
+      <small id="offerDurationHint">Für Kalenderplanung und E-Mail-Sekretärin.</small>
+    </div>
+  </div>
+
   <details class="card moreDetails">
     <summary>Weitere Angaben</summary>
     <div class="detailsInner">
-      <div class="row">
-        <div class="field">
-          <label>Datum</label>
-          <input type="date" class="input cleanInput" id="offerDate">
-        </div>
-        <div class="field">
-          <label>Status</label>
-          <select id="offerStatus">
-            <option value="draft">Entwurf</option>
-            <option value="sent">Versendet</option>
-            <option value="accepted">Angenommen</option>
-            <option value="declined">Abgelehnt</option>
-            <option value="completed">Abgeschlossen</option>
-          </select>
-        </div>
-      </div>
-      <div class="field offerDurationField">
-        <label>Geschätzte Ausführungsdauer</label>
-        <div class="durationControl"><input type="number" min="0.25" step="1" class="input" id="offerDurationValue" value="1"><select id="offerDurationUnit" onchange="syncOfferDurationUI()"><option value="days">Tage</option><option value="hours">Stunden</option></select></div>
-        <small id="offerDurationHint">Wird später für Kalenderplanung und E-Mail-Sekretärin verwendet.</small>
-      </div>
       <div class="field discountField">
         <div class="discountFieldHead"><label>Rabatt</label><span class="mini">Optional</span></div>
         <input type="hidden" id="offerDiscountType" value="euro">
@@ -959,21 +963,57 @@
     <div class="tourActions"><button id="tourBack" class="btn" onclick="previousTourStep()">← Zurück</button><button id="tourNext" class="btn primary" onclick="nextTourStep()">Weiter →</button></div>
   </div>
 </div>
+<div id="acceptanceBackdrop" class="acceptanceBackdrop hidden">
+  <div class="acceptanceSheet">
+    <div class="acceptanceTopbar"><div><span class="securityBadge">✅ VOR-ORT-ABNAHME</span><h2>Auftrag abschließen</h2><p>Kunde prüft und unterschreibt direkt auf diesem Gerät.</p></div><button type="button" class="btn small" onclick="cancelAcceptance()">Abbrechen</button></div>
+    <div class="acceptanceSummary">
+      <div><small>Baustelle</small><b id="acceptanceJobTitle">–</b></div>
+      <div><small>Kunde</small><b id="acceptanceCustomer">–</b></div>
+      <div class="wide"><small>Adresse</small><b id="acceptanceAddress">–</b></div>
+      <div class="wide"><small>Angebot</small><b id="acceptanceOffer">–</b></div>
+    </div>
+    <div class="acceptanceSection">
+      <div class="acceptanceSectionHead"><span>1</span><div><h3>Leistungen prüfen</h3><p>Diese Angaben werden unveränderbar im Protokoll festgehalten.</p></div></div>
+      <div id="acceptanceServices" class="acceptanceServices"></div>
+      <div class="acceptanceEvidence"><span>📸</span><div><b id="acceptancePhotoCount">0 Baustellenfotos dokumentiert</b><small>Vorhandene Baustellendokumentation bleibt in der Akte.</small></div></div>
+    </div>
+    <div class="acceptanceSection">
+      <div class="acceptanceSectionHead"><span>2</span><div><h3>Abnahmestatus</h3><p>Gemeinsam mit dem Kunden auswählen.</p></div></div>
+      <input type="hidden" id="acceptanceStatus" value="accepted_clean">
+      <div class="acceptanceStatusGrid">
+        <button type="button" class="acceptanceStatusChoice active" data-acceptance-status="accepted_clean" onclick="setAcceptanceStatus('accepted_clean')"><span>✓</span><b>Ohne erkennbare Mängel</b><small>Leistungen werden ohne dokumentierten Vorbehalt abgenommen.</small></button>
+        <button type="button" class="acceptanceStatusChoice" data-acceptance-status="accepted_with_reservations" onclick="setAcceptanceStatus('accepted_with_reservations')"><span>⚠️</span><b>Mit Mängeln / Restarbeiten</b><small>Abnahme mit den unten ausdrücklich dokumentierten Punkten.</small></button>
+      </div>
+      <div class="field hidden" id="acceptanceDefectsWrap"><label>Mängel / Restarbeiten *</label><textarea id="acceptanceDefects" placeholder="z. B. Randstein an Position 3 nacharbeiten …"></textarea></div>
+      <div class="field"><label>Weitere Bemerkungen <span class="mini">optional</span></label><textarea id="acceptanceNotes" placeholder="Nur wenn noch etwas zusätzlich festgehalten werden soll."></textarea></div>
+    </div>
+    <div class="acceptanceSection">
+      <div class="acceptanceSectionHead"><span>3</span><div><h3>Kunde unterschreibt</h3><p>Mit dem Finger direkt im Feld unterschreiben.</p></div></div>
+      <div class="field"><label>Name der unterschreibenden Person</label><input class="input" id="acceptanceCustomerName" autocomplete="name" placeholder="Vor- und Nachname"></div>
+      <div class="acceptanceDeclaration">Die oben beschriebenen Leistungen wurden gemeinsam besichtigt. Mit der Unterschrift wird der ausgewählte Abnahmestatus einschließlich dokumentierter Vorbehalte bzw. Mängel bestätigt. Gesetzliche Rechte bleiben unberührt.</div>
+      <div class="signatureBox"><canvas id="acceptanceSignature"></canvas><span>Hier unterschreiben</span></div>
+      <div class="acceptanceSignatureActions"><button type="button" class="btn small" onclick="clearAcceptanceSignature()">↺ Unterschrift löschen</button><small>Zeitpunkt: <b id="acceptanceTimestamp">–</b></small></div>
+    </div>
+    <div class="acceptanceLockNote"><span>🔒</span><div><b>Nach Abschluss gesperrt</b><small>Abnahme, Unterschrift und PDF werden mit Zeitpunkt und SHA-256-Prüfsummen in der Cloud dokumentiert.</small></div></div>
+    <button type="button" class="btn primary acceptanceFinalize" id="acceptanceFinalize" onclick="finalizeAcceptance()">✓ Unterschreiben & Auftrag abschließen</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.8" defer></script>
-<script src="country-config.js?v=11.8" defer></script>
-<script src="data-repository.js?v=11.8" defer></script>
-<script src="script.js?v=11.8" defer></script>
-<script src="cloud-files.js?v=11.8" defer></script>
-<script src="cloud-sync.js?v=11.8" defer></script>
-<script src="team.js?v=11.8" defer></script>
-<script src="assignments.js?v=11.8" defer></script>
-<script src="time-tracking.js?v=11.8" defer></script>
-<script src="notifications.js?v=11.8" defer></script>
-<script src="email-assistant.js?v=11.8" defer></script>
-<script src="custom-selects.js?v=11.8" defer></script>
-<script src="cloud-auth.js?v=11.8" defer></script>
+<script src="cloud-config.js?v=11.9" defer></script>
+<script src="country-config.js?v=11.9" defer></script>
+<script src="data-repository.js?v=11.9" defer></script>
+<script src="script.js?v=11.9" defer></script>
+<script src="cloud-files.js?v=11.9" defer></script>
+<script src="cloud-sync.js?v=11.9" defer></script>
+<script src="team.js?v=11.9" defer></script>
+<script src="assignments.js?v=11.9" defer></script>
+<script src="time-tracking.js?v=11.9" defer></script>
+<script src="notifications.js?v=11.9" defer></script>
+<script src="email-assistant.js?v=11.9" defer></script>
+<script src="acceptance.js?v=11.9" defer></script>
+<script src="custom-selects.js?v=11.9" defer></script>
+<script src="cloud-auth.js?v=11.9" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
