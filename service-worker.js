@@ -1,9 +1,9 @@
-const CACHE='digitaler-handwerker-v11-6';
+const CACHE='angebotspilot-v11-6-1';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.6','./cloud-config.js?v=11.6',
-  './data-repository.js?v=11.6','./script.js?v=11.6','./cloud-files.js?v=11.6','./cloud-sync.js?v=11.6',
-  './team.js?v=11.6','./assignments.js?v=11.6','./time-tracking.js?v=11.6','./notifications.js?v=11.6',
-  './cloud-auth.js?v=11.6','./manifest.json','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.6.1','./cloud-config.js?v=11.6.1',
+  './data-repository.js?v=11.6.1','./script.js?v=11.6.1','./cloud-files.js?v=11.6.1','./cloud-sync.js?v=11.6.1',
+  './team.js?v=11.6.1','./assignments.js?v=11.6.1','./time-tracking.js?v=11.6.1','./notifications.js?v=11.6.1',
+  './cloud-auth.js?v=11.6.1','./manifest.json','./icon-192.svg','./icon-512.svg'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

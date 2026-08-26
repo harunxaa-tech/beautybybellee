@@ -384,14 +384,21 @@
       requireEntry();
       Promise.resolve(globalThis.Notifications?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('Notifications attach failed',e));
 
-      Promise.resolve(
-        globalThis.CloudSync?.attach?.(
-          client,session,cloudCompany,cloudMembership
-        )
-      ).catch(syncError=>{
-        console.error('Cloud-Sync im Hintergrund fehlgeschlagen',syncError);
-        globalThis.toast?.('Cloud-Sync wird später erneut versucht');
-      });
+      const startCloudSync=async()=>{
+        try{
+          await globalThis.CloudSync?.attach?.(client,session,cloudCompany,cloudMembership);
+        }catch(firstError){
+          console.warn('Erster Cloud-Sync-Versuch fehlgeschlagen – Retry',firstError);
+          await new Promise(resolve=>setTimeout(resolve,1200));
+          try{
+            await globalThis.CloudSync?.attach?.(client,session,cloudCompany,cloudMembership);
+          }catch(secondError){
+            console.error('Cloud-Sync auch nach Wiederholung fehlgeschlagen',secondError);
+            globalThis.toast?.('Cloud-Sync derzeit nicht möglich · später erneut versuchen');
+          }
+        }
+      };
+      startCloudSync();
       return;
     }
 

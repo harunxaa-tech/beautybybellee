@@ -52,7 +52,8 @@
     const meta=q('notificationMeta');if(meta)meta.textContent=unreadCount()?`${unreadCount()} ungelesen`:'Alles gelesen';
   }
   function renderPermission(){
-    const status=q('pushPermissionStatus'),btn=q('pushEnableBtn'),hint=q('pushPermissionHint');if(!status||!btn)return;
+    const status=q('pushPermissionStatus'),btn=q('pushEnableBtn'),hint=q('pushPermissionHint'),disable=q('pushDisableBtn');if(!status||!btn)return;
+    if(disable)disable.hidden=true;
     if(!('Notification'in window)||!('serviceWorker'in navigator)||!('PushManager'in window)){
       status.textContent='Auf diesem Gerät nicht verfügbar';btn.hidden=true;if(hint)hint.textContent='In-App-Benachrichtigungen funktionieren trotzdem.';return;
     }
@@ -62,6 +63,7 @@
     const p=Notification.permission;
     status.textContent=p==='granted'?'Push ist aktiviert':p==='denied'?'Benachrichtigungen blockiert':'Push noch nicht aktiviert';
     btn.hidden=false;btn.textContent=p==='granted'?'Push aktualisieren':'Push aktivieren';btn.onclick=enablePush;
+    if(disable)disable.hidden=p!=='granted';
     if(hint)hint.textContent=p==='denied'?'Bitte Benachrichtigungen in den iPhone-/Browser-Einstellungen wieder erlauben.':'Neue Zuweisungen und wichtige Änderungen können direkt auf dem Gerät erscheinen.';
   }
 

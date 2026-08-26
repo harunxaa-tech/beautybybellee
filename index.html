@@ -8,8 +8,8 @@
 <meta name="description" content="Angebote, Rechnungen, Kunden, Baustellen, Kalender und Wetter für Handwerksbetriebe.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Handwerker">
-<link rel="stylesheet" href="style.css?v=11.6">
+<meta name="apple-mobile-web-app-title" content="AngebotsPilot">
+<link rel="stylesheet" href="style.css?v=11.6.1">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -142,7 +142,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.6</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.6.1</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -156,7 +156,7 @@
   <div class="card pushSetupCard">
     <div class="pushSetupTop"><span class="pushSetupIcon">🔔</span><div><span class="securityBadge">PUSH</span><h3>Direkt informiert bleiben</h3><p class="mini" id="pushPermissionHint">Neue Zuweisungen und wichtige Änderungen können direkt auf dem Gerät erscheinen.</p></div></div>
     <div class="pushStatusRow"><div><span>Status</span><strong id="pushPermissionStatus">Wird geprüft …</strong></div><button class="btn primary small" id="pushEnableBtn" onclick="Notifications.enablePush()">Push aktivieren</button></div>
-    <button class="btn ghost small" type="button" onclick="Notifications.disablePush()">Push auf diesem Gerät deaktivieren</button>
+    <button class="btn ghost small" type="button" id="pushDisableBtn" onclick="Notifications.disablePush()">Push auf diesem Gerät deaktivieren</button>
   </div>
   <div class="notificationActions"><button class="btn small" onclick="Notifications.markAllRead()">✓ Alles gelesen</button><button class="btn small danger" onclick="Notifications.clearAll()">🗑 Verlauf löschen</button></div>
   <div id="notificationList" class="notificationList"><div class="empty">Benachrichtigungen werden geladen …</div></div>
@@ -910,16 +910,16 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.6" defer></script>
-<script src="data-repository.js?v=11.6" defer></script>
-<script src="script.js?v=11.6" defer></script>
-<script src="cloud-files.js?v=11.6" defer></script>
-<script src="cloud-sync.js?v=11.6" defer></script>
-<script src="team.js?v=11.6" defer></script>
-<script src="assignments.js?v=11.6" defer></script>
-<script src="time-tracking.js?v=11.6" defer></script>
-<script src="notifications.js?v=11.6" defer></script>
-<script src="cloud-auth.js?v=11.6" defer></script>
+<script src="cloud-config.js?v=11.6.1" defer></script>
+<script src="data-repository.js?v=11.6.1" defer></script>
+<script src="script.js?v=11.6.1" defer></script>
+<script src="cloud-files.js?v=11.6.1" defer></script>
+<script src="cloud-sync.js?v=11.6.1" defer></script>
+<script src="team.js?v=11.6.1" defer></script>
+<script src="assignments.js?v=11.6.1" defer></script>
+<script src="time-tracking.js?v=11.6.1" defer></script>
+<script src="notifications.js?v=11.6.1" defer></script>
+<script src="cloud-auth.js?v=11.6.1" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
