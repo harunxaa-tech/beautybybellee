@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-7';
+const CACHE='angebotspilot-v11-7-1';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.7','./cloud-config.js?v=11.7',
-  './country-config.js?v=11.7','./data-repository.js?v=11.7','./script.js?v=11.7','./cloud-files.js?v=11.7','./cloud-sync.js?v=11.7',
-  './team.js?v=11.7','./assignments.js?v=11.7','./time-tracking.js?v=11.7','./notifications.js?v=11.7',
-  './cloud-auth.js?v=11.7','./manifest.json','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.7.1','./cloud-config.js?v=11.7.1',
+  './country-config.js?v=11.7.1','./data-repository.js?v=11.7.1','./script.js?v=11.7.1','./cloud-files.js?v=11.7.1','./cloud-sync.js?v=11.7.1',
+  './team.js?v=11.7.1','./assignments.js?v=11.7.1','./time-tracking.js?v=11.7.1','./notifications.js?v=11.7.1','./custom-selects.js?v=11.7.1',
+  './cloud-auth.js?v=11.7.1','./manifest.json','./icon-192.svg','./icon-512.svg'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

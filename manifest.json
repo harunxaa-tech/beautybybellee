@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.7 – Länder-/Steuergrundlage für Deutschland, Österreich und Schweiz sowie sichere Spracharchitektur.",
+  "description": "AngebotsPilot v11.7.1 – alle normalen Auswahlfelder im einheitlichen AngebotsPilot-Bottom-Sheet statt nativer iPhone-Dropdowns.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

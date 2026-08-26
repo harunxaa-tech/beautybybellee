@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.7">
+<link rel="stylesheet" href="style.css?v=11.7.1">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -142,7 +142,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.7</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.7.1</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -598,6 +598,16 @@
 <nav class="bottomNav"><button class="navBtn active" id="navToday" data-screen="today"><b>☀️</b>Heute</button><button class="navBtn" id="navOffers" data-screen="offers"><b>📄</b>Angebote</button><button class="navBtn" id="navPrimaryWork" data-screen="customers"><b>👥</b>Kunden</button><button class="navBtn" id="navCalendar" data-screen="calendar"><b>📅</b>Kalender</button><button class="navBtn" id="navMore" data-screen="more"><b>•••</b>Mehr</button></nav>
 
 
+
+<div id="appSelectModal" class="sheetBackdrop hidden">
+  <div class="bottomSheet appSelectSheet" onclick="event.stopPropagation()">
+    <div class="sheetHandle"></div>
+    <div class="sheetHeader"><div><div class="eyebrow">AUSWAHL</div><h2 id="appSelectTitle">Auswählen</h2></div><button type="button" id="appSelectClose" class="sheetClose">✕</button></div>
+    <div id="appSelectSearchWrap" class="pickerSearch hidden"><span>⌕</span><input id="appSelectSearch" placeholder="Auswahl durchsuchen …" autocomplete="off"></div>
+    <div id="appSelectList" class="appSelectList" role="listbox"></div>
+  </div>
+</div>
+
 <div id="customerPickerModal" class="sheetBackdrop hidden" onclick="closeCustomerPicker(event)">
   <div class="bottomSheet softPickerSheet" onclick="event.stopPropagation()">
     <div class="sheetHandle"></div>
@@ -917,17 +927,18 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.7" defer></script>
-<script src="country-config.js?v=11.7" defer></script>
-<script src="data-repository.js?v=11.7" defer></script>
-<script src="script.js?v=11.7" defer></script>
-<script src="cloud-files.js?v=11.7" defer></script>
-<script src="cloud-sync.js?v=11.7" defer></script>
-<script src="team.js?v=11.7" defer></script>
-<script src="assignments.js?v=11.7" defer></script>
-<script src="time-tracking.js?v=11.7" defer></script>
-<script src="notifications.js?v=11.7" defer></script>
-<script src="cloud-auth.js?v=11.7" defer></script>
+<script src="cloud-config.js?v=11.7.1" defer></script>
+<script src="country-config.js?v=11.7.1" defer></script>
+<script src="data-repository.js?v=11.7.1" defer></script>
+<script src="script.js?v=11.7.1" defer></script>
+<script src="cloud-files.js?v=11.7.1" defer></script>
+<script src="cloud-sync.js?v=11.7.1" defer></script>
+<script src="team.js?v=11.7.1" defer></script>
+<script src="assignments.js?v=11.7.1" defer></script>
+<script src="time-tracking.js?v=11.7.1" defer></script>
+<script src="notifications.js?v=11.7.1" defer></script>
+<script src="custom-selects.js?v=11.7.1" defer></script>
+<script src="cloud-auth.js?v=11.7.1" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
