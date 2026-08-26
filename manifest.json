@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.9 – Baustellenabschluss mit digitalem Abnahmeprotokoll und Kundenunterschrift.",
+  "description": "AngebotsPilot v11.9.1 – Baustellenabschluss mit digitalem Abnahmeprotokoll sowie Kunden- und Ausführendenunterschrift.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

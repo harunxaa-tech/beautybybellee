@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.9">
+<link rel="stylesheet" href="style.css?v=11.9.1">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -143,7 +143,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.9</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.9.1</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -965,7 +965,7 @@
 </div>
 <div id="acceptanceBackdrop" class="acceptanceBackdrop hidden">
   <div class="acceptanceSheet">
-    <div class="acceptanceTopbar"><div><span class="securityBadge">✅ VOR-ORT-ABNAHME</span><h2>Auftrag abschließen</h2><p>Kunde prüft und unterschreibt direkt auf diesem Gerät.</p></div><button type="button" class="btn small" onclick="cancelAcceptance()">Abbrechen</button></div>
+    <div class="acceptanceTopbar"><div><span class="securityBadge">✅ VOR-ORT-ABNAHME</span><h2>Auftrag abschließen</h2><p>Kunde prüft, danach unterschreibt auch die ausführende Person direkt auf diesem Gerät.</p></div><button type="button" class="btn small" onclick="cancelAcceptance()">Abbrechen</button></div>
     <div class="acceptanceSummary">
       <div><small>Baustelle</small><b id="acceptanceJobTitle">–</b></div>
       <div><small>Kunde</small><b id="acceptanceCustomer">–</b></div>
@@ -994,26 +994,36 @@
       <div class="signatureBox"><canvas id="acceptanceSignature"></canvas><span>Hier unterschreiben</span></div>
       <div class="acceptanceSignatureActions"><button type="button" class="btn small" onclick="clearAcceptanceSignature()">↺ Unterschrift löschen</button><small>Zeitpunkt: <b id="acceptanceTimestamp">–</b></small></div>
     </div>
-    <div class="acceptanceLockNote"><span>🔒</span><div><b>Nach Abschluss gesperrt</b><small>Abnahme, Unterschrift und PDF werden mit Zeitpunkt und SHA-256-Prüfsummen in der Cloud dokumentiert.</small></div></div>
-    <button type="button" class="btn primary acceptanceFinalize" id="acceptanceFinalize" onclick="finalizeAcceptance()">✓ Unterschreiben & Auftrag abschließen</button>
+    <div class="acceptanceSection acceptanceOperatorSection">
+      <div class="acceptanceSectionHead"><span>4</span><div><h3 id="acceptanceOperatorHeading">Ausführende Person unterschreibt</h3><p id="acceptanceOperatorHint">Die betriebliche Seite bestätigt die dokumentierte Übergabe.</p></div></div>
+      <div class="acceptanceOperatorIdentity">
+        <div class="field"><label>Name</label><input class="input" id="acceptanceOperatorName" readonly aria-readonly="true"></div>
+        <div class="acceptanceRoleCard"><small>Angemeldete Rolle</small><b id="acceptanceOperatorRole">–</b></div>
+      </div>
+      <div class="acceptanceDeclaration">Mit dieser Unterschrift bestätigt die angemeldete Person, dass die oben dokumentierten Arbeiten, Hinweise und gegebenenfalls Restarbeiten dem Kunden so übergeben bzw. erläutert wurden.</div>
+      <div class="signatureBox"><canvas id="acceptanceOperatorSignature"></canvas><span>Hier als Betrieb / Ausführender unterschreiben</span></div>
+      <div class="acceptanceSignatureActions"><button type="button" class="btn small" onclick="clearAcceptanceOperatorSignature()">↺ Unterschrift löschen</button><small>Zeitpunkt: <b id="acceptanceOperatorTimestamp">–</b></small></div>
+    </div>
+    <div class="acceptanceLockNote"><span>🔒</span><div><b>Nach Abschluss gesperrt</b><small>Abnahmestatus, beide Unterschriften und PDF werden mit Zeitpunkt und SHA-256-Prüfsummen in der Cloud dokumentiert.</small></div></div>
+    <button type="button" class="btn primary acceptanceFinalize" id="acceptanceFinalize" onclick="finalizeAcceptance()">✓ Abnahme & Auftrag abschließen</button>
   </div>
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.9" defer></script>
-<script src="country-config.js?v=11.9" defer></script>
-<script src="data-repository.js?v=11.9" defer></script>
-<script src="script.js?v=11.9" defer></script>
-<script src="cloud-files.js?v=11.9" defer></script>
-<script src="cloud-sync.js?v=11.9" defer></script>
-<script src="team.js?v=11.9" defer></script>
-<script src="assignments.js?v=11.9" defer></script>
-<script src="time-tracking.js?v=11.9" defer></script>
-<script src="notifications.js?v=11.9" defer></script>
-<script src="email-assistant.js?v=11.9" defer></script>
-<script src="acceptance.js?v=11.9" defer></script>
-<script src="custom-selects.js?v=11.9" defer></script>
-<script src="cloud-auth.js?v=11.9" defer></script>
+<script src="cloud-config.js?v=11.9.1" defer></script>
+<script src="country-config.js?v=11.9.1" defer></script>
+<script src="data-repository.js?v=11.9.1" defer></script>
+<script src="script.js?v=11.9.1" defer></script>
+<script src="cloud-files.js?v=11.9.1" defer></script>
+<script src="cloud-sync.js?v=11.9.1" defer></script>
+<script src="team.js?v=11.9.1" defer></script>
+<script src="assignments.js?v=11.9.1" defer></script>
+<script src="time-tracking.js?v=11.9.1" defer></script>
+<script src="notifications.js?v=11.9.1" defer></script>
+<script src="email-assistant.js?v=11.9.1" defer></script>
+<script src="acceptance.js?v=11.9.1" defer></script>
+<script src="custom-selects.js?v=11.9.1" defer></script>
+<script src="cloud-auth.js?v=11.9.1" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
