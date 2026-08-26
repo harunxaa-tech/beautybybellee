@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.6.1 – stabilere Cloud-Synchronisierung und bereinigte Push-Anzeige.",
+  "description": "AngebotsPilot v11.7 – Länder-/Steuergrundlage für Deutschland, Österreich und Schweiz sowie sichere Spracharchitektur.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

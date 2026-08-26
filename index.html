@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.6.1">
+<link rel="stylesheet" href="style.css?v=11.7">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -142,7 +142,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.6.1</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.7</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -335,9 +335,14 @@
 
 <section class="screen" id="tasks"><div class="sectionTitle"><h2>Aufgaben</h2><button class="btn primary small owner-office-only" onclick="newTask()">＋ Neu</button></div><div class="tabs" id="taskTabs"><button class="tab active" data-filter="open">Offen</button><button class="tab" data-filter="done">Erledigt</button><button class="tab" data-filter="all">Alle</button></div><div id="taskList" class="list" style="margin-top:10px"></div></section>
 <section class="screen" id="catalog"><div class="sectionTitle"><div><h2>Material & Leistungen</h2><p class="mini">Dein Betriebskatalog</p></div><button class="btn primary small" onclick="addCatalogItem()">＋ Position</button></div><div class="notice">Standardpositionen sind Startvorlagen. Preise und fachliche Eignung bitte selbst prüfen.</div><div class="card catalogTools"><input id="catalogSearch" class="input" placeholder="🔎 Material oder Leistung suchen …" oninput="renderCatalog()"><div class="filterPills"><button class="pill active" data-catfilter="all" onclick="setCatalogFilter('all',this)">Alle</button><button class="pill" data-catfilter="material" onclick="setCatalogFilter('material',this)">Material</button><button class="pill" data-catfilter="service" onclick="setCatalogFilter('service',this)">Leistungen</button></div></div><div id="catalogList" class="list" style="margin-top:12px"></div></section>
-<section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Cloud synchronisiert</span></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="row"><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div><div class="field"><label>Steuer</label><select id="taxMode"><option value="0">Kleinunternehmer §19</option><option value="19">19 % MwSt.</option><option value="7">7 % MwSt.</option></select></div></div><div class="field"><label>Zahlungsziel</label><input class="input" id="paymentTerm" placeholder="z. B. 7 Tage"></div>
+<section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Cloud synchronisiert</span></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div>
+<div class="sectionTitle" style="margin-top:18px"><h3>Land & Steuern</h3><span id="countryCurrencyBadge">EUR</span></div>
+<div class="row"><div class="field"><label>Land des Betriebs</label><select id="companyCountry" onchange="onCompanyCountryChange()"><option value="DE">🇩🇪 Deutschland</option><option value="AT">🇦🇹 Österreich</option><option value="CH">🇨🇭 Schweiz</option></select></div><div class="field"><label>App-Sprache</label><select id="appLanguage"><option value="de">Deutsch</option></select><small>Weitere Sprachen werden erst nach geprüfter Übersetzung freigeschaltet.</small></div></div>
+<div class="row"><div class="field"><label>Steuerbehandlung</label><select id="taxTreatment" onchange="onCompanyTaxTreatmentChange()"></select><small>Die App prüft keine steuerliche Berechtigung automatisch.</small></div><div class="field"><label id="taxRateLabel">Steuersatz</label><select id="taxMode"></select></div></div>
+<div class="field"><label>Steuerhinweis auf Rechnungen</label><input class="input" id="taxNote" placeholder="wird bei Sonderfällen automatisch vorgeschlagen"><small id="taxProfileHint">Land und Steuerbehandlung festlegen.</small></div>
+<div class="field"><label>Zahlungsziel</label><input class="input" id="paymentTerm" placeholder="z. B. 7 Tage"></div>
 <div class="sectionTitle" style="margin-top:18px"><h3>Rechnungsangaben</h3></div>
-<div class="row"><div class="field"><label>Steuernummer</label><input class="input" id="taxNumber" placeholder="optional"></div><div class="field"><label>USt-IdNr.</label><input class="input" id="vatId" placeholder="optional"></div></div>
+<div class="row"><div class="field"><label>Steuernummer</label><input class="input" id="taxNumber" placeholder="optional"></div><div class="field"><label>USt-/UID-/MWST-Nr.</label><input class="input" id="vatId" placeholder="optional"></div></div>
 <div class="field"><label>IBAN</label><input class="input" id="iban" placeholder="DE00 …"></div>
 <div class="field"><label>Bank</label><input class="input" id="bankName" placeholder="z. B. Musterbank"></div>
 <button class="btn primary" style="width:100%" onclick="saveSettings()">Speichern</button></div><div class="card"><h3 style="margin-top:0">Datensicherung</h3><div class="actions"><button class="btn" onclick="exportBackup()">Backup exportieren</button><label class="btn" style="display:flex;align-items:center;justify-content:center">Backup importieren<input type="file" accept="application/json" style="display:none" onchange="importBackup(event)"></label></div><button class="btn danger" style="width:100%;margin-top:10px" onclick="resetApp()">Alle Daten löschen</button></div></section>
@@ -435,7 +440,7 @@
         <input type="hidden" id="offerDiscountType" value="euro">
         <div class="discountControl">
           <div class="discountSegments">
-            <button type="button" class="active" data-discount-owner="offer" data-discount-type="euro" onclick="setDiscountType('offer','euro')">€</button>
+            <button type="button" class="active" data-discount-owner="offer" data-discount-type="euro" onclick="setDiscountType('offer','euro')"><span id="offerDiscountCurrencySymbol">€</span></button>
             <button type="button" data-discount-owner="offer" data-discount-type="percent" onclick="setDiscountType('offer','percent')">%</button>
           </div>
           <div class="discountInputWrap"><input type="number" class="input cleanInput" id="offerDiscount" value="0" min="0" step="0.01" inputmode="decimal"><span id="offerDiscountSuffix">€</span></div>
@@ -474,6 +479,8 @@
     </div>
     <div class="row"><div class="field"><label>Rechnungsdatum</label><input type="date" class="input" id="invoiceDate" data-invoice-editable></div><div class="field"><label>Fällig am</label><input type="date" class="input" id="invoiceDueDate" data-invoice-editable></div></div>
     <div class="field"><label>Status</label><select id="invoiceStatus" data-invoice-editable><option value="draft">Entwurf</option><option value="open">Offen / ausgestellt</option><option value="paid">Bezahlt</option><option value="cancelled">Storniert</option></select><small id="invoiceStatusHint">Entwürfe können frei bearbeitet werden. Beim Ausstellen wird die Rechnung gesperrt.</small></div>
+    <div class="row"><div class="field"><label>Steuerbehandlung</label><select id="invoiceTaxTreatment" data-invoice-editable onchange="onInvoiceTaxTreatmentChange()"></select></div><div class="field"><label id="invoiceTaxRateLabel">Steuersatz</label><select id="invoiceTaxRate" data-invoice-editable onchange="onInvoiceTaxRateChange()"></select></div></div>
+    <div class="field"><label>Steuerhinweis</label><input class="input" id="invoiceTaxNote" data-invoice-editable><small id="invoiceCountryHint">Wird mit der Rechnung gespeichert und nach dem Ausstellen nicht mehr verändert.</small></div>
     <div class="field"><label>Betreff</label><input class="input" id="invoiceSubject" placeholder="z. B. Gartenarbeiten" data-invoice-editable></div>
     <div class="field"><label>Hinweis / Notiz</label><textarea id="invoiceNotes" data-invoice-editable></textarea></div>
   </div>
@@ -484,7 +491,7 @@
       <input type="hidden" id="invoiceDiscountType" value="euro" data-invoice-editable>
       <div class="discountControl">
         <div class="discountSegments">
-          <button type="button" class="active" data-discount-owner="invoice" data-discount-type="euro" onclick="setDiscountType('invoice','euro')" data-invoice-editable>€</button>
+          <button type="button" class="active" data-discount-owner="invoice" data-discount-type="euro" onclick="setDiscountType('invoice','euro')" data-invoice-editable><span id="invoiceDiscountCurrencySymbol">€</span></button>
           <button type="button" data-discount-owner="invoice" data-discount-type="percent" onclick="setDiscountType('invoice','percent')" data-invoice-editable>%</button>
         </div>
         <div class="discountInputWrap"><input type="number" class="input" id="invoiceDiscount" value="0" min="0" step="0.01" inputmode="decimal" data-invoice-editable><span id="invoiceDiscountSuffix">€</span></div>
@@ -628,7 +635,7 @@
 <div id="quickEditModal" class="miniModalBackdrop hidden" onclick="closeQuickEdit(event)"><div class="miniModal" onclick="event.stopPropagation()">
   <div class="sheetHeader"><div><div class="eyebrow">NEUE POSITION</div><h3>Eigene Position</h3></div><button class="sheetClose" onclick="closeQuickEdit()">✕</button></div>
   <div class="field"><label>Bezeichnung</label><input id="customPosName" class="input" placeholder="z. B. Kranstellung"></div>
-  <div class="row"><div class="field"><label>Einheit</label><input id="customPosUnit" class="input" placeholder="Std., m², Stk. …"></div><div class="field"><label>Preis (€)</label><input id="customPosPrice" type="number" step="0.01" class="input" placeholder="0,00"></div></div>
+  <div class="row"><div class="field"><label>Einheit</label><input id="customPosUnit" class="input" placeholder="Std., m², Stk. …"></div><div class="field"><label>Preis</label><input id="customPosPrice" type="number" step="0.01" class="input" placeholder="0,00"></div></div>
   <button class="btn primary" style="width:100%" onclick="saveCustomPositionFromPicker()">Position hinzufügen</button>
 </div></div>
 
@@ -657,7 +664,7 @@
     <div class="field"><label>Bezeichnung</label><input id="catalogEditName" class="input modalInput" placeholder="z. B. Pflastersteine"></div>
     <div class="modalGrid">
       <div class="field"><label>Einheit</label><input id="catalogEditUnit" class="input modalInput" placeholder="m², Std., Stk. …"></div>
-      <div class="field"><label>Verkaufspreis (€)</label><input id="catalogEditPrice" type="number" step="0.01" class="input modalInput" placeholder="0,00"></div>
+      <div class="field"><label>Verkaufspreis</label><input id="catalogEditPrice" type="number" step="0.01" class="input modalInput" placeholder="0,00"></div>
     </div>
     <p class="modalHint">Du kannst den Preis auch später ergänzen oder jederzeit ändern.</p>
     <button class="btn primary modalPrimary" onclick="saveCatalogEditor()">Speichern</button>
@@ -910,16 +917,17 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.6.1" defer></script>
-<script src="data-repository.js?v=11.6.1" defer></script>
-<script src="script.js?v=11.6.1" defer></script>
-<script src="cloud-files.js?v=11.6.1" defer></script>
-<script src="cloud-sync.js?v=11.6.1" defer></script>
-<script src="team.js?v=11.6.1" defer></script>
-<script src="assignments.js?v=11.6.1" defer></script>
-<script src="time-tracking.js?v=11.6.1" defer></script>
-<script src="notifications.js?v=11.6.1" defer></script>
-<script src="cloud-auth.js?v=11.6.1" defer></script>
+<script src="cloud-config.js?v=11.7" defer></script>
+<script src="country-config.js?v=11.7" defer></script>
+<script src="data-repository.js?v=11.7" defer></script>
+<script src="script.js?v=11.7" defer></script>
+<script src="cloud-files.js?v=11.7" defer></script>
+<script src="cloud-sync.js?v=11.7" defer></script>
+<script src="team.js?v=11.7" defer></script>
+<script src="assignments.js?v=11.7" defer></script>
+<script src="time-tracking.js?v=11.7" defer></script>
+<script src="notifications.js?v=11.7" defer></script>
+<script src="cloud-auth.js?v=11.7" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
