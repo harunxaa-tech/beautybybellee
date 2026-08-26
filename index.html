@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Handwerker">
-<link rel="stylesheet" href="style.css?v=11.5">
+<link rel="stylesheet" href="style.css?v=11.6">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="brand"><small id="cloudModeLabel">DIGITALER HANDWERKER · LOKAL</small><h1>AngebotsPilot</h1></div><div class="topActions"><button class="iconBtn" id="themeBtn">◐</button><button class="iconBtn" onclick="showScreen('more')">⚙️</button></div></header>
+<header class="top"><div class="brand"><small id="cloudModeLabel">DIGITALER HANDWERKER · LOKAL</small><h1>AngebotsPilot</h1></div><div class="topActions"><button class="iconBtn notificationBell" onclick="openNotifications()" aria-label="Benachrichtigungen">🔔<span id="notificationBadge" class="notificationBadge hidden" hidden>0</span></button><button class="iconBtn" id="themeBtn">◐</button><button class="iconBtn" onclick="showScreen('more')">⚙️</button></div></header>
 
 <section class="screen active" id="today">
 <div class="card hero"><span class="pill"><span class="dot"></span><span id="todayDate"></span></span><h2>Guten Morgen, <span id="ownerGreeting">Handwerker</span>.</h2><p id="dailyMessage">Hier siehst du, was heute wichtig ist.</p></div>
@@ -130,7 +130,8 @@
 <div class="sectionTitle"><h2>Mehr</h2><span>Einstellungen & Werkzeuge</span></div>
 <div class="quickGrid">
 <button class="quick cloudQuick" onclick="openCloudAccount()"><span class="emoji">☁️</span><b>Konto & Cloud</b><small id="cloudQuickStatus">Noch nicht verbunden</small></button>
-<button class="quick owner-only" onclick="openTeam()"><span class="emoji">👥</span><b>Team</b><small>Mitarbeiter & Büro</small></button>
+<button class="quick" onclick="openNotifications()"><span class="emoji">🔔</span><b>Benachrichtigungen <span id="moreNotificationBadge" class="miniInlineBadge hidden" hidden>0</span></b><small>Push & wichtige Hinweise</small></button>
+<button class="quick owner-office-only" onclick="openTeam()"><span class="emoji">👥</span><b>Team & Zeiten</b><small>Mitarbeiter & Arbeitszeiten</small></button>
 <button class="quick" onclick="showScreen('jobs')"><span class="emoji">🏗️</span><b>Baustellen</b><small>Status, Wetter, Navigation</small></button>
 <button class="quick office-owner-only" onclick="showScreen('invoices')"><span class="emoji">🧾</span><b>Rechnungen</b><small>Automatisch nach Abschluss</small></button>
 <button class="quick" onclick="showScreen('weather')"><span class="emoji">🌦️</span><b>Wetter</b><small>7 Tage & Baustellenrisiko</small></button>
@@ -141,7 +142,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.5</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.6</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -149,6 +150,17 @@
 </section>
 
 
+
+<section class="screen" id="notifications">
+  <div class="sectionTitle"><div><h2>Benachrichtigungen</h2><p class="mini" id="notificationMeta">Alles gelesen</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
+  <div class="card pushSetupCard">
+    <div class="pushSetupTop"><span class="pushSetupIcon">🔔</span><div><span class="securityBadge">PUSH</span><h3>Direkt informiert bleiben</h3><p class="mini" id="pushPermissionHint">Neue Zuweisungen und wichtige Änderungen können direkt auf dem Gerät erscheinen.</p></div></div>
+    <div class="pushStatusRow"><div><span>Status</span><strong id="pushPermissionStatus">Wird geprüft …</strong></div><button class="btn primary small" id="pushEnableBtn" onclick="Notifications.enablePush()">Push aktivieren</button></div>
+    <button class="btn ghost small" type="button" onclick="Notifications.disablePush()">Push auf diesem Gerät deaktivieren</button>
+  </div>
+  <div class="notificationActions"><button class="btn small" onclick="Notifications.markAllRead()">✓ Alles gelesen</button><button class="btn small danger" onclick="Notifications.clearAll()">🗑 Verlauf löschen</button></div>
+  <div id="notificationList" class="notificationList"><div class="empty">Benachrichtigungen werden geladen …</div></div>
+</section>
 
 <section class="screen" id="team">
   <div class="sectionTitle">
@@ -200,9 +212,20 @@
   <div class="sectionTitle"><h2>Mitglieder</h2><span id="teamMembersMeta">–</span></div>
   <div id="teamMemberList" class="list"><div class="empty">Team wird geladen …</div></div>
 
+  <div id="teamTimeSection" class="owner-office-only">
+    <div class="sectionTitle"><h2>Arbeitszeiten</h2><span>Heute · diese Woche</span></div>
+    <div class="card teamTimeCard">
+      <div class="teamTimeHead"><div><span class="securityBadge">⏱ TEAMZEIT</span><h3>Erfasste Arbeitszeit</h3><p class="mini">Zeiten kommen direkt aus der Cloud-Zeiterfassung der Mitarbeiter.</p></div><button class="btn small" onclick="openTeam()">↻ Aktualisieren</button></div>
+      <div id="teamTimeTotals" class="teamTimeTotals"><div><span>Heute</span><strong>–</strong></div><div><span>Diese Woche</span><strong>–</strong></div></div>
+      <div id="teamTimeList" class="teamTimeList"><div class="empty">Arbeitszeiten werden geladen …</div></div>
+    </div>
+  </div>
+
   <div id="teamPendingSection" class="owner-only">
     <div class="sectionTitle"><h2>Offene Einladungen</h2><span>72 Stunden</span></div>
     <div id="teamInviteList" class="list"><div class="empty">Keine offenen Einladungen.</div></div>
+    <div class="sectionTitle teamHistoryTitle"><h2>Einladungsverlauf</h2><span>aufräumen</span></div>
+    <div id="teamInviteHistoryList" class="list"><div class="empty">Noch kein Verlauf.</div></div>
   </div>
 
   <div class="card teamRightsCard">
@@ -294,7 +317,7 @@
         <div><span>Rechnungen</span><strong id="cloudSyncInvoices">–</strong></div>
       </div>
       <button class="btn ghost cloudMainBtn" onclick="manualCloudSync()">↻ Jetzt synchronisieren</button>
-      <p class="mini" style="margin:9px 0 0">Fotos und hochgeladene Dokumente bleiben in v11.1 noch lokal. Der Cloud-Dateispeicher folgt als eigener Schritt.</p>
+      <p class="mini" style="margin:9px 0 0">Fotos und Dokumente werden ebenfalls sicher mit deinem Betrieb in der Cloud synchronisiert.</p>
     </div>
 
     <div class="card">
@@ -887,15 +910,16 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.5" defer></script>
-<script src="data-repository.js?v=11.5" defer></script>
-<script src="script.js?v=11.5" defer></script>
-<script src="cloud-files.js?v=11.5" defer></script>
-<script src="cloud-sync.js?v=11.5" defer></script>
-<script src="team.js?v=11.5" defer></script>
-<script src="assignments.js?v=11.5" defer></script>
-<script src="time-tracking.js?v=11.5" defer></script>
-<script src="cloud-auth.js?v=11.5" defer></script>
+<script src="cloud-config.js?v=11.6" defer></script>
+<script src="data-repository.js?v=11.6" defer></script>
+<script src="script.js?v=11.6" defer></script>
+<script src="cloud-files.js?v=11.6" defer></script>
+<script src="cloud-sync.js?v=11.6" defer></script>
+<script src="team.js?v=11.6" defer></script>
+<script src="assignments.js?v=11.6" defer></script>
+<script src="time-tracking.js?v=11.6" defer></script>
+<script src="notifications.js?v=11.6" defer></script>
+<script src="cloud-auth.js?v=11.6" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

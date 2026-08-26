@@ -207,6 +207,15 @@
         action==='resume'?'▶ Weiter geht’s':
         '✓ Arbeitszeit gespeichert'
       );
+      if(action==='start'||action==='stop'){
+        const st=cloud(),name=st.session?.user?.user_metadata?.full_name||st.session?.user?.email||'Mitarbeiter',job=currentJob();
+        const duration=action==='stop'&&data?` · ${hoursLabel(seconds(data))}`:'';
+        globalThis.Notifications?.notifyOwnerOffice?.(
+          action==='start'?`${name} hat Arbeitszeit gestartet`:`${name} hat Arbeitszeit beendet`,
+          `${job?.title||'Baustelle'}${duration}`,
+          {type:action==='start'?'time_start':'time_stop',tag:`time-${action}-${data?.id||Date.now()}`,url:'./?screen=team'}
+        ).catch(()=>{});
+      }
       await load();
       dashboardLoadedAt=0;
       refreshDashboard(true);

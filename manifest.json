@@ -1,7 +1,7 @@
 {
   "name": "Digitaler Handwerker – AngebotsPilot",
   "short_name": "Handwerker",
-  "description": "AngebotsPilot v11.5 – Baustellendauer mit Kalenderblockierung, private Cloud-Fotos/Dokumente, einheitliche Kundenauswahl und klarere Büro-Ansicht.",
+  "description": "AngebotsPilot v11.6 – In-App- und Push-Benachrichtigungen für Baustellen, Termine, Angebote, Rechnungen und Arbeitszeiten.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -310,6 +310,7 @@
 
     if(!session){
       globalThis.CloudSync?.detach?.();
+      globalThis.Notifications?.detach?.();
       renderAccount();
       requireEntry();
       return;
@@ -381,6 +382,7 @@
       // WICHTIG: Erst Zugang freigeben, dann Cloud-Sync im Hintergrund.
       renderAccount();
       requireEntry();
+      Promise.resolve(globalThis.Notifications?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('Notifications attach failed',e));
 
       Promise.resolve(
         globalThis.CloudSync?.attach?.(
@@ -661,6 +663,7 @@
 
       syncLocalIdentity();
       await globalThis.CloudSync?.attach?.(client,session,cloudCompany,cloudMembership);
+      await globalThis.Notifications?.attach?.(client,session,cloudCompany,cloudMembership);
       renderAccount();
       requireEntry();
     }catch(e){
@@ -698,6 +701,7 @@
     blockingInviteError='';
     inviteConflictInfo=null;
     globalThis.CloudSync?.detach?.();
+    globalThis.Notifications?.detach?.();
     showStep('entryChoice');
     updateInviteUI();
   };
@@ -753,6 +757,7 @@
     await client.auth.signOut();
     session=cloudCompany=cloudMembership=null;
     globalThis.CloudSync?.detach?.();
+    globalThis.Notifications?.detach?.();
     renderAccount();
     requireEntry();
   };

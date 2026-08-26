@@ -332,7 +332,8 @@
     setTimeout(()=>{
       const place=(d.settings?.weatherLocation||d.settings?.address||'').trim();
       if(place)globalThis.refreshWeather?.(false);
-    },250);
+      globalThis.Notifications?.runReminders?.().catch(()=>{});
+    },450);
     return d;
   }
   async function initialSync(){

@@ -186,9 +186,14 @@ async function setOfferStatusFromModal(status){
   const o=data.offers.find(x=>x.id===id);
   if(!o)return closeOfferStatusModal();
 
+  const previousStatus=o.status;
   o.status=status;
   closeOfferStatusModal();
   saveData('Angebotsstatus geändert',`${o.number||''} · ${statusLabel(status)}`);
+  if(status==='accepted'&&previousStatus!=='accepted'){
+    const c=data.customers.find(x=>x.id===o.customerId);
+    globalThis.Notifications?.notifyOwnerOffice?.('Angebot angenommen',`${c?.name||'Kunde'} · ${o.subject||o.number||'Angebot'}`,{type:'offer_accepted',tag:`offer-accepted-${o.id}`,dedupeHours:1,url:'./?screen=offers'}).catch(()=>{});
+  }
 
   if(status!=='completed'){
     toast('✓ Status geändert');
@@ -950,7 +955,12 @@ function persistOfferFromEditor({validate=true,audit=true}={}){
     if(!o.lines.some(l=>l.name)){toast('Position fehlt');return null}
   }
   const i=data.offers.findIndex(x=>x.id===o.id);
+  const previous=i>=0?data.offers[i]:null;
   if(i>=0)data.offers[i]=o;else data.offers.push(o);
+  if(o.status==='accepted'&&previous?.status!=='accepted'){
+    const c=data.customers.find(x=>x.id===o.customerId);
+    globalThis.Notifications?.notifyOwnerOffice?.('Angebot angenommen',`${c?.name||'Kunde'} · ${o.subject||o.number||'Angebot'}`,{type:'offer_accepted',tag:`offer-accepted-${o.id}`,dedupeHours:1,url:'./?screen=offers'}).catch(()=>{});
+  }
   upsertCalendarEventForOffer(o);
   persistAppState();
   if(audit)addAudit('Angebot gespeichert',`${o.number||''} · ${o.subject||''}`);
@@ -1248,6 +1258,8 @@ function saveJob(){
     assignedNames:assignmentState.names
   };
   if(!obj.title)return toast('Name fehlt');
+  const previousAssignees=new Set(old?.assignedUserIds||[]);
+  const newlyAssigned=worker?[]:(obj.assignedUserIds||[]).filter(uid=>!previousAssignees.has(uid));
 
   if(id)data.jobs[data.jobs.findIndex(x=>x.id===id)]=obj;else data.jobs.push(obj);
 
@@ -1263,6 +1275,10 @@ function saveJob(){
   }
 
   saveData(worker?'Baustellenfortschritt gespeichert':'Baustelle gespeichert',obj.title);
+  if(!worker&&newlyAssigned.length){
+    const c=data.customers.find(x=>x.id===obj.customerId);
+    setTimeout(()=>globalThis.Notifications?.notifyUsers?.(newlyAssigned,'Neue Baustelle zugewiesen',`${obj.title}${c?.name?' · '+c.name:''} · ${dateDE(obj.start)} ${obj.startTime||'08:00'} Uhr`,{type:'assignment',tag:`assignment-${obj.id}-${Date.now()}`,url:'./?screen=jobs',metadata:{screen:'jobs',job_local_id:obj.id}}).catch(()=>{}),1200);
+  }
   globalThis.CloudFiles?.uploadPendingForJob?.(obj.id).catch(e=>{console.error(e);globalThis.toast?.('Fotos lokal gespeichert · Cloud-Upload wird erneut versucht')});
 
   if(worker){
