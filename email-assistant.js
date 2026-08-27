@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.9 – E-Mail-Sekretärin MVP
+/* AngebotsPilot v11.10 – E-Mail-Sekretärin + echte Mailbox-Grundlage
    Sicherer Testmodus ohne automatischen Mailversand und ohne kostenpflichtige KI-API.
    Klassifikation ist regelbasiert. Aktionen werden erst nach ausdrücklicher Bestätigung ausgeführt. */
 (function(){
@@ -8,6 +8,7 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   let active=null;
   let items=[];
+  let sourceMailMessageId='';
 
   const intentMeta={
     accepted:{label:'Angebot angenommen',icon:'✅',tone:'accepted'},
@@ -178,7 +179,7 @@
     const requested=parseRequestedDate(combined);
     const slot=cls.intent==='accepted'&&offer?findFreeSlot(durationValue,durationUnit,requested):null;
     let confidence=cls.base+(customer?.id?.length?0.03:0)+(offer?.id?.length?0.04:0);confidence=Math.min(.99,confidence);
-    const a={senderEmail,senderName,subject,body,intent:cls.intent,confidence,customer,offer,durationValue,durationUnit,requestedDate:requested,slot};
+    const a={senderEmail,senderName,subject,body,intent:cls.intent,confidence,customer,offer,durationValue,durationUnit,requestedDate:requested,slot,sourceMailMessageId};
     a.reply=replyFor(a);return a;
   }
 
@@ -201,7 +202,7 @@
   async function persistAnalysis(a){
     const {client,company,session,membership}=cloud();
     if(!client||!company||!session||!['owner','office'].includes(membership?.role||''))return null;
-    const row={company_id:company.id,created_by:session.user.id,sender_email:a.senderEmail,sender_name:a.senderName,subject:a.subject,body:a.body,detected_intent:a.intent,confidence:a.confidence,customer_local_id:a.customer?.id||'',customer_name:a.customer?.name||'',offer_local_id:a.offer?.id||'',offer_number:a.offer?.number||'',offer_subject:a.offer?.subject||'',reply_draft:a.reply,suggested_start_date:a.slot?.startDate||null,suggested_start_time:a.slot?.startTime?`${a.slot.startTime}:00`:null,suggested_end_date:a.slot?.endDate||null,duration_value:a.offer?a.durationValue:null,duration_unit:a.offer?a.durationUnit:null,workflow_status:'review',action_note:''};
+    const row={company_id:company.id,created_by:session.user.id,sender_email:a.senderEmail,sender_name:a.senderName,subject:a.subject,body:a.body,detected_intent:a.intent,confidence:a.confidence,customer_local_id:a.customer?.id||'',customer_name:a.customer?.name||'',offer_local_id:a.offer?.id||'',offer_number:a.offer?.number||'',offer_subject:a.offer?.subject||'',reply_draft:a.reply,suggested_start_date:a.slot?.startDate||null,suggested_start_time:a.slot?.startTime?`${a.slot.startTime}:00`:null,suggested_end_date:a.slot?.endDate||null,duration_value:a.offer?a.durationValue:null,duration_unit:a.offer?a.durationUnit:null,workflow_status:'review',action_note:'',source_mail_message_id:a.sourceMailMessageId||null};
     const {data,error}=await client.from('email_assistant_items').insert(row).select('*').single();if(error)throw error;return data;
   }
 
@@ -209,7 +210,7 @@
     try{
       const {membership}=cloud();if(!['owner','office'].includes(membership?.role||''))throw new Error('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar.');
       const a=currentAnalysis();renderAnalysis(a);q('emailAssistAnalyze').disabled=true;q('emailAssistAnalyze').textContent='Analyse gespeichert ✓';
-      try{a.cloudRow=await persistAnalysis(a);await loadHistory()}catch(e){console.warn('Analyse konnte nicht in Cloud gespeichert werden',e);globalThis.toast?.('Analyse erstellt · Cloud-Verlauf konnte nicht gespeichert werden')}
+      try{a.cloudRow=await persistAnalysis(a);if(a.sourceMailMessageId){const {client}=cloud();await client?.from('mail_messages').update({workflow_status:'reviewed',updated_at:new Date().toISOString()}).eq('id',a.sourceMailMessageId);globalThis.MailHub?.refresh?.().catch?.(()=>{})}await loadHistory()}catch(e){console.warn('Analyse konnte nicht in Cloud gespeichert werden',e);globalThis.toast?.('Analyse erstellt · Cloud-Verlauf konnte nicht gespeichert werden')}
       setTimeout(()=>{q('emailAssistAnalyze').disabled=false;q('emailAssistAnalyze').textContent='Nachricht prüfen'},900);
     }catch(e){globalThis.toast?.(e.message||'Nachricht konnte nicht geprüft werden')}
   }
@@ -253,10 +254,23 @@
 
   async function remove(id){const ok=await globalThis.appConfirm?.({title:'Eintrag löschen?',text:'Nur dieser E-Mail-Sekretärin-Verlauf wird gelöscht. Kunden, Angebote und Baustellen bleiben unverändert.',confirmLabel:'Löschen',icon:'🗑️',danger:true});if(!ok)return;const {client}=cloud();const {error}=await client.from('email_assistant_items').delete().eq('id',id);if(error)return globalThis.toast?.('Eintrag konnte nicht gelöscht werden');await loadHistory();globalThis.toast?.('Eintrag gelöscht')}
 
-  function clearForm(){['emailAssistSender','emailAssistSenderName','emailAssistSubject','emailAssistBody'].forEach(id=>{if(q(id))q(id).value=''});q('emailAssistOfferHint').value='';q('emailAssistResult').classList.add('hidden');active=null;globalThis.APCustomSelect?.sync?.()}
+  function clearForm(){['emailAssistSender','emailAssistSenderName','emailAssistSubject','emailAssistBody'].forEach(id=>{if(q(id))q(id).value=''});q('emailAssistOfferHint').value='';q('emailAssistResult').classList.add('hidden');const src=q('emailAssistSource');if(src){src.classList.add('hidden');src.innerHTML=''}sourceMailMessageId='';active=null;globalThis.APCustomSelect?.sync?.()}
 
-  async function open(){const {membership}=cloud();if(!['owner','office'].includes(membership?.role||'')){globalThis.toast?.('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar');globalThis.showScreen?.('more');return}globalThis.showScreen?.('emailAssistant');populateOfferHint();clearForm();await loadHistory()}
+  function loadMailMessage(message){
+    clearForm();
+    sourceMailMessageId=message?.id||'';
+    q('emailAssistSender').value=message?.from_email||'';
+    q('emailAssistSenderName').value=message?.from_name||'';
+    q('emailAssistSubject').value=message?.subject||'';
+    q('emailAssistBody').value=message?.body_text||message?.body_preview||'';
+    const src=q('emailAssistSource');if(src){src.classList.remove('hidden');src.innerHTML=`<span>📥</span><div><b>Aus verbundenem Firmen-Postfach</b><small>${esc(message?.from_email||'')} · ${message?.received_at?new Date(message.received_at).toLocaleString('de-DE'):''}</small></div>`}
+    populateOfferHint();globalThis.APCustomSelect?.sync?.();
+    q('emailManualTestCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>analyze(),180);
+  }
+
+  async function open(){const {membership}=cloud();if(!['owner','office'].includes(membership?.role||'')){globalThis.toast?.('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar');globalThis.showScreen?.('more');return}globalThis.showScreen?.('emailAssistant');populateOfferHint();clearForm();await Promise.all([loadHistory(),globalThis.MailHub?.refresh?.()])}
 
   globalThis.openEmailAssistant=open;
-  globalThis.EmailAssistant={open,analyze,copyReply,prepare,loadHistory,reopen,remove,clearForm,populateOfferHint,_debug:{classify,matchCustomer,matchOffer,parseRequestedDate,findFreeSlot}};
+  globalThis.EmailAssistant={open,analyze,copyReply,prepare,loadHistory,reopen,remove,clearForm,loadMailMessage,populateOfferHint,_debug:{classify,matchCustomer,matchOffer,parseRequestedDate,findFreeSlot}};
 })();

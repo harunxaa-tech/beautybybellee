@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.9.1 – Baustellenabschluss mit digitalem Abnahmeprotokoll sowie Kunden- und Ausführendenunterschrift.",
+  "description": "AngebotsPilot v11.10 – Handwerker-Workflow mit sicherer Firmen-Mailbox, E-Mail-Sekretärin und digitalem Abnahmeprotokoll.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
