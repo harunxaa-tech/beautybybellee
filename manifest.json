@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.10 – Handwerker-Workflow mit sicherer Firmen-Mailbox, E-Mail-Sekretärin und digitalem Abnahmeprotokoll.",
+  "description": "AngebotsPilot v11.11 – Handwerker-Workflow mit sicherer Firmen-Mailbox für Microsoft und IMAP, E-Mail-Sekretärin und digitalem Abnahmeprotokoll.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
