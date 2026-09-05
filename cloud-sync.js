@@ -233,7 +233,7 @@
           address:d.settings?.address||'',phone:d.settings?.phone||'',email:d.settings?.email||session.user.email||'',
           tax_number:d.settings?.taxNumber||'',vat_id:d.settings?.vatId||'',iban:d.settings?.iban||'',
           bank_name:d.settings?.bankName||'',tax_rate:n(d.settings?.tax),country_code:d.settings?.countryCode||'DE',currency_code:d.settings?.currency||'EUR',app_language:d.settings?.appLanguage||'de',tax_treatment:d.settings?.taxTreatment||'standard',tax_note:d.settings?.taxNote||'',
-          payment_days:Math.max(0,Number(String(d.settings?.paymentTerm||'7').match(/\d+/)?.[0]||7)),brand_logo_path:d.settings?.brandLogoPath||'',brand_accent:d.settings?.brandAccent||'',document_style:d.settings?.documentStyle||'auto',logo_position:d.settings?.logoPosition||'left',brand_logo_meta:d.settings?.brandLogoMeta||{}
+          payment_days:Math.max(0,Number(String(d.settings?.paymentTerm||'7').match(/\d+/)?.[0]||7)),brand_logo_path:d.settings?.brandLogoPath||'',brand_accent:d.settings?.brandAccent||'',document_style:d.settings?.documentStyle||'auto',logo_position:d.settings?.logoPosition||'left',brand_logo_meta:d.settings?.brandLogoMeta||{},brand_reference_path:d.settings?.brandReferencePath||'',brand_reference_preview_path:d.settings?.brandReferencePreviewPath||'',brand_reference_name:d.settings?.brandReferenceName||'',brand_reference_meta:d.settings?.brandReferenceMeta||{}
         }).eq('id',company.id);
       }
       const custMap=await syncCustomers(d);await syncCatalog(d);
@@ -301,14 +301,14 @@
     offerLines.forEach(l=>{if(!linesByOffer.has(l.offer_id))linesByOffer.set(l.offer_id,[]);linesByOffer.get(l.offer_id).push(l)});
     invoiceLines.forEach(l=>{if(!linesByInvoice.has(l.invoice_id))linesByInvoice.set(l.invoice_id,[]);linesByInvoice.get(l.invoice_id).push(l)});
 
-    const d=localData(),s=d.settings||{},previousBrandLogoPath=s.brandLogoPath||'';
+    const d=localData(),s=d.settings||{},previousBrandLogoPath=s.brandLogoPath||'',previousBrandReferencePreviewPath=s.brandReferencePreviewPath||'';
     Object.assign(s,{
       companyName:company.name||s.companyName||'',trade:company.trade||s.trade||'garden',address:company.address||s.address||'',
       phone:company.phone||s.phone||'',email:company.email||session.user.email||s.email||'',tax:Number(company.tax_rate)||0,
       paymentTerm:`${Number(company.payment_days)||7} Tage`,taxNumber:company.tax_number||'',vatId:company.vat_id||'',
-      iban:company.iban||'',bankName:company.bank_name||'',countryCode:company.country_code||s.countryCode||'DE',currency:company.currency_code||s.currency||'EUR',appLanguage:company.app_language||s.appLanguage||'de',taxTreatment:company.tax_treatment||s.taxTreatment||((Number(company.tax_rate)||0)===0?'small_business':'standard'),taxNote:company.tax_note||s.taxNote||'',brandLogoPath:company.brand_logo_path||s.brandLogoPath||'',brandAccent:company.brand_accent||s.brandAccent||'',brandAccentAuto:s.brandAccentAuto||'',documentStyle:company.document_style||s.documentStyle||'auto',logoPosition:company.logo_position||s.logoPosition||'left',brandLogoMeta:company.brand_logo_meta||s.brandLogoMeta||{},ownerName:session.user.user_metadata?.full_name||s.ownerName||''
+      iban:company.iban||'',bankName:company.bank_name||'',countryCode:company.country_code||s.countryCode||'DE',currency:company.currency_code||s.currency||'EUR',appLanguage:company.app_language||s.appLanguage||'de',taxTreatment:company.tax_treatment||s.taxTreatment||((Number(company.tax_rate)||0)===0?'small_business':'standard'),taxNote:company.tax_note||s.taxNote||'',brandLogoPath:company.brand_logo_path||s.brandLogoPath||'',brandAccent:company.brand_accent||s.brandAccent||'',brandAccentAuto:s.brandAccentAuto||'',documentStyle:company.document_style||s.documentStyle||'auto',logoPosition:company.logo_position||s.logoPosition||'left',brandLogoMeta:company.brand_logo_meta||s.brandLogoMeta||{},brandReferencePath:company.brand_reference_path||s.brandReferencePath||'',brandReferencePreviewPath:company.brand_reference_preview_path||s.brandReferencePreviewPath||'',brandReferenceName:company.brand_reference_name||s.brandReferenceName||'',brandReferenceMeta:company.brand_reference_meta||s.brandReferenceMeta||{},ownerName:session.user.user_metadata?.full_name||s.ownerName||''
     });
-    if((s.brandLogoPath||'')!==previousBrandLogoPath)s.brandLogoLocalDataUrl='';
+    if((s.brandLogoPath||'')!==previousBrandLogoPath)s.brandLogoLocalDataUrl='';if((s.brandReferencePreviewPath||'')!==previousBrandReferencePreviewPath)s.brandReferenceLocalPreview='';
     d.settings=s;
     d.customers=customers.map(x=>({id:x.local_id||x.id,name:x.name,contact:x.contact,address:x.address,phone:x.phone,email:x.email,notes:x.notes,createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
     d.catalog=catalog.map(x=>({id:x.local_id||x.id,trade:x.trade,type:x.type,name:x.name,unit:x.unit,price:Number(x.price),purchasePrice:Number(x.purchase_price),markup:Number(x.markup),createdAt:x.created_at,updatedAt:x.client_updated_at||x.updated_at}));
@@ -329,7 +329,7 @@
     persistLocal(d);
     setProgress(100,'Cloud geladen','Dein Betrieb ist auf diesem Gerät bereit.');
     globalThis.renderAll?.();
-    try{await globalThis.CloudFiles?.refresh?.({silent:false})}catch(e){console.warn('Cloud-Dateien konnten noch nicht geladen werden',e)}try{if(d.settings?.brandLogoPath)await globalThis.ensureBrandLogoLoaded?.(d.settings.brandLogoPath,d.settings.brandLogoMeta||{})}catch(e){console.warn('Firmenlogo konnte noch nicht geladen werden',e)}
+    try{await globalThis.CloudFiles?.refresh?.({silent:false})}catch(e){console.warn('Cloud-Dateien konnten noch nicht geladen werden',e)}try{if(d.settings?.brandLogoPath)await globalThis.ensureBrandLogoLoaded?.(d.settings.brandLogoPath,d.settings.brandLogoMeta||{})}catch(e){console.warn('Firmenlogo konnte noch nicht geladen werden',e)}try{if(d.settings?.brandReferencePreviewPath)await globalThis.ensureBrandReferencePreviewLoaded?.(d.settings.brandReferencePreviewPath)}catch(e){console.warn('Design-Vorschau konnte noch nicht geladen werden',e)}
     setTimeout(()=>{
       const place=(d.settings?.weatherLocation||d.settings?.address||'').trim();
       if(place)globalThis.refreshWeather?.(false);

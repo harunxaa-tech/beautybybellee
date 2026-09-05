@@ -257,6 +257,12 @@
     d.settings.documentStyle=cloudCompany.document_style||d.settings.documentStyle||'auto';
     d.settings.logoPosition=cloudCompany.logo_position||d.settings.logoPosition||'left';
     d.settings.brandLogoMeta=cloudCompany.brand_logo_meta||d.settings.brandLogoMeta||{};
+    const previousBrandReferencePreviewPath=d.settings.brandReferencePreviewPath||'';
+    d.settings.brandReferencePath=cloudCompany.brand_reference_path||d.settings.brandReferencePath||'';
+    d.settings.brandReferencePreviewPath=cloudCompany.brand_reference_preview_path||d.settings.brandReferencePreviewPath||'';
+    d.settings.brandReferenceName=cloudCompany.brand_reference_name||d.settings.brandReferenceName||'';
+    d.settings.brandReferenceMeta=cloudCompany.brand_reference_meta||d.settings.brandReferenceMeta||{};
+    if((d.settings.brandReferencePreviewPath||'')!==previousBrandReferencePreviewPath)d.settings.brandReferenceLocalPreview='';
     d.settings.ownerName=session.user.user_metadata?.full_name||d.settings.ownerName||'';
     d.privacy=d.privacy||{};
     d.privacy.role=cloudMembership?.role||'owner';

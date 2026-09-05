@@ -164,10 +164,28 @@
     if(error)throw error;
     return{path,url:await signedUrl(path,86400)};
   }
+  async function uploadBrandReference(blob,fileName='design-vorlage.pdf'){
+    if(!ready())throw new Error('Cloud ist nicht verbunden');
+    if(membership?.role!=='owner')throw new Error('Nur der Inhaber kann die Design-Vorlage ändern');
+    if(!(blob instanceof Blob))throw new Error('Ungültige Referenzdatei');
+    const path=`${company.id}/branding/reference/${uuid()}-${safeName(fileName)}`;
+    const {error}=await client.storage.from(BUCKET).upload(path,blob,{contentType:blob.type||'application/octet-stream',upsert:false,cacheControl:'86400'});
+    if(error)throw error;
+    return{path,url:await signedUrl(path,86400)};
+  }
+  async function uploadBrandReferencePreview(blob,fileName='design-vorschau.jpg'){
+    if(!ready())throw new Error('Cloud ist nicht verbunden');
+    if(membership?.role!=='owner')throw new Error('Nur der Inhaber kann die Design-Vorlage ändern');
+    if(!(blob instanceof Blob))throw new Error('Ungültige Vorschau');
+    const path=`${company.id}/branding/reference/${uuid()}-${safeName(fileName)}`;
+    const {error}=await client.storage.from(BUCKET).upload(path,blob,{contentType:blob.type||'image/jpeg',upsert:false,cacheControl:'86400'});
+    if(error)throw error;
+    return{path,url:await signedUrl(path,86400)};
+  }
   async function getBrandAsset(path){
     if(!ready()||!path)return null;
     const clean=String(path);
-    if(!clean.startsWith(company.id+'/branding/'))throw new Error('Logo gehört nicht zu diesem Betrieb');
+    if(!clean.startsWith(company.id+'/branding/'))throw new Error('Branding-Datei gehört nicht zu diesem Betrieb');
     const [urlResult,downloadResult]=await Promise.allSettled([signedUrl(clean,86400),client.storage.from(BUCKET).download(clean)]);
     const blob=downloadResult.status==='fulfilled'&&!downloadResult.value.error?downloadResult.value.data:null;
     if(!blob)throw(downloadResult.status==='fulfilled'?downloadResult.value.error:downloadResult.reason);
@@ -185,9 +203,9 @@
     if(!photo?.cloud)return false;
     await deleteCloudFile(photo.id);await refreshJob(localJobId,{render:true});return true;
   }
-  function attach(c,s,co,m){client=c;session=s;company=co;membership=m;cache.clear();setTimeout(()=>globalThis.syncPendingBrandLogo?.().catch?.(()=>{}),500);setTimeout(()=>{const p=globalThis.data?.settings?.brandLogoPath;if(p)globalThis.ensureBrandLogoLoaded?.(p,globalThis.data?.settings?.brandLogoMeta||{}).catch?.(()=>{})},650);return true}
+  function attach(c,s,co,m){client=c;session=s;company=co;membership=m;cache.clear();setTimeout(()=>globalThis.syncPendingBrandLogo?.().catch?.(()=>{}),500);setTimeout(()=>globalThis.syncPendingBrandReference?.().catch?.(()=>{}),560);setTimeout(()=>{const p=globalThis.data?.settings?.brandLogoPath;if(p)globalThis.ensureBrandLogoLoaded?.(p,globalThis.data?.settings?.brandLogoMeta||{}).catch?.(()=>{})},650);setTimeout(()=>{const p=globalThis.data?.settings?.brandReferencePreviewPath;if(p)globalThis.ensureBrandReferencePreviewLoaded?.(p).catch?.(()=>{})},720);return true}
   function detach(){client=session=company=membership=null;cache.clear()}
   function state(){return{ready:ready(),companyId:company?.id||'',role:membership?.role||'',userId:session?.user?.id||''}}
   function canDelete(photo){if(!photo?.cloud)return true;return ['owner','office'].includes(membership?.role||'')||photo.createdBy===session?.user?.id}
-  globalThis.CloudFiles={attach,detach,state,ready,canDelete,refresh,refreshJob,uploadPendingForJob,uploadJobFile,listCustomerFiles,uploadCustomerFiles,getCustomerFile,uploadBrandLogo,getBrandAsset,deleteCloudFile,deleteJobPhoto};
+  globalThis.CloudFiles={attach,detach,state,ready,canDelete,refresh,refreshJob,uploadPendingForJob,uploadJobFile,listCustomerFiles,uploadCustomerFiles,getCustomerFile,uploadBrandLogo,uploadBrandReference,uploadBrandReferencePreview,getBrandAsset,deleteCloudFile,deleteJobPhoto};
 })();
