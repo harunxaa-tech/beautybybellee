@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-13';
+const CACHE='angebotspilot-v11-14';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.13','./cloud-config.js?v=11.13',
-  './country-config.js?v=11.13','./data-repository.js?v=11.13','./script.js?v=11.13','./cloud-files.js?v=11.13','./cloud-sync.js?v=11.13',
-  './team.js?v=11.13','./assignments.js?v=11.13','./time-tracking.js?v=11.13','./notifications.js?v=11.13','./mail-hub.js?v=11.13','./email-assistant.js?v=11.13','./acceptance.js?v=11.13','./custom-selects.js?v=11.13',
-  './cloud-auth.js?v=11.13','./manifest.json','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.14','./cloud-config.js?v=11.14',
+  './country-config.js?v=11.14','./data-repository.js?v=11.14','./script.js?v=11.14','./cloud-files.js?v=11.14','./cloud-sync.js?v=11.14',
+  './team.js?v=11.14','./assignments.js?v=11.14','./time-tracking.js?v=11.14','./notifications.js?v=11.14','./mail-hub.js?v=11.14','./email-assistant.js?v=11.14','./acceptance.js?v=11.14','./custom-selects.js?v=11.14',
+  './cloud-auth.js?v=11.14','./manifest.json','./icon-192.svg','./icon-512.svg'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
