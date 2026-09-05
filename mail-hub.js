@@ -1,5 +1,5 @@
-/* AngebotsPilot v11.16 – providerunabhängige Firmen-Mailbox
-   Microsoft OAuth + andere Firmen-Postfächer über IMAP/TLS im reinen Lesemodus. */
+/* AngebotsPilot v11.17 – providerunabhängige Firmen-Mailbox
+   Microsoft OAuth + IMAP/TLS + konservativer Posteingangsfilter. Nichts wird gelöscht. */
 (function(){
   'use strict';
   const q=id=>document.getElementById(id);
@@ -10,6 +10,7 @@
   let capabilities={microsoft:{ready:false},google:{ready:false},other:{ready:false}};
   let loading=false;
   let imapProvider='';
+  let showFiltered=false;
 
   try{
     const p=new URLSearchParams(location.search),mail=p.get('mail');
@@ -70,14 +71,64 @@
       <button type="button" class="mailProviderCard ${imapActive?'connected':''}" onclick="MailHub.openImapSetup()" ${!owner||imapActive?'disabled':''}><span class="mailProviderMark">@</span><div><b>Andere Firmen-E-Mail</b><small>${imapActive?'Verbunden':otherReady?'GMX, IONOS, STRATO, ALL-INKL & eigene Domain':'Wird vorbereitet'}</small></div><em>${imapActive?'✓':'›'}</em></button>`;
   }
 
+  const normEmail=v=>String(v||'').trim().toLowerCase();
+  function keptSenders(){
+    try{return new Set(JSON.parse(localStorage.getItem('ap_mail_keep_senders_v1117')||'[]').map(normEmail).filter(Boolean))}catch{return new Set()}
+  }
+  function customerEmails(){
+    const set=new Set();
+    for(const c of globalThis.data?.customers||[]){
+      if(c?.deletedAt||c?.deleted_at)continue;
+      const email=normEmail(c?.email);if(email)set.add(email);
+    }
+    return set;
+  }
+  function triageMessage(m){
+    const sender=normEmail(m?.from_email),subject=String(m?.subject||''),body=String(m?.body_preview||m?.body_text||'');
+    const text=`${subject} ${body}`.toLowerCase();
+    const local=sender.split('@')[0]||'',domain=sender.split('@')[1]||'';
+    if(keptSenders().has(sender))return{bucket:'primary',reason:'Vom Betrieb priorisiert',confidence:1};
+    if(customerEmails().has(sender))return{bucket:'primary',reason:'Bekannter Kunde',confidence:1};
+
+    // Eindeutige Social-Media-Rückblicke dürfen nach unten, Sicherheits-/Kontomails derselben Plattform aber niemals.
+    const socialDomain=/(facebookmail\.com$|mail\.instagram\.com$|pinterest\.com$)/i.test(domain);
+    const socialNoise=/freundschaftsanfrage|freundschaftsvorschl|reels von|sieh dir an, was du verpasst|neue reels|personen, die du kennen könntest/i.test(subject);
+    const critical=/(sicherheits|security|passwort|password|login|konto|account|zahlung|payment|rechnung|invoice|2fa|two-factor|bestätigungscode|verification|code)/i.test(text);
+    if(socialDomain&&socialNoise&&!critical)return{bucket:'filtered',reason:'Social-Media-Benachrichtigung',confidence:.99};
+
+    // Alles mit möglichem Geschäfts-, Zahlungs-, Termin- oder Sicherheitsbezug bleibt IMMER im Hauptposteingang.
+    const important=/(angebot|offerte|auftrag|termin|start|beginn|rechnung|invoice|mahnung|zahlung|payment|anfrage|preis|kostenvoranschlag|quote|estimate|appointment|booking|projekt|baustelle|reklamation|mangel|schaden|storno|kündig|kuendig|bestellung|liefer|vertrag|dringend|urgent|notfall|bewerbung|support|rückfrage|rueckfrage|annahme|angenommen|ablehn|bestätig|bestaetig|zusage|passwort|password|sicherheits|security code|bestätigungscode|verification|konto|account|login|anmeld|2fa|two-factor|steuer|finanzamt|versicherung)/i.test(text);
+    if(important)return{bucket:'primary',reason:'Möglicher Geschäftsbezug',confidence:.99};
+
+    // Nur sehr eindeutige Massen-/Werbesignale werden nach unten sortiert. Ein einzelnes Signal reicht nie.
+    let bulk=0;const reasons=[];
+    if(/newsletter|marketing|promotions?|campaign|digest|mailer|posts?-recap|friendsuggestion|reminders/i.test(local)){bulk++;reasons.push('Massen-Absender')}
+    if(/(^|\.)((news|newsletter|neuigkeiten|mailings)\.|facebookmail\.com$|mail\.instagram\.com$|linkedin\.com$|pinterest\.com$)/i.test(domain)){bulk++;reasons.push('Benachrichtigungs-Domain')}
+    if(/newsletter|wochenrückblick|weekly digest|daily digest|neuigkeiten|news update|deal der woche|rabattaktion|black friday|gewinn(?:spiel|-code)?|gratis|nur heute|aktion endet|entdecke|discover|reels von|freundschaftsanfrage|freundschaftsvorschl/i.test(subject)){bulk++;reasons.push('Werbe-Betreff')}
+    if(/unsubscribe|newsletter abbestellen|vom newsletter abmelden|e-mail-präferenzen|email preferences|keine weiteren e-mails|abbestellen/i.test(body)){bulk++;reasons.push('Abmelde-Hinweis')}
+    if(/^(no-?reply|noreply|donotreply)$/i.test(local)){bulk++;reasons.push('Automatischer Absender')}
+    if(bulk>=2)return{bucket:'filtered',reason:reasons.slice(0,2).join(' · '),confidence:.98};
+    return{bucket:'primary',reason:'Im Zweifel sichtbar',confidence:.5};
+  }
+  function mailCard(m,triage,filtered=false){
+    return `<div class="mailMessage ${m.workflow_status==='new'?'unreviewed':''} ${filtered?'mailMessageFiltered':''}">${filtered?`<div class="mailFilterBadge">Weitere Mail · ${esc(triage.reason||'Automatisch erkannt')}</div>`:''}<div class="mailMessageTop"><span>${m.workflow_status==='new'?'●':'✓'}</span><div><b>${esc(m.from_name||m.from_email||'Unbekannter Absender')}</b><small>${esc(m.from_email||'')} · ${esc(dt(m.received_at))}</small></div></div><h3>${esc(m.subject||'Ohne Betreff')}</h3><p>${esc(m.body_preview||m.body_text||'').slice(0,260)}</p><div class="mailMessageActions ${filtered?'mailFilteredActions':''}"><button class="btn ${filtered?'':'primary'} small" type="button" onclick="MailHub.review('${m.id}')">Sekretärin prüfen lassen</button>${filtered?`<button class="btn small" type="button" onclick="MailHub.keepSender('${m.id}')">⭐ Künftig oben</button>`:''}</div></div>`;
+  }
   function renderInbox(){
     const box=q('mailInboxList'),meta=q('mailInboxMeta'),sync=q('mailInboxSyncBtn');if(!box)return;
     const c=activeConnection();
-    if(meta)meta.textContent=c?.status==='connected'?(messages.length?`${messages.length} zuletzt geladene Nachrichten`:'Posteingang verbunden'):'Noch kein echtes Postfach verbunden';
     if(sync){sync.hidden=!(c?.status==='connected');sync.disabled=loading;}
-    if(!c?.status==='connected'){box.innerHTML='<div class="empty mailInboxEmpty">Sobald ein Postfach verbunden ist, erscheinen neue Kundenmails hier. Bis dahin kannst du Nachrichten darunter weiterhin manuell prüfen.</div>';return}
-    if(!messages.length){box.innerHTML='<div class="empty mailInboxEmpty">Noch keine Nachrichten geladen. Tippe auf „Neue Mails abrufen“.</div>';return}
-    box.innerHTML=messages.map(m=>`<div class="mailMessage ${m.workflow_status==='new'?'unreviewed':''}"><div class="mailMessageTop"><span>${m.workflow_status==='new'?'●':'✓'}</span><div><b>${esc(m.from_name||m.from_email||'Unbekannter Absender')}</b><small>${esc(m.from_email||'')} · ${esc(dt(m.received_at))}</small></div></div><h3>${esc(m.subject||'Ohne Betreff')}</h3><p>${esc(m.body_preview||m.body_text||'').slice(0,260)}</p><div class="mailMessageActions"><button class="btn primary small" type="button" onclick="MailHub.review('${m.id}')">Sekretärin prüfen lassen</button></div></div>`).join('');
+    if(!c?.status==='connected'){if(meta)meta.textContent='Noch kein echtes Postfach verbunden';box.innerHTML='<div class="empty mailInboxEmpty">Sobald ein Postfach verbunden ist, erscheinen neue Kundenmails hier. Bis dahin kannst du Nachrichten darunter weiterhin manuell prüfen.</div>';return}
+    if(!messages.length){if(meta)meta.textContent='Posteingang verbunden';box.innerHTML='<div class="empty mailInboxEmpty">Noch keine Nachrichten geladen. Tippe auf „Neue Mails abrufen“.</div>';return}
+
+    const triaged=messages.map(m=>({m,t:triageMessage(m)}));
+    const primary=triaged.filter(x=>x.t.bucket==='primary');
+    const filtered=triaged.filter(x=>x.t.bucket==='filtered');
+    if(meta)meta.textContent=`${primary.length} im Hauptposteingang${filtered.length?` · ${filtered.length} weitere`:''}`;
+
+    const notice=`<div class="mailTriageNotice"><span>🛡️</span><div><b>Sicherer Filter aktiv</b><small>Bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer hier. Nichts wird gelöscht.</small></div></div>`;
+    const main=primary.length?primary.map(x=>mailCard(x.m,x.t,false)).join(''):'<div class="empty mailInboxEmpty">Keine möglichen Kundenmails unter den zuletzt geladenen Nachrichten.</div>';
+    const extra=filtered.length?`<div class="mailFilteredArea"><button type="button" class="mailFilteredToggle" onclick="MailHub.toggleFiltered()"><span><b>${showFiltered?'Weitere Mails ausblenden':'Weitere Mails anzeigen'} (${filtered.length})</b><small>Nur sehr eindeutig erkannte Newsletter/Automails · jederzeit prüfbar</small></span><em>${showFiltered?'⌃':'⌄'}</em></button>${showFiltered?`<div class="mailFilteredList">${filtered.map(x=>mailCard(x.m,x.t,true)).join('')}</div>`:''}</div>`:'';
+    box.innerHTML=notice+main+extra;
   }
 
   function showOAuthReturn(){
@@ -185,11 +236,17 @@
     globalThis.appConfirm?.({title:provider==='google'?'Google / Workspace':'Andere Firmen-E-Mail',text:msg,confirmLabel:'Verstanden',icon:provider==='google'?'G':'@'});
   }
 
+  function toggleFiltered(){showFiltered=!showFiltered;renderInbox()}
+  function keepSender(id){
+    const m=messages.find(x=>x.id===id),email=normEmail(m?.from_email);if(!email)return;
+    const set=keptSenders();set.add(email);localStorage.setItem('ap_mail_keep_senders_v1117',JSON.stringify([...set]));renderInbox();globalThis.toast?.('⭐ Absender bleibt künftig im Hauptposteingang');
+  }
+
   async function review(id){const m=messages.find(x=>x.id===id);if(!m)return;globalThis.EmailAssistant?.loadMailMessage?.(m)}
 
   async function sendReply(mailMessageId,replyBody,requestId){
     return await invoke('mail-send',{mail_message_id:mailMessageId,reply_body:replyBody,request_id:requestId});
   }
 
-  globalThis.MailHub={refresh,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,review,sendReply,_state:()=>({connections,messages,capabilities})};
+  globalThis.MailHub={refresh,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,toggleFiltered,keepSender,review,sendReply,_state:()=>({connections,messages,capabilities})};
 })();

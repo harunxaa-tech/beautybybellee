@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.16 – E-Mail-Sekretärin + Terminlogik + DE/AT/CH-Korrespondenz + echte Mailbox-Grundlage
+/* AngebotsPilot v11.17 – E-Mail-Sekretärin + Terminlogik + DE/AT/CH-Korrespondenz + echte Mailbox-Grundlage
    Sicherer Testmodus ohne automatischen Mailversand und ohne kostenpflichtige KI-API.
    Klassifikation ist regelbasiert. Aktionen werden erst nach ausdrücklicher Bestätigung ausgeführt. */
 (function(){

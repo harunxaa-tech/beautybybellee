@@ -1207,3 +1207,9 @@ body.sheetOpen{overflow:hidden}
 /* v11.16 – Freigabe-Versand */
 #emailAssistSendReply:disabled{opacity:.72;cursor:default}
 .mailReadOnlyBadge{max-width:100%;white-space:normal;text-align:center}
+
+/* v11.17 – konservativer Mailfilter: nichts löschen, nur sichere Newsletter nach unten sortieren */
+.mailTriageNotice{display:flex;gap:10px;align-items:flex-start;padding:10px 11px;border:1px solid rgba(124,230,170,.16);background:rgba(124,230,170,.055);border-radius:14px;margin-bottom:2px}
+.mailTriageNotice>span{font-size:18px;line-height:1}.mailTriageNotice b,.mailTriageNotice small{display:block}.mailTriageNotice b{font-size:10px}.mailTriageNotice small{font-size:8.5px;color:var(--muted);line-height:1.45;margin-top:2px}
+.mailFilteredArea{display:grid;gap:8px;margin-top:3px}.mailFilteredToggle{appearance:none;-webkit-appearance:none;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;text-align:left;color:var(--text);background:rgba(255,255,255,.025);border:1px dashed var(--line);border-radius:15px;padding:11px 12px}.mailFilteredToggle span,.mailFilteredToggle b,.mailFilteredToggle small{display:block;min-width:0}.mailFilteredToggle b{font-size:10px}.mailFilteredToggle small{font-size:8px;color:var(--muted);line-height:1.4;margin-top:2px}.mailFilteredToggle em{font-style:normal;color:var(--muted);font-size:14px}.mailFilteredList{display:grid;gap:8px}.mailMessageFiltered{opacity:.78;border-style:dashed}.mailFilterBadge{display:inline-flex;max-width:100%;font-size:7.5px;font-weight:850;letter-spacing:.04em;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:4px 7px;margin-bottom:8px;overflow-wrap:anywhere}
+@media(max-width:620px){.mailTriageNotice{padding:10px}.mailFilteredToggle{padding:10px}.mailFilteredToggle b{font-size:10.5px}.mailFilteredToggle small{font-size:8.5px}}

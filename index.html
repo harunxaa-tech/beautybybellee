@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.16">
+<link rel="stylesheet" href="style.css?v=11.17">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -143,7 +143,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.15</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.17</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -155,7 +155,7 @@
 <section class="screen" id="emailAssistant">
   <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETÄRIN · FREIGABEMODUS</div><h2>E-Mail-Sekretärin</h2><p class="mini">Firmen-Postfach, Kundenzuordnung und Auftragsvorbereitung an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
   <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.16 · VERSAND NUR NACH FREIGABE</span><h3>Postfach lesen und antworten – nur mit deiner Freigabe</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend mit dem bestehenden Sekretärinnen-Workflow prüfen. Antwortvorschläge passen sich automatisch an das Firmenland Deutschland, Österreich oder Schweiz an. <b>Antworten werden nur nach deiner ausdrücklichen Bestätigung versendet; kein Auftrag wird ohne Freigabe angelegt.</b></p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.17 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Postfach lesen und antworten – nur mit deiner Freigabe</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend mit dem bestehenden Sekretärinnen-Workflow prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
   </div>
 
   <div class="card mailConnectCard">
@@ -1021,21 +1021,21 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.16" defer></script>
-<script src="country-config.js?v=11.16" defer></script>
-<script src="data-repository.js?v=11.16" defer></script>
-<script src="script.js?v=11.16" defer></script>
-<script src="cloud-files.js?v=11.16" defer></script>
-<script src="cloud-sync.js?v=11.16" defer></script>
-<script src="team.js?v=11.16" defer></script>
-<script src="assignments.js?v=11.16" defer></script>
-<script src="time-tracking.js?v=11.16" defer></script>
-<script src="notifications.js?v=11.16" defer></script>
-<script src="mail-hub.js?v=11.16" defer></script>
-<script src="email-assistant.js?v=11.16" defer></script>
-<script src="acceptance.js?v=11.16" defer></script>
-<script src="custom-selects.js?v=11.16" defer></script>
-<script src="cloud-auth.js?v=11.16" defer></script>
+<script src="cloud-config.js?v=11.17" defer></script>
+<script src="country-config.js?v=11.17" defer></script>
+<script src="data-repository.js?v=11.17" defer></script>
+<script src="script.js?v=11.17" defer></script>
+<script src="cloud-files.js?v=11.17" defer></script>
+<script src="cloud-sync.js?v=11.17" defer></script>
+<script src="team.js?v=11.17" defer></script>
+<script src="assignments.js?v=11.17" defer></script>
+<script src="time-tracking.js?v=11.17" defer></script>
+<script src="notifications.js?v=11.17" defer></script>
+<script src="mail-hub.js?v=11.17" defer></script>
+<script src="email-assistant.js?v=11.17" defer></script>
+<script src="acceptance.js?v=11.17" defer></script>
+<script src="custom-selects.js?v=11.17" defer></script>
+<script src="cloud-auth.js?v=11.17" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
