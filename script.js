@@ -1031,6 +1031,7 @@ function brandLogoDataFor(s=data.settings){const path=brandLogoPathFor(s);if(pat
 function brandLogoMetaFor(s=data.settings){const path=brandLogoPathFor(s);return (path&&brandLogoRuntime.get(path)?.meta)||s?.brandLogoMeta||{}}
 function brandDocAttrs(s=data.settings){const accent=brandAccentFor(s),style=brandStyleFor(s),pos=brandLogoPositionFor(s);return{accent,style,pos,attr:`class="offerPaper professionalPaper docStyle-${style} logo-${pos}" style="--brand-accent:${accent};--brand-soft:${accent}16;--brand-mid:${accent}2b"`}}
 function brandIdentityHTML(s,company,mark){const src=brandLogoDataFor(s);return src?`<div class="companyIdentity brandIdentityWithLogo"><div class="companyLogoWrap"><img src="${escapeHTML(src)}" alt="Firmenlogo"></div><div><h2>${escapeHTML(company)}</h2><p>${escapeHTML(s.address||'')}</p></div></div>`:`<div class="companyIdentity"><div class="companyMonogram">${escapeHTML(mark||'AP')}</div><div><h2>${escapeHTML(company)}</h2><p>${escapeHTML(s.address||'')}</p></div></div>`}
+function documentFooterHTML(s,countryCode=currentCountryCode()){const company=s?.companyName||'Ihr Betrieb',taxLabel=countryCode==='CH'?'MWST-Nr.':countryCode==='AT'?'UID':'USt-IdNr.',groups=[];groups.push(`<div class="proFooterGroup"><b>${escapeHTML(company)}</b>${s?.address?`<span>${escapeHTML(s.address)}</span>`:''}${s?.ownerName?`<span>${escapeHTML(s.ownerName)}</span>`:''}</div>`);const contact=[s?.phone?`Tel. ${s.phone}`:'',s?.email||''].filter(Boolean);if(contact.length)groups.push(`<div class="proFooterGroup"><b>Kontakt</b>${contact.map(v=>`<span>${escapeHTML(v)}</span>`).join('')}</div>`);const payment=[s?.iban?`IBAN ${s.iban}`:'',s?.bankName||''].filter(Boolean);if(payment.length)groups.push(`<div class="proFooterGroup"><b>Zahlung</b>${payment.map(v=>`<span>${escapeHTML(v)}</span>`).join('')}</div>`);const tax=[s?.taxNumber?`St.-Nr. ${s.taxNumber}`:'',s?.vatId?`${taxLabel} ${s.vatId}`:''].filter(Boolean);if(tax.length)groups.push(`<div class="proFooterGroup"><b>Steuer</b>${tax.map(v=>`<span>${escapeHTML(v)}</span>`).join('')}</div>`);return groups.join('')}
 async function blobToDataUrl(blob){return await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(r.error||new Error('Datei konnte nicht gelesen werden'));r.readAsDataURL(blob)})}
 async function ensureBrandLogoLoaded(path=brandLogoPathFor(data.settings),meta=null){if(!path)return'';if(brandLogoRuntime.has(path))return brandLogoRuntime.get(path).dataUrl||'';if(data.settings.brandLogoPath===path&&data.settings.brandLogoLocalDataUrl){brandLogoRuntime.set(path,{dataUrl:data.settings.brandLogoLocalDataUrl,meta:data.settings.brandLogoMeta||meta||{}});return data.settings.brandLogoLocalDataUrl}try{const asset=await globalThis.CloudFiles?.getBrandAsset?.(path);if(!asset?.blob)return'';const dataUrl=await blobToDataUrl(asset.blob);brandLogoRuntime.set(path,{dataUrl,meta:meta||{}});if(data.settings.brandLogoPath===path){data.settings.brandLogoLocalDataUrl=dataUrl;globalThis.safePersistCloudIdentity?.(data)}return dataUrl}catch(e){console.warn('Logo konnte noch nicht geladen werden',e);return''}}
 function loadImageFromSource(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Logo konnte nicht gelesen werden'));img.src=src})}
@@ -1090,7 +1091,7 @@ function paperHTML(o){
       <div class="totals proTotals"><div><span>Summe Positionen</span><b>${euro(o.baseSubtotal??(o.subtotal+(o.discount||0)))}</b></div>${o.discount?`<div class="discountTotal"><span>${discountDisplayLabel(o)}</span><b>− ${euro(Math.abs(o.discount))}</b></div>`:''}<div><span>Zwischensumme</span><b>${euro(o.subtotal)}</b></div>${o.tax?`<div><span>${escapeHTML(offerProfile.taxLabel||'Steuer')} ${String(o.tax).replace('.',',')}%</span><b>${euro(o.subtotal*o.tax/100)}</b></div>`:''}<div class="grand"><span>Gesamtbetrag</span><strong>${euro(o.total)}</strong></div></div>
     </div>
     <div class="acceptanceText"><b>Wir freuen uns auf die Zusammenarbeit.</b><p>Bei Fragen zu diesem Angebot stehen wir Ihnen gerne zur Verfügung.</p></div>
-    <div class="paperFoot proFooter"><span>${escapeHTML(company)}</span><span>${escapeHTML(s.address||'')}</span>${s.phone?`<span>${escapeHTML(s.phone)}</span>`:''}${s.email?`<span>${escapeHTML(s.email)}</span>`:''}</div>
+    <div class="paperFoot proFooter">${documentFooterHTML(s,currentCountryCode())}</div>
   </div>`;
 }
 async function previewOffer(){const o=offerObject();await ensureBrandLogoLoaded(data.settings.brandLogoPath,data.settings.brandLogoMeta||{});document.getElementById('offerPreviewPaper').innerHTML=paperHTML(o);showScreen('offerPreview')}
@@ -1613,11 +1614,7 @@ function invoicePaperHTML(inv){
       </div>
     </div>
     <div class="invoiceThankYou"><b>Vielen Dank für Ihren Auftrag.</b><span>Bei Rückfragen zu dieser Rechnung sind wir gerne für Sie da.</span></div>
-    <div class="paperFoot proFooter">
-      <span>${escapeHTML(company)}</span><span>${escapeHTML(s.address||'')}</span>
-      ${s.taxNumber?`<span>St.-Nr. ${escapeHTML(s.taxNumber)}</span>`:''}${s.vatId?`<span>${countryCode==='CH'?'MWST-Nr.':countryCode==='AT'?'UID':'USt-IdNr.'} ${escapeHTML(s.vatId)}</span>`:''}
-      ${s.email?`<span>${escapeHTML(s.email)}</span>`:''}
-    </div>
+    <div class="paperFoot proFooter">${documentFooterHTML(s,countryCode)}</div>
   </div>`;
 }
 async function previewInvoice(id){const inv=id?data.invoices.find(x=>x.id===id):invoiceObject();if(!inv)return;const snap=inv.finalizedSnapshot||{},bs=snap.company?{...data.settings,...snap.company}:data.settings;await ensureBrandLogoLoaded(bs.brandLogoPath,bs.brandLogoMeta||{});document.getElementById('invoicePreviewPaper').innerHTML=invoicePaperHTML(inv);document.getElementById('invoicePreviewSource').value=inv.id||'';showScreen('invoicePreview')}
@@ -1694,13 +1691,20 @@ function invoicePdfBlob(inv){
   };
   const rect=(x,top,w,h,color)=>{fillColor(color);add(`${x.toFixed(1)} ${py(top+h).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f\n`)};
   const image=(x,top,w,h)=>{if(!logoBytes)return;add(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${py(top+h).toFixed(2)} cm /Im1 Do Q\n`)};
-  const finishPage=()=>{pageStreams.push(cmds.join(''));cmds=[]};
+  const pageFooter=(pageNo)=>{
+    const taxId=s.vatId?`${countryCode==='CH'?'MWST-Nr.':countryCode==='AT'?'UID':'USt-IdNr.'} ${s.vatId}`:(s.taxNumber?`St.-Nr. ${s.taxNumber}`:'');
+    line(left,786,right,786,.75,accentRgb);
+    text(left,801,7.2,s.companyName||'Ihr Betrieb',true,[.28,.32,.36]);textRight(right,801,7.2,`Seite ${pageNo}`,true,[.42,.46,.50]);
+    if(s.address)text(left,813,6.8,s.address,false,[.44,.48,.52]);if(s.email)textRight(right,813,6.8,s.email,false,[.44,.48,.52]);
+    if(taxId)text(left,825,6.8,taxId,false,[.44,.48,.52]);if(s.iban)textRight(right,825,6.8,`IBAN ${s.iban}`,false,[.44,.48,.52]);
+  };
+  const finishPage=()=>{pageFooter(pageStreams.length+1);pageStreams.push(cmds.join(''));cmds=[]};
   const header=(continuation=false)=>{
     if(docStyle!=='minimal')rect(0,0,W,docStyle==='classic'?3:5,accentRgb);
     let companyX=left;
     if(logoBytes){
-      const mw=Number(logoMeta.optimizedWidth)||600,mh=Number(logoMeta.optimizedHeight)||220,boxW=112,boxH=43,scale=Math.min(boxW/mw,boxH/mh),iw=Math.max(20,mw*scale),ih=Math.max(14,mh*scale);
-      image(left,28,iw,ih);companyX=left+Math.min(125,iw+14);
+      const mw=Number(logoMeta.optimizedWidth)||600,mh=Number(logoMeta.optimizedHeight)||220,boxW=122,boxH=48,scale=Math.min(boxW/mw,boxH/mh),iw=Math.max(22,mw*scale),ih=Math.max(15,mh*scale);
+      image(left,25,iw,ih);companyX=left+Math.min(139,iw+18);
     }
     text(companyX,43,logoBytes?13.5:17,s.companyName||'Ihr Betrieb',true);
     if(s.address)text(companyX,61,8.2,s.address,false,[.38,.43,.48]);
@@ -1738,19 +1742,18 @@ function invoicePdfBlob(inv){
   const lines=(inv.lines||[]).filter(l=>l.name);
   lines.forEach((l,index)=>{
     const desc=pdfWrap(l.name,245,9),detail=l.workers&&l.hoursPerWorker?`${l.workers} Mitarbeiter x ${l.hoursPerWorker} Std.`:'',rowHeight=Math.max(24,desc.length*12+(detail?11:0)+7);
-    if(y+rowHeight>690){newPage(true);tableHeader()}
+    if(y+rowHeight>670){newPage(true);tableHeader()}
     text(left+5,y+12,8,String(index+1).padStart(2,'0'),false,[.50,.54,.58]);desc.forEach((ln,i)=>text(74,y+12+i*12,9,ln,i===0));if(detail)text(74,y+12+desc.length*12,7.5,detail,false,[.45,.49,.53]);text(340,y+12,8,`${Number(l.qty||0).toLocaleString('de-DE',{maximumFractionDigits:2})} ${l.unit||''}`);textRight(468,y+12,8,pm(l.price));textRight(right,y+12,8,pm((Number(l.qty)||0)*(Number(l.price)||0)),true);line(left,y+rowHeight-2,right,y+rowHeight-2,.35);y+=rowHeight;
   });
-  if(y>610)newPage(true);y+=12;
+  if(y>590)newPage(true);y+=12;
   const base=inv.baseSubtotal??(Number(inv.subtotal||0)+Number(inv.discount||0));
   text(355,y,8,'Summe Positionen',false,[.42,.46,.50]);textRight(right,y,8,pm(base),true);y+=17;
   if(Number(inv.discount||0)){text(355,y,8,pdfAscii(discountDisplayLabel(inv)),false,[.42,.46,.50]);textRight(right,y,8,`- ${pm(Math.abs(inv.discount))}`,true);y+=17}
   text(355,y,8,'Zwischensumme',false,[.42,.46,.50]);textRight(right,y,8,pm(inv.subtotal),true);y+=17;
   if(Number(inv.tax||0)){text(355,y,8,`${profile?.taxLabel||'Steuer'} ${String(Number(inv.tax)).replace('.',',')}%`,false,[.42,.46,.50]);textRight(right,y,8,pm(Number(inv.subtotal||0)*Number(inv.tax||0)/100),true);y+=18}
-  line(350,y-7,right,y-7,1,accentRgb);text(350,y+10,11,'Rechnungsbetrag',true);textRight(right,y+10,13,pm(inv.total),true,accentRgb);y+=42;
-  if(y>725)newPage(true);
-  text(left,y,7.5,'ZAHLUNGSINFORMATION',true,accentRgb);text(left,y+17,8.5,`Bitte ueberweisen Sie den Betrag bis zum ${dateDE(inv.dueDate)}.`);if(s.iban)text(left,y+34,8.5,`IBAN: ${s.iban}`,true);if(s.bankName)text(left,y+50,8.5,`Bank: ${s.bankName}`);if(taxNote)pdfWrap(taxNote,500,8).slice(0,2).forEach((ln,i)=>text(left,y+68+i*11,8,ln,false,[.38,.43,.48]));
-  const footTop=805;line(left,footTop-18,right,footTop-18,.8,accentRgb);const footer=[s.companyName,s.address,s.taxNumber?`St.-Nr. ${s.taxNumber}`:'',s.vatId?`${countryCode==='CH'?'MWST-Nr.':countryCode==='AT'?'UID':'USt-IdNr.'} ${s.vatId}`:'',s.email].filter(Boolean).join(' | ');pdfWrap(footer,510,7).slice(0,2).forEach((ln,i)=>text(left,footTop+i*10,7,ln,false,[.43,.47,.51]));
+  const totalSoft=accentRgb.map(v=>Math.min(1,.91+v*.09));rect(340,y-9,right-340,44,totalSoft);rect(340,y-9,4,44,accentRgb);text(354,y+9,10.5,'RECHNUNGSBETRAG',true,[.18,.22,.25]);textRight(right-12,y+10,15,pm(inv.total),true,accentRgb);y+=54;
+  if(y>690)newPage(true);
+  const taxLines=taxNote?pdfWrap(taxNote,475,8).slice(0,2):[],payHeight=55+(taxLines.length*11);rect(left,y-10,right-left,payHeight,[.972,.978,.981]);text(left+12,y+7,7.5,'ZAHLUNGSINFORMATION',true,accentRgb);text(left+12,y+24,8.5,`Bitte ueberweisen Sie den Betrag bis zum ${dateDE(inv.dueDate)}.`);if(s.iban)text(left+12,y+40,8.5,`IBAN: ${s.iban}`,true);if(s.bankName)text(330,y+40,8.5,`Bank: ${s.bankName}`);taxLines.forEach((ln,i)=>text(left+12,y+57+i*11,8,ln,false,[.38,.43,.48]));
   finishPage();
 
   const pageCount=pageStreams.length,font1=3+pageCount*2,font2=font1+1,imgObj=logoBytes?font2+1:0,objects=[],pageRefs=[];
@@ -1764,7 +1767,7 @@ function invoicePdfBlob(inv){
   objects[2]=`<< /Type /Pages /Kids [${pageRefs.join(' ')}] /Count ${pageCount} >>`;objects[font1]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';objects[font2]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
   if(logoBytes){const mw=Math.max(1,Number(logoMeta.optimizedWidth)||600),mh=Math.max(1,Number(logoMeta.optimizedHeight)||220);objects[imgObj]={dict:`<< /Type /XObject /Subtype /Image /Width ${mw} /Height ${mh} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logoBytes.length} >>`,stream:logoBytes}}
 
-  const enc=new TextEncoder(),chunks=[],offsets=[0];let total=0;const push=(bytes)=>{chunks.push(bytes);total+=bytes.length};push(enc.encode('%PDF-1.4\n%AP19\n'));
+  const enc=new TextEncoder(),chunks=[],offsets=[0];let total=0;const push=(bytes)=>{chunks.push(bytes);total+=bytes.length};push(enc.encode('%PDF-1.4\n%AP21\n'));
   for(let i=1;i<objects.length;i++){
     const obj=objects[i];if(!obj)continue;offsets[i]=total;push(enc.encode(`${i} 0 obj\n`));
     if(typeof obj==='string')push(enc.encode(obj));else{push(enc.encode(obj.dict+'\nstream\n'));push(obj.stream);push(enc.encode('\nendstream'))}

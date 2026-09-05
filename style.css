@@ -1242,3 +1242,46 @@ body.sheetOpen{overflow:hidden}
 /* v11.20 – bestehendes Dokument als automatische Stilreferenz */
 .brandReferenceDetails{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.brandReferenceDetails>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0}.brandReferenceDetails>summary::-webkit-details-marker{display:none}.brandReferenceDetails>summary div{min-width:0}.brandReferenceDetails>summary b,.brandReferenceDetails>summary small{display:block}.brandReferenceDetails>summary b{font-size:11px}.brandReferenceDetails>summary small{font-size:8.5px;color:var(--muted);margin-top:3px}.brandReferenceDetails>summary>span{font-size:18px;color:var(--muted);transition:transform .18s}.brandReferenceDetails[open]>summary>span{transform:rotate(90deg)}.brandReferenceBody{display:grid;gap:10px;margin-top:12px}.brandReferencePreview{min-height:190px;max-height:420px;border:1px solid var(--line);border-radius:17px;background:#e9ecef;display:grid;place-items:center;overflow:hidden;padding:10px}.brandReferencePreview>img{display:block;max-width:100%;max-height:395px;width:auto;height:auto;object-fit:contain;background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.12)}.brandReferenceEmpty{display:grid;place-items:center;text-align:center;gap:6px;padding:24px;color:#202932}.brandReferenceEmpty>span{font-size:30px}.brandReferenceEmpty b{font-size:11px}.brandReferenceEmpty small{font-size:8.5px;color:#66717c;max-width:280px;line-height:1.45}.brandReferenceSummary:empty{display:none}.brandReferenceSummary{display:grid;gap:3px;padding:11px 12px;border:1px solid rgba(204,255,47,.22);background:rgba(204,255,47,.05);border-radius:14px}.brandReferenceSummary span,.brandReferenceSummary b,.brandReferenceSummary small{display:block}.brandReferenceSummary span{font-size:7.5px;letter-spacing:.12em;font-weight:900;color:var(--accent)}.brandReferenceSummary b{font-size:10.5px}.brandReferenceSummary small{font-size:8.5px;color:var(--muted)}.brandReferenceActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.brandReferenceActions .btn{width:100%;min-height:46px}.brandReferenceActions .btn:first-child:last-child{grid-column:1/-1}.brandReferenceFileName{display:block;color:var(--muted);font-size:8px;overflow-wrap:anywhere}.brandMiniPaper.logo-center .brandMiniTop{grid-template-columns:1fr auto}.brandMiniPaper.logo-center .brandMiniLogo{grid-column:1/-1;justify-self:center}.brandMiniPaper.logo-center .brandMiniTop>b{justify-self:start}.brandMiniPaper.docStyle-classic .brandMiniLine{background:#2c2c2c}.brandMiniPaper.docStyle-minimal .brandMiniLine{height:2px;background:var(--brand-accent)}
 @media(max-width:620px){.brandReferencePreview{min-height:170px;max-height:360px}.brandReferencePreview>img{max-height:335px}.brandReferenceActions{grid-template-columns:1fr}.brandReferenceActions .btn{grid-column:1/-1}.brandAdvancedGrid{grid-template-columns:1fr}}
+
+/* v11.21 – veredeltes Dokumentlayout: Summen, Footer, Tabellen & Mehrseiten-Druck */
+.professionalPaper .proHeader{padding-top:38px;padding-bottom:24px}
+.professionalPaper .brandIdentityWithLogo{gap:19px}
+.professionalPaper .companyLogoWrap{width:128px;height:58px;justify-content:flex-start}
+.professionalPaper .companyLogoWrap img{max-width:128px;max-height:58px}
+.professionalPaper.logo-center .companyLogoWrap{justify-content:center}
+.professionalPaper .proTable{table-layout:fixed}
+.professionalPaper .proTable th:nth-child(1),.professionalPaper .proTable td:nth-child(1){width:7%}
+.professionalPaper .proTable th:nth-child(2),.professionalPaper .proTable td:nth-child(2){width:45%;overflow-wrap:anywhere}
+.professionalPaper .proTable th:nth-child(3),.professionalPaper .proTable td:nth-child(3){width:14%}
+.professionalPaper .proTable th:nth-child(4),.professionalPaper .proTable td:nth-child(4){width:16%}
+.professionalPaper .proTable th:nth-child(5),.professionalPaper .proTable td:nth-child(5){width:18%}
+.professionalPaper .proTotals{padding:13px 15px 14px;border:1px solid #e3e8eb;border-radius:10px;background:#fbfcfc}
+.professionalPaper .proTotals>div{display:flex;justify-content:space-between;gap:18px;align-items:baseline}
+.professionalPaper .proTotals .grand{margin:10px -7px -7px!important;padding:13px 9px!important;border:0!important;border-left:4px solid var(--brand-accent)!important;border-radius:7px;background:var(--brand-soft)}
+.professionalPaper .proTotals .grand span{font-weight:900;color:#26313a}
+.professionalPaper .proTotals .grand strong{font-size:19px!important;letter-spacing:-.02em}
+.professionalPaper .proFooter{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 22px;padding:15px 38px 16px!important;background:#f5f7f8!important;border-top:2px solid var(--brand-accent);align-items:start}
+.professionalPaper .proFooterGroup{display:grid;align-content:start;gap:3px;min-width:0}
+.professionalPaper .proFooterGroup b{font-size:7.5px;color:#313b43;text-transform:uppercase;letter-spacing:.08em}
+.professionalPaper .proFooterGroup span{font-size:7.5px;color:#717c86;line-height:1.35;overflow-wrap:anywhere}
+.professionalPaper .invoicePaymentBox{padding:13px 14px;border:1px solid #e5e9ec;border-radius:9px;background:#fafbfb}
+.professionalPaper .invoicePaymentBox .bankGrid{margin-top:9px}
+.professionalPaper .invoiceThankYou{margin-left:38px;margin-right:38px}
+@media(max-width:620px){
+ .professionalPaper .proHeader{padding-top:26px;padding-bottom:17px}
+ .professionalPaper .companyLogoWrap{width:100px;height:47px}.professionalPaper .companyLogoWrap img{max-width:100px;max-height:47px}.professionalPaper .brandIdentityWithLogo{gap:11px}
+ .professionalPaper .proFooter{grid-template-columns:1fr 1fr;padding:13px 20px!important;gap:11px 16px}
+ .professionalPaper .proTotals{padding:12px 13px}.professionalPaper .proTotals .grand strong{font-size:17px!important}
+}
+@media print{
+ @page{size:A4;margin:14mm 12mm 16mm}
+ .professionalPaper{overflow:visible!important;box-shadow:none!important;border-radius:0!important}
+ .professionalPaper .proHeader{padding-top:20px!important}
+ .professionalPaper .companyLogoWrap{width:128px!important;height:58px!important}.professionalPaper .companyLogoWrap img{max-width:128px!important;max-height:58px!important}
+ .professionalPaper .proTable{table-layout:fixed!important}
+ .professionalPaper .proTable thead{display:table-header-group!important}
+ .professionalPaper .proTable tr{break-inside:avoid;page-break-inside:avoid}
+ .professionalPaper .proSummary,.professionalPaper .acceptanceText,.professionalPaper .invoiceThankYou,.professionalPaper .proFooter{break-inside:avoid;page-break-inside:avoid}
+ .professionalPaper .proFooter{grid-template-columns:repeat(4,minmax(0,1fr))!important;background:#f5f7f8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .professionalPaper .proTotals .grand,.professionalPaper .proContactLine,.professionalPaper .proTable thead{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

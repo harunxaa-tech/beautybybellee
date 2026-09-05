@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.20 – Handwerker-Workflow mit Firmen-Mailbox, E-Mail-Sekretärin, Rechnungs-Nachfasslogik, automatischem Dokumentdesign, Stilimport aus bestehenden Dokumenten und digitalem Abnahmeprotokoll.",
+  "description": "AngebotsPilot v11.21 – Handwerker-Workflow mit Firmen-Mailbox, E-Mail-Sekretärin, Rechnungs-Nachfasslogik, automatischem Dokumentdesign, Stilimport aus bestehenden Dokumenten, veredelten Mehrseiten-PDFs und digitalem Abnahmeprotokoll.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
