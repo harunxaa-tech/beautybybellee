@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.11 – providerunabhängige Firmen-Mailbox
+/* AngebotsPilot v11.16 – providerunabhängige Firmen-Mailbox
    Microsoft OAuth + andere Firmen-Postfächer über IMAP/TLS im reinen Lesemodus. */
 (function(){
   'use strict';
@@ -53,7 +53,7 @@
     const c=activeConnection(),owner=role()==='owner';
     if(c?.status==='connected'){
       const icon=c.provider==='microsoft'?'M':c.provider==='google'?'G':'@';
-      box.innerHTML=`<div class="mailConnected"><span class="mailProviderIcon">${icon}</span><div><small>VERBUNDEN · NUR LESEN</small><b>${esc(c.account_email||c.account_name||connectionLabel(c))}</b><span>${esc(connectionLabel(c))}${c.provider==='imap'?' · IMAP/TLS':''}${c.last_sync_at?` · zuletzt ${esc(dt(c.last_sync_at))}`:''}</span></div><strong>✓</strong></div>${c.last_error?`<div class="mailConnectionError">${esc(c.last_error)}</div>`:''}<div class="mailConnectionActions"><button class="btn primary small" type="button" onclick="MailHub.sync('${c.id}')">↻ Neue Mails abrufen</button>${owner?`<button class="btn small" type="button" onclick="MailHub.disconnect('${c.id}')">Verbindung trennen</button>`:''}</div>`;
+      box.innerHTML=`<div class="mailConnected"><span class="mailProviderIcon">${icon}</span><div><small>${c.provider==='imap'?'VERBUNDEN · LESEN + ANTWORTEN':'VERBUNDEN · NUR LESEN'}</small><b>${esc(c.account_email||c.account_name||connectionLabel(c))}</b><span>${esc(connectionLabel(c))}${c.provider==='imap'?' · IMAP/TLS':''}${c.last_sync_at?` · zuletzt ${esc(dt(c.last_sync_at))}`:''}</span></div><strong>✓</strong></div>${c.last_error?`<div class="mailConnectionError">${esc(c.last_error)}</div>`:''}<div class="mailConnectionActions"><button class="btn primary small" type="button" onclick="MailHub.sync('${c.id}')">↻ Neue Mails abrufen</button>${owner?`<button class="btn small" type="button" onclick="MailHub.disconnect('${c.id}')">Verbindung trennen</button>`:''}</div>`;
     }else if(c){
       box.innerHTML=`<div class="mailPending"><span>⏳</span><div><b>${esc(connectionLabel(c))}</b><small>${c.status==='error'?'Verbindung nicht abgeschlossen':'Verbindung wird vorbereitet'}${c.last_error?` · ${esc(c.last_error)}`:''}</small></div></div>`;
     }else{
@@ -187,5 +187,9 @@
 
   async function review(id){const m=messages.find(x=>x.id===id);if(!m)return;globalThis.EmailAssistant?.loadMailMessage?.(m)}
 
-  globalThis.MailHub={refresh,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,review,_state:()=>({connections,messages,capabilities})};
+  async function sendReply(mailMessageId,replyBody,requestId){
+    return await invoke('mail-send',{mail_message_id:mailMessageId,reply_body:replyBody,request_id:requestId});
+  }
+
+  globalThis.MailHub={refresh,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,review,sendReply,_state:()=>({connections,messages,capabilities})};
 })();

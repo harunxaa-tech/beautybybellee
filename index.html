@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.15">
+<link rel="stylesheet" href="style.css?v=11.16">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -153,13 +153,13 @@
 
 
 <section class="screen" id="emailAssistant">
-  <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETÄRIN · SICHERER LESEMODUS</div><h2>E-Mail-Sekretärin</h2><p class="mini">Firmen-Postfach, Kundenzuordnung und Auftragsvorbereitung an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
+  <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETÄRIN · FREIGABEMODUS</div><h2>E-Mail-Sekretärin</h2><p class="mini">Firmen-Postfach, Kundenzuordnung und Auftragsvorbereitung an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
   <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.15 · KEIN AUTOMATISCHER VERSAND</span><h3>Postfach lesen – Entscheidungen bleiben bei dir</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend mit dem bestehenden Sekretärinnen-Workflow prüfen. Antwortvorschläge passen sich automatisch an das Firmenland Deutschland, Österreich oder Schweiz an. <b>Keine Mail wird automatisch beantwortet und kein Auftrag ohne Freigabe angelegt.</b></p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.16 · VERSAND NUR NACH FREIGABE</span><h3>Postfach lesen und antworten – nur mit deiner Freigabe</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend mit dem bestehenden Sekretärinnen-Workflow prüfen. Antwortvorschläge passen sich automatisch an das Firmenland Deutschland, Österreich oder Schweiz an. <b>Antworten werden nur nach deiner ausdrücklichen Bestätigung versendet; kein Auftrag wird ohne Freigabe angelegt.</b></p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
   </div>
 
   <div class="card mailConnectCard">
-    <div class="mailCardHead"><div><span class="securityBadge">FIRMEN-E-MAIL</span><h3>Postfach verbinden</h3><p class="mini">Einmal verbinden. Danach arbeitet die Sekretärin unabhängig vom E-Mail-Anbieter mit derselben sicheren Mailbox.</p></div><span class="mailReadOnlyBadge">NUR LESEN</span></div>
+    <div class="mailCardHead"><div><span class="securityBadge">FIRMEN-E-MAIL</span><h3>Postfach verbinden</h3><p class="mini">Einmal verbinden. Danach arbeitet die Sekretärin unabhängig vom E-Mail-Anbieter mit derselben sicheren Mailbox.</p></div><span class="mailReadOnlyBadge">LESEN · FREIGABE-VERSAND</span></div>
     <div id="mailConnectionState" class="mailConnectionState"><div class="empty">Verbindungsstatus wird geladen …</div></div>
     <div id="mailProviderGrid" class="mailProviderGrid"></div>
   </div>
@@ -184,8 +184,8 @@
     <div class="emailAssistIntent" id="emailAssistIntent"></div>
     <div class="emailAssistMatches" id="emailAssistMatches"></div>
     <div class="calendarBlockHint hidden" id="emailAssistSchedule"></div>
-    <div class="field"><label>Antwortvorschlag</label><textarea id="emailAssistReply" class="cleanTextarea emailAssistReply"></textarea><small id="emailAssistSafety">Nichts wird automatisch versendet.</small></div>
-    <div class="actions"><button class="btn" type="button" onclick="EmailAssistant.copyReply()">📋 Antwort kopieren</button><button class="btn primary" id="emailAssistPrimaryAction" type="button" onclick="EmailAssistant.prepare()" hidden></button></div>
+    <div class="field"><label>Antwortvorschlag</label><textarea id="emailAssistReply" class="cleanTextarea emailAssistReply"></textarea><small id="emailAssistSafety">Kein automatischer Versand. Erst deine Bestätigung sendet die Antwort.</small></div>
+    <div class="actions"><button class="btn" type="button" onclick="EmailAssistant.copyReply()">📋 Antwort kopieren</button><button class="btn primary" id="emailAssistSendReply" type="button" onclick="EmailAssistant.sendReply()" hidden>✉️ Antwort senden</button><button class="btn primary" id="emailAssistPrimaryAction" type="button" onclick="EmailAssistant.prepare()" hidden></button></div>
   </div>
   <div class="sectionTitle"><h2>Geprüfte Nachrichten</h2><span>Cloud-Verlauf</span></div>
   <div id="emailAssistHistory" class="list"><div class="empty">Verlauf wird geladen …</div></div>
@@ -1021,21 +1021,21 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.15" defer></script>
-<script src="country-config.js?v=11.15" defer></script>
-<script src="data-repository.js?v=11.15" defer></script>
-<script src="script.js?v=11.15" defer></script>
-<script src="cloud-files.js?v=11.15" defer></script>
-<script src="cloud-sync.js?v=11.15" defer></script>
-<script src="team.js?v=11.15" defer></script>
-<script src="assignments.js?v=11.15" defer></script>
-<script src="time-tracking.js?v=11.15" defer></script>
-<script src="notifications.js?v=11.15" defer></script>
-<script src="mail-hub.js?v=11.15" defer></script>
-<script src="email-assistant.js?v=11.15" defer></script>
-<script src="acceptance.js?v=11.15" defer></script>
-<script src="custom-selects.js?v=11.15" defer></script>
-<script src="cloud-auth.js?v=11.15" defer></script>
+<script src="cloud-config.js?v=11.16" defer></script>
+<script src="country-config.js?v=11.16" defer></script>
+<script src="data-repository.js?v=11.16" defer></script>
+<script src="script.js?v=11.16" defer></script>
+<script src="cloud-files.js?v=11.16" defer></script>
+<script src="cloud-sync.js?v=11.16" defer></script>
+<script src="team.js?v=11.16" defer></script>
+<script src="assignments.js?v=11.16" defer></script>
+<script src="time-tracking.js?v=11.16" defer></script>
+<script src="notifications.js?v=11.16" defer></script>
+<script src="mail-hub.js?v=11.16" defer></script>
+<script src="email-assistant.js?v=11.16" defer></script>
+<script src="acceptance.js?v=11.16" defer></script>
+<script src="custom-selects.js?v=11.16" defer></script>
+<script src="cloud-auth.js?v=11.16" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

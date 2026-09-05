@@ -1203,3 +1203,7 @@ body.sheetOpen{overflow:hidden}
   }
 }
 
+
+/* v11.16 – Freigabe-Versand */
+#emailAssistSendReply:disabled{opacity:.72;cursor:default}
+.mailReadOnlyBadge{max-width:100%;white-space:normal;text-align:center}

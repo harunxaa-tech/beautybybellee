@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.15 – E-Mail-Sekretärin + Terminlogik + DE/AT/CH-Korrespondenz + echte Mailbox-Grundlage
+/* AngebotsPilot v11.16 – E-Mail-Sekretärin + Terminlogik + DE/AT/CH-Korrespondenz + echte Mailbox-Grundlage
    Sicherer Testmodus ohne automatischen Mailversand und ohne kostenpflichtige KI-API.
    Klassifikation ist regelbasiert. Aktionen werden erst nach ausdrücklicher Bestätigung ausgeführt. */
 (function(){
@@ -253,9 +253,11 @@
     const action=q('emailAssistPrimaryAction');
     if(a.intent==='accepted'&&a.offer&&a.customer&&a.slot&&!a.existingJob){action.hidden=false;action.textContent='🏗️ Auftrag vorbereiten';action.dataset.action='accepted'}
     else if(a.intent==='accepted'&&a.existingJob){action.hidden=true;action.dataset.action=''}
-    else if(a.intent==='declined'&&a.offer){action.hidden=false;action.textContent='↩️ Angebot als abgelehnt markieren';action.dataset.action='declined'}
+    else if(a.intent==='declined'&&a.offer&&a.offer.status!=='declined'){action.hidden=false;action.textContent='↩️ Angebot als abgelehnt markieren';action.dataset.action='declined'}
     else{action.hidden=true;action.dataset.action=''}
-    q('emailAssistSafety').textContent=(a.intent==='question'||a.intent==='unknown')?'Keine automatische Sachantwort: Bitte Inhalt persönlich prüfen.':'Nichts wird automatisch versendet oder gebucht. Erst deine Freigabe löst eine Aktion aus.';
+    const send=q('emailAssistSendReply');
+    if(send){const canSend=!!a.sourceMailMessageId;send.hidden=!canSend;send.disabled=!!a.sent;send.textContent=a.sent?'✓ Antwort versendet':'✉️ Antwort senden'}
+    q('emailAssistSafety').textContent=a.sent?'✓ Antwort wurde nach deiner Freigabe versendet.':(a.intent==='question'||a.intent==='unknown')?'Keine automatische Sachantwort: Bitte Inhalt persönlich prüfen. Versand nur nach deiner Bestätigung.':'Nichts wird automatisch versendet oder gebucht. Erst deine Freigabe löst eine Aktion aus.';
   }
 
   async function persistAnalysis(a){
@@ -291,13 +293,31 @@
       globalThis.data.jobs.push(job);globalThis.upsertCalendarEventForJob?.(job);globalThis.persistAppState?.();globalThis.addAudit?.('E-Mail-Sekretärin','Auftrag vorbereitet · '+offer.number);globalThis.renderAll?.();
       if(active.cloudRow?.id)await updateItem(active.cloudRow.id,{workflow_status:'prepared',action_note:`Baustelle ${job.title} ab ${job.start} vorbereitet`});
       try{await globalThis.CloudSync?.pushSnapshot?.()}catch(e){console.warn(e);globalThis.toast?.('Auftrag lokal vorbereitet · Cloud-Sync folgt')}
-      await loadHistory();globalThis.toast?.('✓ Auftrag vorbereitet · Antwort noch nicht versendet');globalThis.editJob?.(job.id);return;
+      active.existingJob=job;active.slot=slotFromJob(job);renderAnalysis(active);await loadHistory();globalThis.toast?.('✓ Auftrag vorbereitet · du kannst die Antwort jetzt senden');return;
     }
     if(action==='declined'){
       const offer=offerById(active.offer?.id);if(!offer)return;
       const ok=await globalThis.appConfirm?.({title:'Angebot als abgelehnt markieren?',text:`${offer.number} wird auf „Abgelehnt“ gesetzt. Es wird keine E-Mail automatisch versendet.`,confirmLabel:'Als abgelehnt markieren',icon:'↩️'});if(!ok)return;
-      offer.status='declined';offer.updatedAt=new Date().toISOString();globalThis.persistAppState?.();globalThis.renderAll?.();if(active.cloudRow?.id)await updateItem(active.cloudRow.id,{workflow_status:'done',action_note:'Angebot als abgelehnt markiert'});try{await globalThis.CloudSync?.pushSnapshot?.()}catch(e){}await loadHistory();globalThis.toast?.('✓ Angebot aktualisiert');
+      offer.status='declined';offer.updatedAt=new Date().toISOString();globalThis.persistAppState?.();globalThis.renderAll?.();if(active.cloudRow?.id)await updateItem(active.cloudRow.id,{workflow_status:'done',action_note:'Angebot als abgelehnt markiert'});try{await globalThis.CloudSync?.pushSnapshot?.()}catch(e){}renderAnalysis(active);await loadHistory();globalThis.toast?.('✓ Angebot aktualisiert · Antwort kann jetzt gesendet werden');
     }
+  }
+
+  async function sendReply(){
+    if(!active?.sourceMailMessageId)return globalThis.toast?.('Direkter Versand ist nur für Mails aus dem verbundenen Firmenpostfach verfügbar.');
+    const reply=String(q('emailAssistReply')?.value||'').trim();if(!reply)return globalThis.toast?.('Antworttext fehlt.');
+    if(active.intent==='accepted'&&active.offer&&!activeJobByOffer(active.offer.id))return globalThis.toast?.('Bitte zuerst den Auftrag vorbereiten, damit die Antwort zum tatsächlichen Planungsstand passt.');
+    if(active.intent==='declined'&&active.offer&&active.offer.status!=='declined')return globalThis.toast?.('Bitte zuerst das Angebot als abgelehnt markieren.');
+    const account=globalThis.MailHub?._state?.().connections?.find?.(x=>x.status==='connected');
+    const recipient=active.senderEmail||'den Kunden';
+    const ok=await globalThis.appConfirm?.({title:'Antwort wirklich senden?',text:`Die Antwort wird jetzt aus ${account?.account_email||'dem verbundenen Firmenpostfach'} an ${recipient} gesendet. Danach kann sie nicht zurückgeholt werden.`,confirmLabel:'Antwort senden',icon:'✉️'});if(!ok)return;
+    const btn=q('emailAssistSendReply');if(btn){btn.disabled=true;btn.textContent='Wird gesendet …'}
+    active.sendRequestId=active.sendRequestId||crypto.randomUUID();
+    try{
+      const r=await globalThis.MailHub?.sendReply?.(active.sourceMailMessageId,reply,active.sendRequestId);if(!r?.ok)throw new Error('Antwort konnte nicht gesendet werden.');
+      active.sent=true;active.reply=reply;
+      if(active.cloudRow?.id){const note=[active.cloudRow.action_note||'',`Antwort versendet an ${recipient}`].filter(Boolean).join(' · ');await updateItem(active.cloudRow.id,{workflow_status:'done',reply_draft:reply,action_note:note});active.cloudRow.action_note=note;active.cloudRow.workflow_status='done'}
+      renderAnalysis(active);await loadHistory();globalThis.MailHub?.refresh?.().catch?.(()=>{});globalThis.toast?.('✓ Antwort wurde versendet');
+    }catch(e){active.sendRequestId='';if(btn){btn.disabled=false;btn.textContent='✉️ Antwort senden'}globalThis.toast?.(e.message||'Antwort konnte nicht gesendet werden')}
   }
 
   async function loadHistory(){
@@ -309,7 +329,7 @@
     box.innerHTML=items.length?items.map(i=>{const m=intentMeta[i.detected_intent]||intentMeta.unknown;return `<div class="card emailHistoryCard"><div class="itemTop"><div><span class="emailIntentBadge ${m.tone}">${m.icon} ${esc(m.label)}</span><h3>${esc(i.subject||'Ohne Betreff')}</h3><p>${esc(i.customer_name||i.sender_email||'Unbekannter Absender')}${i.offer_number?` · ${esc(i.offer_number)}`:''}</p></div><span class="mini">${new Date(i.created_at).toLocaleString(correspondenceProfile().locale)}</span></div><div class="emailHistoryActions"><button class="btn small" onclick="EmailAssistant.reopen('${i.id}')">Öffnen</button><button class="btn small danger" onclick="EmailAssistant.remove('${i.id}')">Löschen</button></div></div>`}).join(''):'<div class="empty">Noch keine E-Mail geprüft.</div>';
   }
 
-  function reopen(id){const i=items.find(x=>x.id===id);if(!i)return;q('emailAssistSender').value=i.sender_email||'';q('emailAssistSenderName').value=i.sender_name||'';q('emailAssistSubject').value=i.subject||'';q('emailAssistBody').value=i.body||'';populateOfferHint();if(i.offer_local_id&&offerById(i.offer_local_id))q('emailAssistOfferHint').value=i.offer_local_id;globalThis.APCustomSelect?.sync?.();const customer=customerById(i.customer_local_id),offer=offerById(i.offer_local_id),existingJob=offer?activeJobByOffer(offer.id):null;let slot=i.suggested_start_date?{startDate:i.suggested_start_date,startTime:String(i.suggested_start_time||'08:00').slice(0,5),endDate:i.suggested_end_date||i.suggested_start_date}:null;if(existingJob&&(i.detected_intent==='appointment'||i.detected_intent==='accepted'))slot=slotFromJob(existingJob);const a={senderEmail:i.sender_email||'',senderName:i.sender_name||'',subject:i.subject||'',body:i.body||'',intent:i.detected_intent||'unknown',confidence:Number(i.confidence)||0,customer,offer,durationValue:Number(i.duration_value)||Number(offer?.durationValue)||1,durationUnit:i.duration_unit||offer?.durationUnit||'days',slot,existingJob,reply:i.reply_draft||'',cloudRow:i};if(a.intent==='appointment')a.reply=replyFor(a);renderAnalysis(a);window.scrollTo({top:0,behavior:'smooth'})}
+  function reopen(id){const i=items.find(x=>x.id===id);if(!i)return;q('emailAssistSender').value=i.sender_email||'';q('emailAssistSenderName').value=i.sender_name||'';q('emailAssistSubject').value=i.subject||'';q('emailAssistBody').value=i.body||'';populateOfferHint();if(i.offer_local_id&&offerById(i.offer_local_id))q('emailAssistOfferHint').value=i.offer_local_id;globalThis.APCustomSelect?.sync?.();const customer=customerById(i.customer_local_id),offer=offerById(i.offer_local_id),existingJob=offer?activeJobByOffer(offer.id):null;let slot=i.suggested_start_date?{startDate:i.suggested_start_date,startTime:String(i.suggested_start_time||'08:00').slice(0,5),endDate:i.suggested_end_date||i.suggested_start_date}:null;if(existingJob&&(i.detected_intent==='appointment'||i.detected_intent==='accepted'))slot=slotFromJob(existingJob);const a={senderEmail:i.sender_email||'',senderName:i.sender_name||'',subject:i.subject||'',body:i.body||'',intent:i.detected_intent||'unknown',confidence:Number(i.confidence)||0,customer,offer,durationValue:Number(i.duration_value)||Number(offer?.durationValue)||1,durationUnit:i.duration_unit||offer?.durationUnit||'days',slot,existingJob,reply:i.reply_draft||'',cloudRow:i,sourceMailMessageId:i.source_mail_message_id||'',sent:/Antwort versendet/i.test(i.action_note||'')};if(a.intent==='appointment')a.reply=replyFor(a);renderAnalysis(a);window.scrollTo({top:0,behavior:'smooth'})}
 
   async function remove(id){const ok=await globalThis.appConfirm?.({title:'Eintrag löschen?',text:'Nur dieser E-Mail-Sekretärin-Verlauf wird gelöscht. Kunden, Angebote und Baustellen bleiben unverändert.',confirmLabel:'Löschen',icon:'🗑️',danger:true});if(!ok)return;const {client}=cloud();const {error}=await client.from('email_assistant_items').delete().eq('id',id);if(error)return globalThis.toast?.('Eintrag konnte nicht gelöscht werden');await loadHistory();globalThis.toast?.('Eintrag gelöscht')}
 
@@ -331,5 +351,5 @@
   async function open(){updateLocaleHint();const {membership}=cloud();if(!['owner','office'].includes(membership?.role||'')){globalThis.toast?.('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar');globalThis.showScreen?.('more');return}globalThis.showScreen?.('emailAssistant');populateOfferHint();clearForm();await Promise.all([loadHistory(),globalThis.MailHub?.refresh?.()])}
 
   globalThis.openEmailAssistant=open;
-  globalThis.EmailAssistant={open,analyze,copyReply,prepare,loadHistory,reopen,remove,clearForm,loadMailMessage,populateOfferHint,_debug:{classify,matchCustomer,matchOffer,parseRequestedDate,findFreeSlot,replyFor,correspondenceProfile,durationLabel,deDate}};
+  globalThis.EmailAssistant={open,analyze,copyReply,sendReply,prepare,loadHistory,reopen,remove,clearForm,loadMailMessage,populateOfferHint,_debug:{classify,matchCustomer,matchOffer,parseRequestedDate,findFreeSlot,replyFor,correspondenceProfile,durationLabel,deDate}};
 })();
