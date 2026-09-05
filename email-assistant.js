@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.10 – E-Mail-Sekretärin + echte Mailbox-Grundlage
+/* AngebotsPilot v11.13 – E-Mail-Sekretärin + Terminlogik + DE/AT/CH-Korrespondenz + echte Mailbox-Grundlage
    Sicherer Testmodus ohne automatischen Mailversand und ohne kostenpflichtige KI-API.
    Klassifikation ist regelbasiert. Aktionen werden erst nach ausdrücklicher Bestätigung ausgeführt. */
 (function(){
@@ -21,9 +21,19 @@
   function normalize(s){return String(s||'').toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim()}
   function customerById(id){return (globalThis.data?.customers||[]).find(x=>x.id===id)}
   function offerById(id){return (globalThis.data?.offers||[]).find(x=>x.id===id)}
+  function activeJobByOffer(id){return (globalThis.data?.jobs||[]).find(x=>x.offerId===id&&!['done','cancelled','canceled'].includes(String(x.status||'').toLowerCase()))||null}
   function companyName(){return globalThis.data?.settings?.companyName||cloud().company?.name||'Ihr Betrieb'}
-  function deDate(iso){if(!iso)return '–';return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}
-  function durationLabel(v,u){v=Math.max(u==='hours'?.25:1,Number(v)||1);return u==='hours'?`${v.toLocaleString('de-DE',{maximumFractionDigits:2})} Stunde${v===1?'':'n'}`:`${Math.round(v)} Arbeitstag${Math.round(v)===1?'':'e'}`}
+  function companyCountryCode(){return String(globalThis.data?.settings?.countryCode||cloud().company?.country_code||'DE').toUpperCase()}
+  function correspondenceProfile(){
+    const code=companyCountryCode();
+    if(code==='CH')return{code,locale:'de-CH',flag:'🇨🇭',label:'Schweizer Hochdeutsch',greetingName:n=>`Grüezi ${n},`,greetingGeneric:'Grüezi,',signoff:'Freundliche Grüsse',thanks:'Besten Dank',offerDative:'unserer Offerte',offerObject:'die Offerte',offerMatchDative:'zur passenden Offerte',offerIndefiniteDative:'einer Offerte',acceptanceLabel:'Annahme der Offerte'};
+    if(code==='AT')return{code,locale:'de-AT',flag:'🇦🇹',label:'Österreichisches Standarddeutsch',greetingName:n=>`Grüß Gott ${n},`,greetingGeneric:'Grüß Gott,',signoff:'Freundliche Grüße',thanks:'Vielen Dank',offerDative:'unserem Angebot',offerObject:'das Angebot',offerMatchDative:'zum passenden Angebot',offerIndefiniteDative:'einem Angebot',acceptanceLabel:'Auftragsannahme'};
+    return{code:'DE',locale:'de-DE',flag:'🇩🇪',label:'Standarddeutsch (Deutschland)',greetingName:n=>`Guten Tag ${n},`,greetingGeneric:'Guten Tag,',signoff:'Freundliche Grüße',thanks:'Vielen Dank',offerDative:'unserem Angebot',offerObject:'das Angebot',offerMatchDative:'zum passenden Angebot',offerIndefiniteDative:'einem Angebot',acceptanceLabel:'Auftragsannahme'};
+  }
+  function localizeOutbound(text){const p=correspondenceProfile();return p.code==='CH'?String(text).replace(/ß/g,'ss'):String(text)}
+  function deDate(iso){if(!iso)return '–';const p=correspondenceProfile();return new Date(iso+'T12:00:00').toLocaleDateString(p.locale,{day:'2-digit',month:'2-digit',year:'numeric'})}
+  function durationLabel(v,u){const p=correspondenceProfile();v=Math.max(u==='hours'?.25:1,Number(v)||1);return u==='hours'?`${v.toLocaleString(p.locale,{maximumFractionDigits:2})} Stunde${v===1?'':'n'}`:`${Math.round(v)} Arbeitstag${Math.round(v)===1?'':'e'}`}
+  function updateLocaleHint(){const el=q('emailCorrespondenceLocale');if(!el)return;const p=correspondenceProfile();el.textContent=`${p.flag} Antwortstil: ${p.label} · automatisch nach Firmenland`;}
 
   function classify(subject,body){
     const t=normalize(`${subject} ${body}`);
@@ -48,9 +58,12 @@
       /(?:ich|wir).{0,25}(?:beauftrage|beauftragen).{0,70}(?:sie|ihnen|den auftrag|die arbeiten)/,
       /(?:ich|wir).{0,30}(?:möchte|möchten|moechte|moechten).{0,45}(?:sie|ihnen).{0,45}beauftragen/,
       /(?:ich|wir).{0,30}beauftragen.{0,45}(?:sie|ihnen)/,
+      /(?:ich|wir).{0,25}(?:bestätige|bestaetige|bestätigen|bestaetigen).{0,60}(?:offerte|kostenvoranschlag)/,
       /hiermit.{0,40}(?:beauftrage|beauftragen|erteile|erteilen).{0,70}(?:auftrag|arbeiten|sie)/,
       /(?:auftrag|beauftragung).{0,35}(?:erteilt|bestätigt|bestaetigt)/,
-      /(?:angebot|auftrag).{0,35}(?:akzeptiert|angenommen)/
+      /(?:angebot|auftrag).{0,35}(?:akzeptiert|angenommen)/,
+      /(?:offerte|kostenvoranschlag).{0,55}(?:annehmen|akzeptiert|angenommen|bestätigt|bestaetigt)/,
+      /(?:ich|wir).{0,25}(?:nehme|nehmen).{0,45}(?:offerte|kostenvoranschlag).{0,30}an/
     ];
 
     const accepted=[
@@ -121,6 +134,28 @@
   }
   function slotFree(date,start,end){return !(globalThis.data?.events||[]).some(ev=>eventBlocks(ev,date,start,end))}
 
+  function workdayEnd(startDate,days){
+    let d=startDate,last=startDate,count=0,guard=0;
+    while(count<Math.max(1,Math.round(Number(days)||1))&&guard<60){
+      guard++;const dow=new Date(d+'T12:00:00').getDay();
+      if(dow!==0&&dow!==6){last=d;count++}
+      if(count<Math.max(1,Math.round(Number(days)||1)))d=addDays(d,1);
+    }
+    return last;
+  }
+  function slotFromJob(job){
+    if(!job?.start)return null;
+    const unit=job.durationUnit==='hours'?'hours':'days';
+    const value=Math.max(unit==='hours'?.25:1,Number(job.durationValue)||1);
+    return {
+      startDate:job.start,
+      startTime:String(job.startTime||'08:00').slice(0,5),
+      endDate:unit==='hours'?job.start:workdayEnd(job.start,value),
+      source:'existing_job',
+      jobId:job.id||''
+    };
+  }
+
   function findFreeSlot(durationValue,durationUnit,preferredDate){
     const unit=durationUnit==='hours'?'hours':'days';
     let start=preferredDate||addDays(new Date().toISOString().slice(0,10),1);
@@ -145,17 +180,22 @@
   }
 
   function replyFor(a){
-    const customer=a.customer;
-    const greeting=customer?.name?`Guten Tag ${customer.name},`:'Guten Tag,';
-    const sign=`Freundliche Grüße\n${companyName()}`;
+    const customer=a.customer,p=correspondenceProfile();
+    const greeting=customer?.name?p.greetingName(customer.name):p.greetingGeneric;
+    const sign=`${p.signoff}\n${companyName()}`;
+    let reply='';
     if(a.intent==='accepted'){
-      if(a.offer&&a.slot)return `${greeting}\n\nvielen Dank für Ihre Zusage zu unserem Angebot ${a.offer.number}. Wir haben den Auftrag vorgemerkt. Nach aktueller Planung könnten wir voraussichtlich am ${deDate(a.slot.startDate)} um ${a.slot.startTime} Uhr mit den Arbeiten beginnen. Die geschätzte Dauer beträgt ${durationLabel(a.durationValue,a.durationUnit)}.\n\nBitte geben Sie uns kurz Bescheid, falls der vorgeschlagene Termin für Sie nicht passt.\n\n${sign}`;
-      return `${greeting}\n\nvielen Dank für Ihre Zusage. Wir haben Ihre Nachricht als Auftragsannahme erkannt. Bevor wir einen Starttermin bestätigen, prüfen wir die Zuordnung zum passenden Angebot und unseren Kalender.\n\n${sign}`;
-    }
-    if(a.intent==='declined')return `${greeting}\n\nvielen Dank für Ihre Rückmeldung. Wir haben vermerkt, dass Sie das Angebot derzeit nicht annehmen. Sollten Sie später noch Fragen haben, sind wir gerne für Sie da.\n\n${sign}`;
-    if(a.intent==='appointment')return `${greeting}\n\nvielen Dank für Ihre Terminanfrage. Wir prüfen unseren Kalender und melden uns mit einem passenden Termin zurück.\n\n${sign}`;
-    if(a.intent==='question')return `${greeting}\n\nvielen Dank für Ihre Nachricht. Ihre Frage ist bei uns angekommen und wird geprüft. Sie erhalten dazu eine persönliche Rückmeldung.\n\n${sign}`;
-    return `${greeting}\n\nvielen Dank für Ihre Nachricht. Wir prüfen Ihr Anliegen und melden uns persönlich bei Ihnen zurück.\n\n${sign}`;
+      if(a.offer&&a.slot)reply=`${greeting}\n\n${p.thanks} für Ihre Zusage zu ${p.offerDative} ${a.offer.number}. Wir haben den Auftrag vorgemerkt. Nach aktueller Planung könnten wir voraussichtlich am ${deDate(a.slot.startDate)} um ${a.slot.startTime} Uhr mit den Arbeiten beginnen. Die voraussichtliche Dauer beträgt ${durationLabel(a.durationValue,a.durationUnit)}.\n\nBitte geben Sie uns kurz Bescheid, falls der vorgeschlagene Termin für Sie nicht passt.\n\n${sign}`;
+      else reply=`${greeting}\n\n${p.thanks} für Ihre Zusage. Wir haben Ihre Nachricht als ${p.acceptanceLabel} erkannt. Bevor wir einen Starttermin bestätigen, prüfen wir die Zuordnung ${p.offerMatchDative} und unseren Kalender.\n\n${sign}`;
+    }else if(a.intent==='declined')reply=`${greeting}\n\n${p.thanks} für Ihre Rückmeldung. Wir haben vermerkt, dass Sie ${p.offerObject} derzeit nicht annehmen. Sollten Sie später noch Fragen haben, sind wir gerne für Sie da.\n\n${sign}`;
+    else if(a.intent==='appointment'){
+      if(a.offer&&a.slot){
+        if(a.slot.source==='existing_job')reply=`${greeting}\n\n${p.thanks} für Ihre Terminanfrage zu ${p.offerDative} ${a.offer.number}. Für den Auftrag ist aktuell bereits ein Start am ${deDate(a.slot.startDate)} um ${a.slot.startTime} Uhr vorgesehen. Die eingeplante Dauer beträgt ${durationLabel(a.durationValue,a.durationUnit)}.\n\nBitte geben Sie uns kurz Bescheid, falls dieser Termin für Sie nicht passt.\n\n${sign}`;
+        else reply=`${greeting}\n\n${p.thanks} für Ihre Terminanfrage zu ${p.offerDative} ${a.offer.number}. Nach aktueller Planung könnten wir voraussichtlich am ${deDate(a.slot.startDate)} um ${a.slot.startTime} Uhr mit den Arbeiten beginnen. Die voraussichtliche Dauer beträgt ${durationLabel(a.durationValue,a.durationUnit)}.\n\nBitte geben Sie uns kurz Bescheid, ob dieser Zeitraum für Sie passt.\n\n${sign}`;
+      }else reply=`${greeting}\n\n${p.thanks} für Ihre Terminanfrage. Für einen konkreten Terminvorschlag müssen wir die Nachricht noch eindeutig ${p.offerIndefiniteDative} zuordnen.\n\n${sign}`;
+    }else if(a.intent==='question')reply=`${greeting}\n\n${p.thanks} für Ihre Nachricht. Ihre Frage ist bei uns angekommen und wird geprüft. Sie erhalten dazu eine persönliche Rückmeldung.\n\n${sign}`;
+    else reply=`${greeting}\n\n${p.thanks} für Ihre Nachricht. Wir prüfen Ihr Anliegen und melden uns persönlich bei Ihnen zurück.\n\n${sign}`;
+    return localizeOutbound(reply);
   }
 
   function populateOfferHint(){
@@ -177,23 +217,33 @@
     if(offer&&!customer)customer=customerById(offer.customerId)||null;
     const durationUnit=offer?.durationUnit==='hours'?'hours':'days',durationValue=Math.max(durationUnit==='hours'?.25:1,Number(offer?.durationValue)||1);
     const requested=parseRequestedDate(combined);
-    const slot=cls.intent==='accepted'&&offer?findFreeSlot(durationValue,durationUnit,requested):null;
+    const existingJob=offer?activeJobByOffer(offer.id):null;
+    let slot=null;
+    if((cls.intent==='accepted'||cls.intent==='appointment')&&offer){
+      slot=existingJob?slotFromJob(existingJob):findFreeSlot(durationValue,durationUnit,requested);
+    }
     let confidence=cls.base+(customer?.id?.length?0.03:0)+(offer?.id?.length?0.04:0);confidence=Math.min(.99,confidence);
-    const a={senderEmail,senderName,subject,body,intent:cls.intent,confidence,customer,offer,durationValue,durationUnit,requestedDate:requested,slot,sourceMailMessageId};
+    const a={senderEmail,senderName,subject,body,intent:cls.intent,confidence,customer,offer,durationValue,durationUnit,requestedDate:requested,slot,existingJob,sourceMailMessageId};
     a.reply=replyFor(a);return a;
   }
 
   function renderAnalysis(a){
-    active=a;
+    active=a;updateLocaleHint();
     const box=q('emailAssistResult');box.classList.remove('hidden');
     const meta=intentMeta[a.intent]||intentMeta.unknown;
     q('emailAssistIntent').innerHTML=`<span>${meta.icon}</span><div><small>ERKANNT</small><b>${esc(meta.label)}</b></div><strong>${Math.round(a.confidence*100)}%</strong>`;
     q('emailAssistMatches').innerHTML=`<div><span>Kunde</span><b>${esc(a.customer?.name||'Nicht eindeutig gefunden')}</b></div><div><span>Angebot</span><b>${esc(a.offer?`${a.offer.number} · ${a.offer.subject}`:'Nicht eindeutig gefunden')}</b></div>`;
     const schedule=q('emailAssistSchedule');
-    if(a.intent==='accepted'&&a.offer&&a.slot){schedule.classList.remove('hidden');schedule.innerHTML=`<span>📅</span><div><b>Freier Zeitraum gefunden</b><small>${deDate(a.slot.startDate)} · ${a.slot.startTime} Uhr · ${esc(durationLabel(a.durationValue,a.durationUnit))}${a.slot.endDate!==a.slot.startDate?` · bis ${deDate(a.slot.endDate)}`:''}</small></div>`}else{schedule.classList.add('hidden');schedule.innerHTML=''}
+    if((a.intent==='accepted'||a.intent==='appointment')&&a.offer&&a.slot){
+      const isExisting=a.slot.source==='existing_job';
+      const title=isExisting?'Bereits geplanter Termin':(a.intent==='appointment'?'Nächster freier Zeitraum':'Freier Zeitraum gefunden');
+      schedule.classList.remove('hidden');
+      schedule.innerHTML=`<span>${isExisting?'✅':'📅'}</span><div><b>${title}</b><small>${deDate(a.slot.startDate)} · ${a.slot.startTime} Uhr · ${esc(durationLabel(a.durationValue,a.durationUnit))}${a.slot.endDate!==a.slot.startDate?` · bis ${deDate(a.slot.endDate)}`:''}</small></div>`;
+    }else{schedule.classList.add('hidden');schedule.innerHTML=''}
     q('emailAssistReply').value=a.reply;
     const action=q('emailAssistPrimaryAction');
-    if(a.intent==='accepted'&&a.offer&&a.customer&&a.slot){action.hidden=false;action.textContent='🏗️ Auftrag vorbereiten';action.dataset.action='accepted'}
+    if(a.intent==='accepted'&&a.offer&&a.customer&&a.slot&&!a.existingJob){action.hidden=false;action.textContent='🏗️ Auftrag vorbereiten';action.dataset.action='accepted'}
+    else if(a.intent==='accepted'&&a.existingJob){action.hidden=true;action.dataset.action=''}
     else if(a.intent==='declined'&&a.offer){action.hidden=false;action.textContent='↩️ Angebot als abgelehnt markieren';action.dataset.action='declined'}
     else{action.hidden=true;action.dataset.action=''}
     q('emailAssistSafety').textContent=(a.intent==='question'||a.intent==='unknown')?'Keine automatische Sachantwort: Bitte Inhalt persönlich prüfen.':'Nichts wird automatisch versendet oder gebucht. Erst deine Freigabe löst eine Aktion aus.';
@@ -247,10 +297,10 @@
     box.innerHTML='<div class="empty">Verlauf wird geladen …</div>';
     const {data,error}=await client.from('email_assistant_items').select('*').eq('company_id',company.id).order('created_at',{ascending:false}).limit(40);if(error){box.innerHTML='<div class="empty">Verlauf konnte nicht geladen werden.</div>';return}
     items=data||[];
-    box.innerHTML=items.length?items.map(i=>{const m=intentMeta[i.detected_intent]||intentMeta.unknown;return `<div class="card emailHistoryCard"><div class="itemTop"><div><span class="emailIntentBadge ${m.tone}">${m.icon} ${esc(m.label)}</span><h3>${esc(i.subject||'Ohne Betreff')}</h3><p>${esc(i.customer_name||i.sender_email||'Unbekannter Absender')}${i.offer_number?` · ${esc(i.offer_number)}`:''}</p></div><span class="mini">${new Date(i.created_at).toLocaleString('de-DE')}</span></div><div class="emailHistoryActions"><button class="btn small" onclick="EmailAssistant.reopen('${i.id}')">Öffnen</button><button class="btn small danger" onclick="EmailAssistant.remove('${i.id}')">Löschen</button></div></div>`}).join(''):'<div class="empty">Noch keine E-Mail geprüft.</div>';
+    box.innerHTML=items.length?items.map(i=>{const m=intentMeta[i.detected_intent]||intentMeta.unknown;return `<div class="card emailHistoryCard"><div class="itemTop"><div><span class="emailIntentBadge ${m.tone}">${m.icon} ${esc(m.label)}</span><h3>${esc(i.subject||'Ohne Betreff')}</h3><p>${esc(i.customer_name||i.sender_email||'Unbekannter Absender')}${i.offer_number?` · ${esc(i.offer_number)}`:''}</p></div><span class="mini">${new Date(i.created_at).toLocaleString(correspondenceProfile().locale)}</span></div><div class="emailHistoryActions"><button class="btn small" onclick="EmailAssistant.reopen('${i.id}')">Öffnen</button><button class="btn small danger" onclick="EmailAssistant.remove('${i.id}')">Löschen</button></div></div>`}).join(''):'<div class="empty">Noch keine E-Mail geprüft.</div>';
   }
 
-  function reopen(id){const i=items.find(x=>x.id===id);if(!i)return;q('emailAssistSender').value=i.sender_email||'';q('emailAssistSenderName').value=i.sender_name||'';q('emailAssistSubject').value=i.subject||'';q('emailAssistBody').value=i.body||'';populateOfferHint();if(i.offer_local_id&&offerById(i.offer_local_id))q('emailAssistOfferHint').value=i.offer_local_id;globalThis.APCustomSelect?.sync?.();const customer=customerById(i.customer_local_id),offer=offerById(i.offer_local_id),a={senderEmail:i.sender_email||'',senderName:i.sender_name||'',subject:i.subject||'',body:i.body||'',intent:i.detected_intent||'unknown',confidence:Number(i.confidence)||0,customer,offer,durationValue:Number(i.duration_value)||Number(offer?.durationValue)||1,durationUnit:i.duration_unit||offer?.durationUnit||'days',slot:i.suggested_start_date?{startDate:i.suggested_start_date,startTime:String(i.suggested_start_time||'08:00').slice(0,5),endDate:i.suggested_end_date||i.suggested_start_date}:null,reply:i.reply_draft||'',cloudRow:i};renderAnalysis(a);window.scrollTo({top:0,behavior:'smooth'})}
+  function reopen(id){const i=items.find(x=>x.id===id);if(!i)return;q('emailAssistSender').value=i.sender_email||'';q('emailAssistSenderName').value=i.sender_name||'';q('emailAssistSubject').value=i.subject||'';q('emailAssistBody').value=i.body||'';populateOfferHint();if(i.offer_local_id&&offerById(i.offer_local_id))q('emailAssistOfferHint').value=i.offer_local_id;globalThis.APCustomSelect?.sync?.();const customer=customerById(i.customer_local_id),offer=offerById(i.offer_local_id),existingJob=offer?activeJobByOffer(offer.id):null;let slot=i.suggested_start_date?{startDate:i.suggested_start_date,startTime:String(i.suggested_start_time||'08:00').slice(0,5),endDate:i.suggested_end_date||i.suggested_start_date}:null;if(existingJob&&(i.detected_intent==='appointment'||i.detected_intent==='accepted'))slot=slotFromJob(existingJob);const a={senderEmail:i.sender_email||'',senderName:i.sender_name||'',subject:i.subject||'',body:i.body||'',intent:i.detected_intent||'unknown',confidence:Number(i.confidence)||0,customer,offer,durationValue:Number(i.duration_value)||Number(offer?.durationValue)||1,durationUnit:i.duration_unit||offer?.durationUnit||'days',slot,existingJob,reply:i.reply_draft||'',cloudRow:i};if(a.intent==='appointment')a.reply=replyFor(a);renderAnalysis(a);window.scrollTo({top:0,behavior:'smooth'})}
 
   async function remove(id){const ok=await globalThis.appConfirm?.({title:'Eintrag löschen?',text:'Nur dieser E-Mail-Sekretärin-Verlauf wird gelöscht. Kunden, Angebote und Baustellen bleiben unverändert.',confirmLabel:'Löschen',icon:'🗑️',danger:true});if(!ok)return;const {client}=cloud();const {error}=await client.from('email_assistant_items').delete().eq('id',id);if(error)return globalThis.toast?.('Eintrag konnte nicht gelöscht werden');await loadHistory();globalThis.toast?.('Eintrag gelöscht')}
 
@@ -263,14 +313,14 @@
     q('emailAssistSenderName').value=message?.from_name||'';
     q('emailAssistSubject').value=message?.subject||'';
     q('emailAssistBody').value=message?.body_text||message?.body_preview||'';
-    const src=q('emailAssistSource');if(src){src.classList.remove('hidden');src.innerHTML=`<span>📥</span><div><b>Aus verbundenem Firmen-Postfach</b><small>${esc(message?.from_email||'')} · ${message?.received_at?new Date(message.received_at).toLocaleString('de-DE'):''}</small></div>`}
+    const src=q('emailAssistSource');if(src){src.classList.remove('hidden');src.innerHTML=`<span>📥</span><div><b>Aus verbundenem Firmen-Postfach</b><small>${esc(message?.from_email||'')} · ${message?.received_at?new Date(message.received_at).toLocaleString(correspondenceProfile().locale):''}</small></div>`}
     populateOfferHint();globalThis.APCustomSelect?.sync?.();
     q('emailManualTestCard')?.scrollIntoView({behavior:'smooth',block:'start'});
     setTimeout(()=>analyze(),180);
   }
 
-  async function open(){const {membership}=cloud();if(!['owner','office'].includes(membership?.role||'')){globalThis.toast?.('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar');globalThis.showScreen?.('more');return}globalThis.showScreen?.('emailAssistant');populateOfferHint();clearForm();await Promise.all([loadHistory(),globalThis.MailHub?.refresh?.()])}
+  async function open(){updateLocaleHint();const {membership}=cloud();if(!['owner','office'].includes(membership?.role||'')){globalThis.toast?.('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar');globalThis.showScreen?.('more');return}globalThis.showScreen?.('emailAssistant');populateOfferHint();clearForm();await Promise.all([loadHistory(),globalThis.MailHub?.refresh?.()])}
 
   globalThis.openEmailAssistant=open;
-  globalThis.EmailAssistant={open,analyze,copyReply,prepare,loadHistory,reopen,remove,clearForm,loadMailMessage,populateOfferHint,_debug:{classify,matchCustomer,matchOffer,parseRequestedDate,findFreeSlot}};
+  globalThis.EmailAssistant={open,analyze,copyReply,prepare,loadHistory,reopen,remove,clearForm,loadMailMessage,populateOfferHint,_debug:{classify,matchCustomer,matchOffer,parseRequestedDate,findFreeSlot,replyFor,correspondenceProfile,durationLabel,deDate}};
 })();
