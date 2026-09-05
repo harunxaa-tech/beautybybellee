@@ -249,6 +249,14 @@
     d.settings.address=cloudCompany.address||d.settings.address||'';
     d.settings.email=cloudCompany.email||session.user.email||d.settings.email||'';
     d.settings.tax=Number(cloudCompany.tax_rate)||0;
+    const previousBrandLogoPath=d.settings.brandLogoPath||'';
+    const incomingBrandLogoPath=cloudCompany.brand_logo_path||d.settings.brandLogoPath||'';
+    if(incomingBrandLogoPath!==previousBrandLogoPath)d.settings.brandLogoLocalDataUrl='';
+    d.settings.brandLogoPath=incomingBrandLogoPath;
+    d.settings.brandAccent=cloudCompany.brand_accent||d.settings.brandAccent||'';
+    d.settings.documentStyle=cloudCompany.document_style||d.settings.documentStyle||'auto';
+    d.settings.logoPosition=cloudCompany.logo_position||d.settings.logoPosition||'left';
+    d.settings.brandLogoMeta=cloudCompany.brand_logo_meta||d.settings.brandLogoMeta||{};
     d.settings.ownerName=session.user.user_metadata?.full_name||d.settings.ownerName||'';
     d.privacy=d.privacy||{};
     d.privacy.role=cloudMembership?.role||'owner';

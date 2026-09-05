@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.6 – In-App + Web Push Benachrichtigungen */
+/* AngebotsPilot v11.18 – In-App + Web Push Benachrichtigungen */
 (function(){
   'use strict';
   const VAPID_PUBLIC='BENvx_2wSNyvaHZ4GtSPUlTf1QadziQjwpUNCu_Uy6QlIOOZbGYv1uU53YBal5j8H7qH2CGOOOXQWKyQBKbp6_E';
@@ -17,7 +17,7 @@
   function isStandalone(){return window.matchMedia?.('(display-mode: standalone)')?.matches||window.navigator.standalone===true}
   function isIos(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}
   function fmtDateTime(v){try{return new Date(v).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return''}}
-  function iconFor(type){return({assignment:'🏗️',time_start:'▶️',time_stop:'⏱️',offer_accepted:'✅',reminder_job:'📅',reminder_event:'🗓️',invoice_overdue:'🧾',acceptance:'✍️'})[type]||'🔔'}
+  function iconFor(type){return({assignment:'🏗️',time_start:'▶️',time_stop:'⏱️',offer_accepted:'✅',reminder_job:'📅',reminder_event:'🗓️',invoice_overdue:'🧾',invoice_due:'💶',invoice_reminder:'✉️',invoice_dunning:'⚠️',payment_received:'✅',acceptance:'✍️'})[type]||'🔔'}
   function relative(v){const d=Date.now()-new Date(v).getTime();if(d<60000)return'gerade eben';if(d<3600000)return`${Math.floor(d/60000)} Min.`;if(d<86400000)return`${Math.floor(d/3600000)} Std.`;return fmtDateTime(v)}
 
   async function attach(c,s,co,m){
@@ -150,8 +150,16 @@
     if(membership?.role!=='worker'){
       const events=(globalThis.data.events||[]).filter(e=>e.date===td&&!e.jobId);
       for(const e of events.slice(0,6))await notifySelf('Termin morgen',`${e.title||'Termin'} · ${e.time||'08:00'} Uhr`,{type:'reminder_event',tag:`event-tomorrow-${e.id}-${td}`,dedupeHours:24,url:'./?screen=calendar'}).catch(()=>{});
-      const today=isoDate(now),overdue=(globalThis.data.invoices||[]).filter(i=>i.status==='open'&&i.dueDate&&i.dueDate<today);
-      if(overdue.length)await notifySelf('Rechnungen überfällig',`${overdue.length} ${overdue.length===1?'Rechnung ist':'Rechnungen sind'} überfällig.`,{type:'invoice_overdue',tag:`overdue-${today}`,dedupeHours:24,url:'./?screen=invoices'}).catch(()=>{});
+      const today=isoDate(now),invoices=(globalThis.data.invoices||[]),open=invoices.filter(i=>i.status==='open');
+      const dueToday=open.filter(i=>i.dueDate===today);
+      const dayDiff=v=>{if(!v)return 0;const a=new Date(v+'T12:00:00'),b=new Date(today+'T12:00:00');return Math.floor((b-a)/86400000)};
+      const reminder=open.filter(i=>i.dueDate&&i.dueDate<today&&(i.reminderStage||'none')==='none');
+      const dunning=open.filter(i=>i.dueDate&&dayDiff(i.dueDate)>=7&&(i.reminderStage||'none')==='reminder'&&i.lastReminderAt&&((now-new Date(i.lastReminderAt))/86400000)>=3);
+      const confirmations=invoices.filter(i=>i.status==='paid'&&!i.paymentConfirmationSentAt&&i.paidAt&&Math.abs((now-new Date(i.paidAt))/86400000)<=7);
+      if(dueToday.length)await notifySelf('Rechnung heute fällig',`${dueToday.length} ${dueToday.length===1?'Rechnung erreicht':'Rechnungen erreichen'} heute das Zahlungsziel.`,{type:'invoice_due',tag:`invoice-due-${today}`,dedupeHours:24,url:'./?screen=invoices'}).catch(()=>{});
+      if(reminder.length)await notifySelf('Zahlungserinnerung vorbereiten',`${reminder.length} ${reminder.length===1?'offene Rechnung ist':'offene Rechnungen sind'} überfällig.`,{type:'invoice_reminder',tag:`invoice-reminder-${today}`,dedupeHours:24,url:'./?screen=invoices'}).catch(()=>{});
+      if(dunning.length)await notifySelf('Mahnung prüfen',`${dunning.length} ${dunning.length===1?'Rechnung ist':'Rechnungen sind'} trotz Erinnerung weiter offen.`,{type:'invoice_dunning',tag:`invoice-dunning-${today}`,dedupeHours:24,url:'./?screen=invoices'}).catch(()=>{});
+      if(confirmations.length)await notifySelf('Zahlungseingang bestätigen',`${confirmations.length} ${confirmations.length===1?'Zahlungsbestätigung ist':'Zahlungsbestätigungen sind'} vorbereitet.`,{type:'payment_received',tag:`payment-confirm-${today}`,dedupeHours:24,url:'./?screen=invoices'}).catch(()=>{});
     }
     setTimeout(()=>load().catch(()=>{}),900);
   }

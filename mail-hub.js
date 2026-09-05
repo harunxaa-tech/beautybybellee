@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.17 – providerunabhängige Firmen-Mailbox
+/* AngebotsPilot v11.18 – providerunabhängige Firmen-Mailbox
    Microsoft OAuth + IMAP/TLS + konservativer Posteingangsfilter. Nichts wird gelöscht. */
 (function(){
   'use strict';
@@ -245,8 +245,11 @@
   async function review(id){const m=messages.find(x=>x.id===id);if(!m)return;globalThis.EmailAssistant?.loadMailMessage?.(m)}
 
   async function sendReply(mailMessageId,replyBody,requestId){
-    return await invoke('mail-send',{mail_message_id:mailMessageId,reply_body:replyBody,request_id:requestId});
+    return await invoke('mail-send',{action:'reply',mail_message_id:mailMessageId,reply_body:replyBody,request_id:requestId});
+  }
+  async function sendInvoiceMail(invoiceId,kind,replyBody,requestId){
+    return await invoke('invoice-followup-send',{invoice_id:invoiceId,kind,reply_body:replyBody,request_id:requestId});
   }
 
-  globalThis.MailHub={refresh,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,toggleFiltered,keepSender,review,sendReply,_state:()=>({connections,messages,capabilities})};
+  globalThis.MailHub={refresh,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,toggleFiltered,keepSender,review,sendReply,sendInvoiceMail,_state:()=>({connections,messages,capabilities})};
 })();

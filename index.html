@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.17">
+<link rel="stylesheet" href="style.css?v=11.19">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -76,6 +76,7 @@
 </div>
 <div class="sectionTitle owner-only"><h2>Schnellstart</h2><span>1 Klick</span></div>
 <div class="quickGrid owner-only"><button class="quick" onclick="newOffer()"><span class="emoji">📄</span><b>Neues Angebot</b><small>Kunde, Positionen, PDF</small></button><button class="quick" onclick="newEvent()"><span class="emoji">📅</span><b>Termin planen</b><small>Baustelle oder Besichtigung</small></button><button class="quick" onclick="newCustomer()"><span class="emoji">👤</span><b>Kunde anlegen</b><small>Kontaktdaten und Adresse</small></button><button class="quick" onclick="newTask()"><span class="emoji">✅</span><b>Aufgabe erstellen</b><small>Nichts mehr vergessen</small></button></div>
+<div id="invoiceFollowupDashboard" class="invoiceFollowupDashboard owner-office-only"></div>
 <div class="sectionTitle"><h2 id="todayTasksTitle">Heute erledigen</h2><span id="taskProgress">0 erledigt</span></div><div class="card"><div id="todayTasks" class="list"></div><button class="btn ghost owner-office-only" style="width:100%;margin-top:10px" onclick="newTask()">＋ Aufgabe hinzufügen</button></div>
 <div class="sectionTitle"><h2>Heutige Termine</h2><span>Kalender</span></div><div class="card"><div id="todayEvents" class="timeline"></div></div>
 </section>
@@ -155,7 +156,7 @@
 <section class="screen" id="emailAssistant">
   <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETÄRIN · FREIGABEMODUS</div><h2>E-Mail-Sekretärin</h2><p class="mini">Firmen-Postfach, Kundenzuordnung und Auftragsvorbereitung an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
   <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.17 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Postfach lesen und antworten – nur mit deiner Freigabe</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend mit dem bestehenden Sekretärinnen-Workflow prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.19 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Postfach lesen und antworten – nur mit deiner Freigabe</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend mit dem bestehenden Sekretärinnen-Workflow prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
   </div>
 
   <div class="card mailConnectCard">
@@ -376,6 +377,26 @@
 <section class="screen" id="tasks"><div class="sectionTitle"><h2>Aufgaben</h2><button class="btn primary small owner-office-only" onclick="newTask()">＋ Neu</button></div><div class="tabs" id="taskTabs"><button class="tab active" data-filter="open">Offen</button><button class="tab" data-filter="done">Erledigt</button><button class="tab" data-filter="all">Alle</button></div><div id="taskList" class="list" style="margin-top:10px"></div></section>
 <section class="screen" id="catalog"><div class="sectionTitle"><div><h2>Material & Leistungen</h2><p class="mini">Dein Betriebskatalog</p></div><button class="btn primary small" onclick="addCatalogItem()">＋ Position</button></div><div class="notice">Standardpositionen sind Startvorlagen. Preise und fachliche Eignung bitte selbst prüfen.</div><div class="card catalogTools"><input id="catalogSearch" class="input" placeholder="🔎 Material oder Leistung suchen …" oninput="renderCatalog()"><div class="filterPills"><button class="pill active" data-catfilter="all" onclick="setCatalogFilter('all',this)">Alle</button><button class="pill" data-catfilter="material" onclick="setCatalogFilter('material',this)">Material</button><button class="pill" data-catfilter="service" onclick="setCatalogFilter('service',this)">Leistungen</button></div></div><div id="catalogList" class="list" style="margin-top:12px"></div></section>
 <section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Cloud synchronisiert</span></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div>
+<div class="brandSetupCard">
+  <div class="brandSetupHead"><div><span class="securityBadge">✨ AUTOMATISCHES DOKUMENTDESIGN</span><h3>Dein Logo. Fertige Dokumente.</h3><p>Logo hochladen – AngebotsPilot schneidet unnötige Ränder weg, optimiert Größe und Darstellung und wählt automatisch eine passende Akzentfarbe.</p></div><div id="brandQualityBadge" class="brandQualityBadge">Noch kein Logo</div></div>
+  <div class="brandSetupGrid">
+    <div class="brandLogoUploadPanel">
+      <div id="brandLogoPreview" class="brandLogoPreview"><span>LOGO</span></div>
+      <label class="btn primary brandUploadBtn">Logo hochladen<input id="brandLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.png,.jpg,.jpeg,.webp,.svg" hidden onchange="handleBrandLogoUpload(event)"></label>
+      <button id="brandLogoRemoveBtn" type="button" class="btn small hidden" onclick="removeBrandLogo()">Logo entfernen</button>
+      <small id="brandLogoHint">PNG, JPG, WebP oder SVG. Sehr kleine Dateien werden erkannt und gekennzeichnet.</small>
+    </div>
+    <div id="brandDocPreview" class="brandDocPreview"></div>
+  </div>
+  <details class="brandAdvanced" id="brandAdvanced">
+    <summary>Design anpassen <span>optional</span></summary>
+    <div class="brandAdvancedGrid">
+      <div class="field"><label>Akzentfarbe</label><div class="brandColorControl"><input id="brandAccent" type="color" value="#1f7a4d" onchange="updateBrandDesignFromControls()"><button type="button" class="btn small" onclick="resetBrandAccentAuto()">Automatisch</button></div></div>
+      <div class="field"><label>Layout</label><select id="documentStyle" onchange="updateBrandDesignFromControls()"><option value="auto">Automatisch</option><option value="modern">Modern</option><option value="classic">Klassisch</option><option value="minimal">Minimal</option></select></div>
+          </div>
+    <p class="mini">Diese Einstellungen sind freiwillig. Du kannst sie jederzeit später ändern.</p>
+  </details>
+</div>
 <div class="sectionTitle" style="margin-top:18px"><h3>Land & Steuern</h3><span id="countryCurrencyBadge">EUR</span></div>
 <div class="row"><div class="field"><label>Land des Betriebs</label><select id="companyCountry" onchange="onCompanyCountryChange()"><option value="DE">🇩🇪 Deutschland</option><option value="AT">🇦🇹 Österreich</option><option value="CH">🇨🇭 Schweiz</option></select></div><div class="field"><label>App-Sprache</label><select id="appLanguage"><option value="de">Deutsch</option></select><small>Weitere Sprachen werden erst nach geprüfter Übersetzung freigeschaltet.</small></div></div>
 <div class="row"><div class="field"><label>Steuerbehandlung</label><select id="taxTreatment" onchange="onCompanyTaxTreatmentChange()"></select><small>Die App prüft keine steuerliche Berechtigung automatisch.</small></div><div class="field"><label id="taxRateLabel">Steuersatz</label><select id="taxMode"></select></div></div>
@@ -812,6 +833,15 @@
     </div>
 
     <div class="onStep hidden" data-step="4">
+      <div class="heroEmoji">✨</div><div class="eyebrow">Deine Marke</div>
+      <h2>Logo rein. Professionelles Design raus.</h2>
+      <p class="lead">Später lädst du nur dein Firmenlogo hoch. AngebotsPilot optimiert Größe, Ränder, Platzierung und Akzentfarbe automatisch für Angebote und Rechnungen.</p>
+      <div class="introFlow"><span>🖼️ Logo</span><b>→</b><span>✨ automatisch</span><b>→</b><span>📄 dein Design</span></div>
+      <p class="microcopy">Wenn du willst, kannst du Farbe und Layout jederzeit unter Betrieb anpassen – musst du aber nicht.</p>
+      <button class="btn primary onboardPrimary" onclick="nextOnboarding()">Weiter →</button>
+    </div>
+
+    <div class="onStep hidden" data-step="5">
       <div class="heroEmoji">☁️</div><div class="eyebrow">Cloud & Team</div>
       <h1>Dein Betrieb auf jedem Gerät.</h1>
       <p class="lead">Nach der Anmeldung gehören deine Daten zu deinem Betrieb. Später lädst du Mitarbeiter per Einladungslink ins Team ein.</p>
@@ -974,6 +1004,21 @@
     <div class="tourActions"><button id="tourBack" class="btn" onclick="previousTourStep()">← Zurück</button><button id="tourNext" class="btn primary" onclick="nextTourStep()">Weiter →</button></div>
   </div>
 </div>
+
+<div id="invoiceFollowupModal" class="appModalBackdrop hidden" onclick="closeInvoiceFollowupModal(event)">
+  <div class="appModal invoiceFollowupModal" onclick="event.stopPropagation()">
+    <div class="appModalHeader">
+      <div><div class="modalEyebrow" id="invoiceFollowupEyebrow">RECHNUNG</div><h3 id="invoiceFollowupTitle">Zahlungserinnerung</h3><p class="mini" id="invoiceFollowupMeta"></p></div>
+      <button class="modalClose" onclick="closeInvoiceFollowupModal()">✕</button>
+    </div>
+    <div class="invoiceFollowupSafety"><span>✉️</span><div><b>Vorbereitet – nicht automatisch versendet</b><small>Prüfe den Text. Erst dein Tippen auf „E-Mail senden“ löst den Versand aus.</small></div></div>
+    <div class="field"><label>Empfänger</label><input class="input" id="invoiceFollowupRecipient" readonly></div>
+    <div class="field"><label>Betreff</label><input class="input" id="invoiceFollowupSubject" readonly></div>
+    <div class="field"><label>Nachricht</label><textarea id="invoiceFollowupBody" class="invoiceFollowupBody"></textarea></div>
+    <input type="hidden" id="invoiceFollowupInvoiceId"><input type="hidden" id="invoiceFollowupKind">
+    <div class="modalActions invoiceFollowupActions"><button class="btn" onclick="closeInvoiceFollowupModal()">Später</button><button class="btn primary" id="invoiceFollowupSendBtn" onclick="sendInvoiceFollowup()">✉️ E-Mail senden</button></div>
+  </div>
+</div>
 <div id="acceptanceBackdrop" class="acceptanceBackdrop hidden">
   <div class="acceptanceSheet">
     <div class="acceptanceTopbar"><div><span class="securityBadge">✅ VOR-ORT-ABNAHME</span><h2>Auftrag abschließen</h2><p>Kunde prüft, danach unterschreibt auch die ausführende Person direkt auf diesem Gerät.</p></div><button type="button" class="btn small" onclick="cancelAcceptance()">Abbrechen</button></div>
@@ -1021,21 +1066,21 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.17" defer></script>
-<script src="country-config.js?v=11.17" defer></script>
-<script src="data-repository.js?v=11.17" defer></script>
-<script src="script.js?v=11.17" defer></script>
-<script src="cloud-files.js?v=11.17" defer></script>
-<script src="cloud-sync.js?v=11.17" defer></script>
-<script src="team.js?v=11.17" defer></script>
-<script src="assignments.js?v=11.17" defer></script>
-<script src="time-tracking.js?v=11.17" defer></script>
-<script src="notifications.js?v=11.17" defer></script>
-<script src="mail-hub.js?v=11.17" defer></script>
-<script src="email-assistant.js?v=11.17" defer></script>
-<script src="acceptance.js?v=11.17" defer></script>
-<script src="custom-selects.js?v=11.17" defer></script>
-<script src="cloud-auth.js?v=11.17" defer></script>
+<script src="cloud-config.js?v=11.19" defer></script>
+<script src="country-config.js?v=11.19" defer></script>
+<script src="data-repository.js?v=11.19" defer></script>
+<script src="script.js?v=11.19" defer></script>
+<script src="cloud-files.js?v=11.19" defer></script>
+<script src="cloud-sync.js?v=11.19" defer></script>
+<script src="team.js?v=11.19" defer></script>
+<script src="assignments.js?v=11.19" defer></script>
+<script src="time-tracking.js?v=11.19" defer></script>
+<script src="notifications.js?v=11.19" defer></script>
+<script src="mail-hub.js?v=11.19" defer></script>
+<script src="email-assistant.js?v=11.19" defer></script>
+<script src="acceptance.js?v=11.19" defer></script>
+<script src="custom-selects.js?v=11.19" defer></script>
+<script src="cloud-auth.js?v=11.19" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

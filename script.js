@@ -1,7 +1,7 @@
 const KEY='digitaler_handwerker_v3';
 const PRIVACY_VERSION='1.0';
 const WEATHER_CACHE_KEY='dh_weather_cache_v1';
-const defaultData={settings:{companyName:'',ownerName:'',phone:'',email:'',address:'',weatherLocation:'',tax:0,paymentTerm:'7 Tage',taxNumber:'',vatId:'',iban:'',bankName:'',countryCode:'DE',currency:'EUR',appLanguage:'de',taxTreatment:'small_business',taxNote:''},privacy:{version:PRIVACY_VERSION,consents:{weather:false,location:false,external:false,analytics:false},role:'owner',acceptedAt:null},audit:[],customers:[],offers:[],events:[],tasks:[],jobs:[],invoices:[],catalog:[{id:uid(),name:'Gartenarbeit / Fachkraft',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Anfahrt',unit:'Pauschale',price:50,type:'service',trade:'garden'},{id:uid(),name:'Rasen mähen und Pflege',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Hecken- und Strauchschnitt',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Rollrasen verlegen',unit:'m²',price:18,type:'service',trade:'garden'},{id:uid(),name:'Humus / Mutterboden',unit:'m³',price:65,type:'material',trade:'garden'},{id:uid(),name:'Entsorgung Grünabfall',unit:'Pauschale',price:120,type:'service',trade:'garden'}]};
+const defaultData={settings:{companyName:'',ownerName:'',phone:'',email:'',address:'',weatherLocation:'',tax:0,paymentTerm:'7 Tage',taxNumber:'',vatId:'',iban:'',bankName:'',brandLogoPath:'',brandLogoLocalDataUrl:'',brandAccent:'',brandAccentAuto:'',documentStyle:'auto',logoPosition:'left',brandLogoMeta:{},brandLogoPendingCloud:false,countryCode:'DE',currency:'EUR',appLanguage:'de',taxTreatment:'small_business',taxNote:''},privacy:{version:PRIVACY_VERSION,consents:{weather:false,location:false,external:false,analytics:false},role:'owner',acceptedAt:null},audit:[],customers:[],offers:[],events:[],tasks:[],jobs:[],invoices:[],catalog:[{id:uid(),name:'Gartenarbeit / Fachkraft',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Anfahrt',unit:'Pauschale',price:50,type:'service',trade:'garden'},{id:uid(),name:'Rasen mähen und Pflege',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Hecken- und Strauchschnitt',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Rollrasen verlegen',unit:'m²',price:18,type:'service',trade:'garden'},{id:uid(),name:'Humus / Mutterboden',unit:'m³',price:65,type:'material',trade:'garden'},{id:uid(),name:'Entsorgung Grünabfall',unit:'Pauschale',price:120,type:'service',trade:'garden'}]};
 
 // v9.7 FIX: onboarding/product-tour state and trade catalogs
 let onboardingStep=0;
@@ -107,8 +107,8 @@ function openOnboarding(){onboardingStep=0;setOnboardingActive(true);document.ge
 function renderTradeGrid(){const el=document.getElementById('tradeGrid');if(!el)return;el.innerHTML=Object.entries(TRADE_CATALOGS).map(([id,t])=>`<button class="tradeCard ${onboardingTrade===id?'selected':''}" onclick="selectTrade('${id}')"><span class="tradeIcon">${t.icon}</span><span><b>${escapeHTML(t.name)}</b><small>${escapeHTML(t.desc)}</small></span></button>`).join('')}
 function selectTrade(id){onboardingTrade=id;renderTradeGrid();document.getElementById('tradeNext').disabled=false}
 function pickTax(v,el){onboardingTax=v;document.querySelectorAll('.choice[data-tax]').forEach(x=>x.classList.remove('active'));el.classList.add('active')}
-function showOnboardingStep(){document.querySelectorAll('.onStep').forEach(x=>x.classList.add('hidden'));document.querySelector(`.onStep[data-step="${onboardingStep}"]`)?.classList.remove('hidden');const p=document.getElementById('onboardProgress');if(p)p.style.width=(onboardingStep/4*100)+'%';document.getElementById('onboardBack')?.classList.toggle('hidden',onboardingStep===0);document.getElementById('onboardBrand')?.classList.toggle('hidden',onboardingStep>0)}
-function nextOnboarding(){onboardingStep=Math.min(4,onboardingStep+1);showOnboardingStep()}
+function showOnboardingStep(){document.querySelectorAll('.onStep').forEach(x=>x.classList.add('hidden'));document.querySelector(`.onStep[data-step="${onboardingStep}"]`)?.classList.remove('hidden');const p=document.getElementById('onboardProgress');if(p)p.style.width=(onboardingStep/5*100)+'%';document.getElementById('onboardBack')?.classList.toggle('hidden',onboardingStep===0);document.getElementById('onboardBrand')?.classList.toggle('hidden',onboardingStep>0)}
+function nextOnboarding(){onboardingStep=Math.min(5,onboardingStep+1);showOnboardingStep()}
 function previousOnboarding(){
   if(onboardingStep<=0)return;
   onboardingStep=Math.max(0,onboardingStep-1);
@@ -127,7 +127,7 @@ function installTradeCatalog(){
   repairCatalogV102();
   saveData('Branchenkatalog eingerichtet',`${t.name}: ${added} neue Positionen`);
   document.getElementById('finishCount').textContent=t.items.length;
-  onboardingStep=4;showOnboardingStep();
+  onboardingStep=5;showOnboardingStep();
   if(navigator.vibrate)navigator.vibrate(35);
 }
 function skipOnboarding(){localStorage.setItem('dh_onboarding_v8_done','1');document.getElementById('onboarding').classList.add('hidden');setOnboardingActive(false);globalThis.requireCloudEntry?.()}
@@ -664,6 +664,7 @@ function renderToday(){
   }else{
     document.getElementById('dailyMessage').textContent=openTasks.length||todayEvents.length?'Dein Tag ist vorbereitet. Arbeite die wichtigsten Punkte nacheinander ab.':'Heute ist noch frei – ideal für Angebote, Akquise oder Planung.';
   }
+  if(!worker)renderInvoiceFollowupDashboard();
 }
 function taskHTML(t){return `<div class="item"><div class="taskRow"><button class="taskCheck ${t.done?'checked':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</button><div class="taskContent ${t.done?'doneText':''}"><h3>${escapeHTML(t.title)}</h3><p>${dateDE(t.date)}${t.notes?' · '+escapeHTML(t.notes):''}</p></div><button class="btn small" onclick="editTask('${t.id}')">✎</button></div></div>`}
 function toggleTask(id){const t=data.tasks.find(x=>x.id===id);if(t){t.done=!t.done;saveData()}}
@@ -1020,14 +1021,42 @@ function quickOfferStatus(id){
   document.getElementById('offerStatusModal').classList.remove('hidden');
 }
 
+const brandLogoRuntime=new Map();
+function validBrandHex(v,fallback='#1f7a4d'){const x=String(v||'').trim();return /^#[0-9a-f]{6}$/i.test(x)?x.toLowerCase():fallback}
+function brandAccentFor(s=data.settings){return validBrandHex(s?.brandAccent||s?.brandAccentAuto||'#1f7a4d')}
+function brandStyleFor(s=data.settings){const v=String(s?.documentStyle||'auto');return ['modern','classic','minimal'].includes(v)?v:'modern'}
+function brandLogoPositionFor(s=data.settings){return s?.logoPosition==='center'?'center':'left'}
+function brandLogoPathFor(s=data.settings){return String(s?.brandLogoPath||'')}
+function brandLogoDataFor(s=data.settings){const path=brandLogoPathFor(s);if(path&&brandLogoRuntime.has(path))return brandLogoRuntime.get(path).dataUrl||'';if(path&&s===data.settings&&s.brandLogoLocalDataUrl){brandLogoRuntime.set(path,{dataUrl:s.brandLogoLocalDataUrl,meta:s.brandLogoMeta||{}});return s.brandLogoLocalDataUrl}if(path)return'';return s?.brandLogoLocalDataUrl||''}
+function brandLogoMetaFor(s=data.settings){const path=brandLogoPathFor(s);return (path&&brandLogoRuntime.get(path)?.meta)||s?.brandLogoMeta||{}}
+function brandDocAttrs(s=data.settings){const accent=brandAccentFor(s),style=brandStyleFor(s),pos=brandLogoPositionFor(s);return{accent,style,pos,attr:`class="offerPaper professionalPaper docStyle-${style} logo-${pos}" style="--brand-accent:${accent};--brand-soft:${accent}16;--brand-mid:${accent}2b"`}}
+function brandIdentityHTML(s,company,mark){const src=brandLogoDataFor(s);return src?`<div class="companyIdentity brandIdentityWithLogo"><div class="companyLogoWrap"><img src="${escapeHTML(src)}" alt="Firmenlogo"></div><div><h2>${escapeHTML(company)}</h2><p>${escapeHTML(s.address||'')}</p></div></div>`:`<div class="companyIdentity"><div class="companyMonogram">${escapeHTML(mark||'AP')}</div><div><h2>${escapeHTML(company)}</h2><p>${escapeHTML(s.address||'')}</p></div></div>`}
+async function blobToDataUrl(blob){return await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(r.error||new Error('Datei konnte nicht gelesen werden'));r.readAsDataURL(blob)})}
+async function ensureBrandLogoLoaded(path=brandLogoPathFor(data.settings),meta=null){if(!path)return'';if(brandLogoRuntime.has(path))return brandLogoRuntime.get(path).dataUrl||'';if(data.settings.brandLogoPath===path&&data.settings.brandLogoLocalDataUrl){brandLogoRuntime.set(path,{dataUrl:data.settings.brandLogoLocalDataUrl,meta:data.settings.brandLogoMeta||meta||{}});return data.settings.brandLogoLocalDataUrl}try{const asset=await globalThis.CloudFiles?.getBrandAsset?.(path);if(!asset?.blob)return'';const dataUrl=await blobToDataUrl(asset.blob);brandLogoRuntime.set(path,{dataUrl,meta:meta||{}});if(data.settings.brandLogoPath===path){data.settings.brandLogoLocalDataUrl=dataUrl;globalThis.safePersistCloudIdentity?.(data)}return dataUrl}catch(e){console.warn('Logo konnte noch nicht geladen werden',e);return''}}
+function loadImageFromSource(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Logo konnte nicht gelesen werden'));img.src=src})}
+function colorDistance(a,b){return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2+(a[3]-b[3])**2*.1)}
+function rgbHex(r,g,b){return'#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('')}
+function extractBrandAccent(imgData,bounds,bg){const hist=new Map(),d=imgData.data,w=imgData.width;for(let y=bounds.y;y<bounds.y+bounds.h;y+=Math.max(1,Math.floor(bounds.h/90))){for(let x=bounds.x;x<bounds.x+bounds.w;x+=Math.max(1,Math.floor(bounds.w/140))){const i=(y*w+x)*4,a=d[i+3];if(a<50)continue;const rgb=[d[i],d[i+1],d[i+2]],mx=Math.max(...rgb),mn=Math.min(...rgb),sat=mx?((mx-mn)/mx):0,lum=(rgb[0]*.299+rgb[1]*.587+rgb[2]*.114);if(colorDistance([d[i],d[i+1],d[i+2],a],bg)<28||sat<.18||lum<35||lum>235)continue;const key=rgb.map(v=>Math.round(v/32)*32).join(',');hist.set(key,(hist.get(key)||0)+sat*(1-Math.abs(lum-145)/180))}}if(!hist.size)return'';const key=[...hist.entries()].sort((a,b)=>b[1]-a[1])[0][0];const [r,g,b]=key.split(',').map(Number);return rgbHex(r,g,b)}
+function sharpenCanvas(canvas,amount=.18){if(canvas.width*canvas.height>900000)return;const ctx=canvas.getContext('2d',{willReadFrequently:true}),img=ctx.getImageData(0,0,canvas.width,canvas.height),src=img.data,out=new Uint8ClampedArray(src),w=canvas.width,h=canvas.height;for(let y=1;y<h-1;y++){for(let x=1;x<w-1;x++){const idx=(y*w+x)*4;for(let c=0;c<3;c++){const center=src[idx+c],blur=(src[idx-4+c]+src[idx+4+c]+src[idx-w*4+c]+src[idx+w*4+c])/4;out[idx+c]=Math.max(0,Math.min(255,center+(center-blur)*amount))}}}img.data.set(out);ctx.putImageData(img,0,0)}
+async function optimizeBrandLogoFile(file){if(!file||file.size>10*1024*1024)throw new Error('Logo ist zu groß. Bitte eine Datei unter 10 MB wählen.');const mime=String(file.type||'').toLowerCase(),name=String(file.name||'').toLowerCase();if(!mime.startsWith('image/')&&!/\.(png|jpe?g|webp|svg)$/.test(name))throw new Error('Bitte PNG, JPG, WebP oder SVG verwenden.');const src=URL.createObjectURL(file);let img;try{img=await loadImageFromSource(src)}finally{URL.revokeObjectURL(src)}const sw=Math.max(1,img.naturalWidth||img.width),sh=Math.max(1,img.naturalHeight||img.height),scale=Math.min(1,1800/sw,900/sh),cw=Math.max(1,Math.round(sw*scale)),ch=Math.max(1,Math.round(sh*scale)),scan=document.createElement('canvas');scan.width=cw;scan.height=ch;const ctx=scan.getContext('2d',{willReadFrequently:true});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.clearRect(0,0,cw,ch);ctx.drawImage(img,0,0,cw,ch);const image=ctx.getImageData(0,0,cw,ch),d=image.data;const corners=[[0,0],[cw-1,0],[0,ch-1],[cw-1,ch-1]].map(([x,y])=>{const i=(y*cw+x)*4;return[d[i],d[i+1],d[i+2],d[i+3]]});const bg=corners.reduce((a,c)=>a.map((v,i)=>v+c[i]),[0,0,0,0]).map(v=>v/4);const transparentBg=bg[3]<80;let minX=cw,minY=ch,maxX=-1,maxY=-1;const threshold=transparentBg?18:34;for(let y=0;y<ch;y++){for(let x=0;x<cw;x++){const i=(y*cw+x)*4,p=[d[i],d[i+1],d[i+2],d[i+3]];const content=transparentBg?p[3]>20:(p[3]>20&&colorDistance(p,bg)>threshold);if(content){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y}}}if(maxX<0){minX=0;minY=0;maxX=cw-1;maxY=ch-1}const rawW=maxX-minX+1,rawH=maxY-minY+1,pad=Math.max(3,Math.round(Math.max(rawW,rawH)*.035));minX=Math.max(0,minX-pad);minY=Math.max(0,minY-pad);maxX=Math.min(cw-1,maxX+pad);maxY=Math.min(ch-1,maxY+pad);const bw=maxX-minX+1,bh=maxY-minY+1,sourceScale=sw/cw,sourceBW=bw*sourceScale,sourceBH=bh*sourceScale;let targetW=Math.min(1200,Math.max(520,Math.round(sourceBW))),targetH=Math.round(targetW*bh/bw);if(targetH>420){targetH=420;targetW=Math.round(targetH*bw/bh)}const upscale=Math.max(targetW/sourceBW,targetH/sourceBH),qualityScore=Math.min(100,Math.round(Math.min(sourceBW/650,sourceBH/160)*100)),needsBetterOriginal=qualityScore<55;const crop=document.createElement('canvas');crop.width=Math.max(1,targetW);crop.height=Math.max(1,targetH);const out=crop.getContext('2d',{willReadFrequently:true});out.imageSmoothingEnabled=true;out.imageSmoothingQuality='high';let avgLum=0,count=0;for(let y=minY;y<=maxY;y+=Math.max(1,Math.floor(bh/50))){for(let x=minX;x<=maxX;x+=Math.max(1,Math.floor(bw/80))){const i=(y*cw+x)*4;if(d[i+3]>40&&colorDistance([d[i],d[i+1],d[i+2],d[i+3]],bg)>threshold){avgLum+=d[i]*.299+d[i+1]*.587+d[i+2]*.114;count++}}}avgLum=count?avgLum/count:120;const plate=transparentBg&&avgLum>218?'dark':'light';out.fillStyle=plate==='dark'?'#17202a':'#ffffff';out.fillRect(0,0,crop.width,crop.height);out.drawImage(scan,minX,minY,bw,bh,0,0,crop.width,crop.height);if(upscale>1.15&&mime!=='image/svg+xml')sharpenCanvas(crop,Math.min(.32,.12+(upscale-1)*.08));const accent=extractBrandAccent(image,{x:minX,y:minY,w:bw,h:bh},bg)||'';const blob=await new Promise(resolve=>crop.toBlob(resolve,'image/jpeg',.92));if(!blob)throw new Error('Logo konnte nicht optimiert werden');const dataUrl=await blobToDataUrl(blob);return{blob,dataUrl,accent,meta:{originalWidth:sw,originalHeight:sh,optimizedWidth:crop.width,optimizedHeight:crop.height,qualityScore,needsBetterOriginal,plate,upscale:Number(upscale.toFixed(2)),sourceType:mime||name.split('.').pop()}}}
+function renderBrandingSettings(){const s=data.settings||{},accent=brandAccentFor(s),logo=brandLogoDataFor(s),meta=brandLogoMetaFor(s),preview=document.getElementById('brandLogoPreview'),quality=document.getElementById('brandQualityBadge'),hint=document.getElementById('brandLogoHint'),remove=document.getElementById('brandLogoRemoveBtn');if(preview)preview.innerHTML=logo?`<img src="${escapeHTML(logo)}" alt="Firmenlogo">`:`<span>${escapeHTML((s.companyName||'LOGO').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'LOGO')}</span>`;if(quality){if(!logo)quality.textContent='Noch kein Logo';else if(meta.needsBetterOriginal)quality.textContent='⚠️ Kleine Vorlage';else quality.textContent='✓ Für Dokumente optimiert'}if(hint){hint.textContent=meta.needsBetterOriginal?'Das Logo wurde verbessert, ist aber sehr klein. Für perfekten Druck empfehlen wir später eine größere Originaldatei.':'PNG, JPG, WebP oder SVG. Größe und Ränder werden automatisch optimiert.'}remove?.classList.toggle('hidden',!logo);const color=document.getElementById('brandAccent');if(color)color.value=accent;const style=document.getElementById('documentStyle');if(style)style.value=s.documentStyle||'auto';const pos=document.getElementById('logoPosition');if(pos)pos.value=s.logoPosition||'left';const doc=document.getElementById('brandDocPreview');if(doc){const company=s.companyName||'Dein Betrieb',mark=company.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'AP',identity=logo?`<img src="${escapeHTML(logo)}">`:`<span>${escapeHTML(mark)}</span>`;doc.innerHTML=`<div class="brandMiniPaper" style="--brand-accent:${accent};--brand-soft:${accent}18"><div class="brandMiniTop"><div class="brandMiniLogo">${identity}</div><b>${escapeHTML(company)}</b><em>ANGEBOT</em></div><div class="brandMiniLine"></div><div class="brandMiniRows"><i></i><i></i><i></i></div><div class="brandMiniTotal"><span>Gesamtbetrag</span><strong>1.248,00</strong></div></div>`}}
+async function handleBrandLogoUpload(event){const input=event?.target,file=input?.files?.[0];if(!file)return;const label=document.getElementById('brandQualityBadge');if(label)label.textContent='Logo wird optimiert …';try{const result=await optimizeBrandLogoFile(file);data.settings.brandLogoPath='';data.settings.brandLogoLocalDataUrl=result.dataUrl;data.settings.brandLogoMeta=result.meta;data.settings.brandAccentAuto=result.accent||data.settings.brandAccentAuto||'#1f7a4d';data.settings.brandAccent=data.settings.brandAccentAuto;data.settings.brandLogoPendingCloud=true;brandLogoRuntime.set('pending',{dataUrl:result.dataUrl,meta:result.meta});renderBrandingSettings();saveData('Firmenlogo optimiert',`${result.meta.originalWidth}×${result.meta.originalHeight} → ${result.meta.optimizedWidth}×${result.meta.optimizedHeight}`);await syncPendingBrandLogo(result.blob);toast(result.meta.needsBetterOriginal?'✓ Logo optimiert · größere Originaldatei wäre noch besser':'✓ Logo automatisch optimiert')}catch(e){console.error(e);toast(e?.message||'Logo konnte nicht verarbeitet werden')}finally{if(input)input.value=''}}
+async function syncPendingBrandLogo(blob=null){if(!data.settings.brandLogoPendingCloud||!globalThis.CloudFiles?.ready?.())return false;try{let b=blob;if(!b&&data.settings.brandLogoLocalDataUrl)b=dataUrlToBrandBlob(data.settings.brandLogoLocalDataUrl);if(!b)return false;const uploaded=await globalThis.CloudFiles.uploadBrandLogo(b,'logo-optimiert.jpg');data.settings.brandLogoPath=uploaded.path;data.settings.brandLogoPendingCloud=false;brandLogoRuntime.set(uploaded.path,{dataUrl:data.settings.brandLogoLocalDataUrl,meta:data.settings.brandLogoMeta||{}});saveData('Firmenlogo synchronisiert','Dokumentdesign');renderBrandingSettings();return true}catch(e){console.warn('Logo-Cloud-Sync wartet',e);return false}}
+function dataUrlToBrandBlob(url){const [head,raw]=String(url||'').split(','),mime=(head.match(/data:([^;]+)/)||[])[1]||'image/jpeg',bin=atob(raw||''),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime})}
+async function removeBrandLogo(){const ok=await appConfirm({title:'Logo entfernen?',text:'Angebote und neue Rechnungen verwenden danach wieder die automatische Firmenmarke. Bereits ausgestellte Rechnungen behalten ihre gespeicherte Gestaltung.',confirmLabel:'Logo entfernen',icon:'🖼️'});if(!ok)return;data.settings.brandLogoPath='';data.settings.brandLogoLocalDataUrl='';data.settings.brandLogoMeta={};data.settings.brandLogoPendingCloud=false;saveData('Firmenlogo entfernt','Dokumentdesign');renderBrandingSettings();toast('Logo entfernt')}
+function updateBrandDesignFromControls(){const color=document.getElementById('brandAccent')?.value||'',style=document.getElementById('documentStyle')?.value||'auto',pos=document.getElementById('logoPosition')?.value||'left';data.settings.brandAccent=validBrandHex(color,brandAccentFor(data.settings));data.settings.documentStyle=['auto','modern','classic','minimal'].includes(style)?style:'auto';data.settings.logoPosition=pos==='center'?'center':'left';saveData('Dokumentdesign geändert','Branding');renderBrandingSettings()}
+function resetBrandAccentAuto(){data.settings.brandAccent=validBrandHex(data.settings.brandAccentAuto||'#1f7a4d');saveData('Akzentfarbe automatisch gewählt','Branding');renderBrandingSettings()}
+globalThis.syncPendingBrandLogo=syncPendingBrandLogo;
+globalThis.ensureBrandLogoLoaded=ensureBrandLogoLoaded;
+
 function paperHTML(o){
   const c=data.customers.find(x=>x.id===o.customerId)||{},s=data.settings;
-  const company=s.companyName||'Ihr Betrieb',owner=s.ownerName||'',mark=company.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+  const company=s.companyName||'Ihr Betrieb',owner=s.ownerName||'',mark=company.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase(),brand=brandDocAttrs(s);
   const lineRows=o.lines.filter(l=>l.name).map((l,i)=>`<tr><td class="posCol">${String(i+1).padStart(2,'0')}</td><td><b>${escapeHTML(l.name)}</b></td><td class="num">${Number(l.qty).toLocaleString('de-DE',{maximumFractionDigits:2})} ${escapeHTML(l.unit)}</td><td class="num">${euro(l.price)}</td><td class="num strong">${euro(l.qty*l.price)}</td></tr>`).join('');
   const offerProfile=currentCountryProfile(),offerTreatment=data.settings.taxTreatment||((Number(o.tax)||0)===0?(currentCountryCode()==='CH'?'non_registered':'small_business'):'standard'),taxNote=o.tax?`zzgl. ${String(o.tax).replace('.',',')}% ${offerProfile.taxLabel||'Steuer'}`:(data.settings.taxNote||automaticTaxNote(currentCountryCode(),offerTreatment));
-  return `<div class="offerPaper professionalPaper">
+  return `<div ${brand.attr}>
     <div class="proHeader">
-      <div class="companyIdentity"><div class="companyMonogram">${escapeHTML(mark||'AP')}</div><div><h2>${escapeHTML(company)}</h2><p>${escapeHTML(s.address||'')}</p></div></div>
+      ${brandIdentityHTML(s,company,mark)}
       <div class="offerTitleBlock"><span>ANGEBOT</span><strong>${escapeHTML(o.number||'')}</strong></div>
     </div>
     <div class="proContactLine">${s.phone?`<span>Tel. ${escapeHTML(s.phone)}</span>`:''}${s.email?`<span>${escapeHTML(s.email)}</span>`:''}${owner?`<span>Ansprechpartner: ${escapeHTML(owner)}</span>`:''}</div>
@@ -1045,8 +1074,8 @@ function paperHTML(o){
     <div class="paperFoot proFooter"><span>${escapeHTML(company)}</span><span>${escapeHTML(s.address||'')}</span>${s.phone?`<span>${escapeHTML(s.phone)}</span>`:''}${s.email?`<span>${escapeHTML(s.email)}</span>`:''}</div>
   </div>`;
 }
-function previewOffer(){const o=offerObject();document.getElementById('offerPreviewPaper').innerHTML=paperHTML(o);showScreen('offerPreview')}
-function previewSavedOffer(id){const o=data.offers.find(x=>x.id===id);document.getElementById('offerId').value=id;document.getElementById('offerPreviewPaper').innerHTML=paperHTML(o);showScreen('offerPreview')}
+async function previewOffer(){const o=offerObject();await ensureBrandLogoLoaded(data.settings.brandLogoPath,data.settings.brandLogoMeta||{});document.getElementById('offerPreviewPaper').innerHTML=paperHTML(o);showScreen('offerPreview')}
+async function previewSavedOffer(id){const o=data.offers.find(x=>x.id===id);await ensureBrandLogoLoaded(data.settings.brandLogoPath,data.settings.brandLogoMeta||{});document.getElementById('offerId').value=id;document.getElementById('offerPreviewPaper').innerHTML=paperHTML(o);showScreen('offerPreview')}
 function printOffer(){document.getElementById('printArea').innerHTML=document.getElementById('offerPreviewPaper').innerHTML;window.print()}
 async function shareOfferWhatsApp(){if(!await ensureExternalConsent('WhatsApp'))return;const id=document.getElementById('offerId').value,o=id?data.offers.find(x=>x.id===id):offerObject(),c=data.customers.find(x=>x.id===o.customerId);const t=`Hallo ${c?.name||''}, Ihr Angebot „${o.subject}“ über ${euro(o.total)} ist fertig. Freundliche Grüße, ${data.settings.companyName}`;location.href='https://wa.me/?text='+encodeURIComponent(t)}
 
@@ -1365,11 +1394,12 @@ function invoiceNumberExists(number,excludeId=''){const n=String(number||'').tri
 function nextUniqueInvoiceNumber(){let candidate=nextInvoiceNumber(),guard=0;while(invoiceNumberExists(candidate)&&guard<500){guard++;const m=String(candidate).match(/^(.*?)(\d+)$/);candidate=m?m[1]+String(parseInt(m[2],10)+1).padStart(m[2].length,'0'):String(candidate)+'-'+guard}return candidate}
 function isInvoiceLocked(inv){return!!(inv&&(inv.finalizedAt||['open','paid','cancelled'].includes(inv.status)))}
 function invoiceCalc(inv){const base=(inv.lines||[]).reduce((s,l)=>s+(Number(l.qty)||0)*(Number(l.price)||0),0);inv.travel=0;inv.discountType=normalizeDiscountType(inv.discountType);if(inv.discountValue===undefined||inv.discountValue===null)inv.discountValue=Number(inv.discount)||0;inv.countryCode=inv.countryCode||currentCountryCode();inv.currencyCode=inv.currencyCode||globalThis.APCountry?.country(inv.countryCode)?.currency||currentCurrencyCode();inv.invoiceLanguage=inv.invoiceLanguage||data.settings.appLanguage||'de';inv.taxTreatment=taxTreatmentForCountry(inv.countryCode,inv.taxTreatment||data.settings.taxTreatment||'standard');if(!inv.taxNote)inv.taxNote=automaticTaxNote(inv.countryCode,inv.taxTreatment);const discount=discountAmount(base,inv.discountValue,inv.discountType),sub=base-discount,rawTax=Number(inv.tax??data.settings.tax)||0,tax=treatmentForcesZeroTax(inv.taxTreatment)?0:rawTax;inv.baseSubtotal=base;inv.discount=discount;inv.subtotal=sub;inv.tax=tax;inv.total=sub*(1+tax/100);return inv}
-function invoiceSnapshot(inv){const customer=data.customers.find(x=>x.id===inv.customerId)||{},settings=data.settings||{};return{number:inv.number,customerId:inv.customerId,date:inv.date,dueDate:inv.dueDate,subject:inv.subject,notes:inv.notes,lines:structuredClone(inv.lines||[]),travel:0,discountType:inv.discountType,discountValue:inv.discountValue,discount:inv.discount,baseSubtotal:inv.baseSubtotal,tax:inv.tax,subtotal:inv.subtotal,total:inv.total,offerId:inv.offerId||'',offerNumber:inv.offerNumber||'',jobId:inv.jobId||'',documentType:inv.documentType||'invoice',countryCode:inv.countryCode||currentCountryCode(),currencyCode:inv.currencyCode||currentCurrencyCode(),invoiceLanguage:inv.invoiceLanguage||settings.appLanguage||'de',taxTreatment:inv.taxTreatment||settings.taxTreatment||'standard',taxNote:inv.taxNote||automaticTaxNote(inv.countryCode||currentCountryCode(),inv.taxTreatment||settings.taxTreatment||'standard'),company:{companyName:settings.companyName||'',ownerName:settings.ownerName||'',address:settings.address||'',phone:settings.phone||'',email:settings.email||'',taxNumber:settings.taxNumber||'',vatId:settings.vatId||'',iban:settings.iban||'',bankName:settings.bankName||''},customer:{name:customer.name||'',contact:customer.contact||'',address:customer.address||'',email:customer.email||'',phone:customer.phone||''}}}
+function invoiceSnapshot(inv){const customer=data.customers.find(x=>x.id===inv.customerId)||{},settings=data.settings||{};return{number:inv.number,customerId:inv.customerId,date:inv.date,dueDate:inv.dueDate,subject:inv.subject,notes:inv.notes,lines:structuredClone(inv.lines||[]),travel:0,discountType:inv.discountType,discountValue:inv.discountValue,discount:inv.discount,baseSubtotal:inv.baseSubtotal,tax:inv.tax,subtotal:inv.subtotal,total:inv.total,offerId:inv.offerId||'',offerNumber:inv.offerNumber||'',jobId:inv.jobId||'',documentType:inv.documentType||'invoice',countryCode:inv.countryCode||currentCountryCode(),currencyCode:inv.currencyCode||currentCurrencyCode(),invoiceLanguage:inv.invoiceLanguage||settings.appLanguage||'de',taxTreatment:inv.taxTreatment||settings.taxTreatment||'standard',taxNote:inv.taxNote||automaticTaxNote(inv.countryCode||currentCountryCode(),inv.taxTreatment||settings.taxTreatment||'standard'),company:{companyName:settings.companyName||'',ownerName:settings.ownerName||'',address:settings.address||'',phone:settings.phone||'',email:settings.email||'',taxNumber:settings.taxNumber||'',vatId:settings.vatId||'',iban:settings.iban||'',bankName:settings.bankName||'',brandLogoPath:settings.brandLogoPath||'',brandAccent:settings.brandAccent||'',brandAccentAuto:settings.brandAccentAuto||'',documentStyle:settings.documentStyle||'auto',logoPosition:settings.logoPosition||'left',brandLogoMeta:structuredClone(settings.brandLogoMeta||{})},customer:{name:customer.name||'',contact:customer.contact||'',address:customer.address||'',email:customer.email||'',phone:customer.phone||''}}}
 function finalizeInvoiceRecord(inv,status='open'){
   if(!inv)return null;
   if(!inv.finalizedAt)inv.finalizedAt=new Date().toISOString();
   inv.status=status==='paid'?'paid':'open';
+  if(inv.status==='paid'&&!inv.paidAt)inv.paidAt=new Date().toISOString();
   inv.finalizedSnapshot=inv.finalizedSnapshot||invoiceSnapshot(inv);
   if(inv.documentType==='cancellation'&&inv.originalInvoiceId){const original=data.invoices.find(x=>x.id===inv.originalInvoiceId);if(original){original.status='cancelled';original.cancelledAt=new Date().toISOString();original.cancelledByInvoiceId=inv.id;addAudit('Originalrechnung storniert',`${original.number} durch ${inv.number}`)}}
   addAudit('Rechnung ausgestellt',`${inv.number} · ${invoiceMoney(inv.total,inv)}`);
@@ -1379,14 +1409,14 @@ function finalizeInvoiceRecord(inv,status='open'){
 function createInvoiceFromOfferObject(offer){
   if(!offer)return null;const existing=findInvoiceForOffer(offer);if(existing)return existing;
   const linkedJob=(data.jobs||[]).find(j=>j.offerId===offer.id),date=todayISO();
-  const inv={id:uid(),number:nextUniqueInvoiceNumber(),customerId:offer.customerId,date,dueDate:addDaysISO(date,paymentDays()),status:'draft',subject:offer.subject||linkedJob?.title||'Ausgeführte Arbeiten',notes:'Aus dem abgeschlossenen Angebot erstellt. Bitte tatsächliche Leistungen, Mengen und Zusatzarbeiten vor Versand prüfen.',lines:structuredClone(offer.lines||[]),travel:0,discountType:normalizeDiscountType(offer.discountType),discountValue:Number(offer.discountValue ?? offer.discount ?? 0)||0,tax:Number(offer.tax??data.settings.tax)||0,offerId:offer.id,offerNumber:offer.number||'',sourceOfferNumber:offer.number||'',jobId:linkedJob?.id||'',createdAutomatically:true,documentType:'invoice',countryCode:currentCountryCode(),currencyCode:currentCurrencyCode(),invoiceLanguage:data.settings.appLanguage||'de',taxTreatment:data.settings.taxTreatment||'standard',taxNote:data.settings.taxNote||automaticTaxNote(currentCountryCode(),data.settings.taxTreatment||'standard')};
+  const inv={id:uid(),number:nextUniqueInvoiceNumber(),customerId:offer.customerId,date,dueDate:addDaysISO(date,paymentDays()),status:'draft',subject:offer.subject||linkedJob?.title||'Ausgeführte Arbeiten',notes:'Aus dem abgeschlossenen Angebot erstellt. Bitte tatsächliche Leistungen, Mengen und Zusatzarbeiten vor Versand prüfen.',lines:structuredClone(offer.lines||[]),travel:0,discountType:normalizeDiscountType(offer.discountType),discountValue:Number(offer.discountValue ?? offer.discount ?? 0)||0,tax:Number(offer.tax??data.settings.tax)||0,offerId:offer.id,offerNumber:offer.number||'',sourceOfferNumber:offer.number||'',jobId:linkedJob?.id||'',createdAutomatically:true,documentType:'invoice',reminderStage:'none',lastReminderAt:'',paymentConfirmationSentAt:'',countryCode:currentCountryCode(),currencyCode:currentCurrencyCode(),invoiceLanguage:data.settings.appLanguage||'de',taxTreatment:data.settings.taxTreatment||'standard',taxNote:data.settings.taxNote||automaticTaxNote(currentCountryCode(),data.settings.taxTreatment||'standard')};
   invoiceCalc(inv);data.invoices.push(inv);if(linkedJob){linkedJob.invoiceId=inv.id;if(linkedJob.status!=='done')linkedJob.status='done'}addAudit('Rechnungsentwurf aus Angebot erstellt',`${inv.number} · ${offer.number||offer.subject||''}`);return inv;
 }
 function createInvoiceFromJobObject(job){
   const offer=data.offers.find(o=>o.id===job.offerId)||(data.offers.filter(o=>o.customerId===job.customerId&&o.status==='accepted').sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0]);
   if(offer){const existing=findInvoiceForOffer(offer);if(existing){job.invoiceId=existing.id;if(!existing.jobId)existing.jobId=job.id;return existing}}
   if(job.invoiceId){const linked=data.invoices.find(i=>i.id===job.invoiceId);if(linked)return linked}
-  const date=todayISO(),inv={id:uid(),number:nextUniqueInvoiceNumber(),customerId:job.customerId,date,dueDate:addDaysISO(date,paymentDays()),status:'draft',subject:job.title||offer?.subject||'Ausgeführte Arbeiten',notes:'Automatisch nach Abschluss der Baustelle erstellt. Bitte tatsächliche Leistungen und Mengen vor Versand prüfen.',lines:offer?structuredClone(offer.lines||[]):[{name:'Ausgeführte Arbeiten – '+(job.title||'Baustelle'),qty:1,unit:'Pauschale',price:0}],travel:0,discountType:normalizeDiscountType(offer?.discountType),discountValue:Number(offer?.discountValue ?? offer?.discount ?? 0)||0,tax:Number(offer?.tax??data.settings.tax)||0,offerId:offer?.id||'',offerNumber:offer?.number||'',sourceOfferNumber:offer?.number||'',jobId:job.id,createdAutomatically:true,documentType:'invoice',countryCode:currentCountryCode(),currencyCode:currentCurrencyCode(),invoiceLanguage:data.settings.appLanguage||'de',taxTreatment:data.settings.taxTreatment||'standard',taxNote:data.settings.taxNote||automaticTaxNote(currentCountryCode(),data.settings.taxTreatment||'standard')};
+  const date=todayISO(),inv={id:uid(),number:nextUniqueInvoiceNumber(),customerId:job.customerId,date,dueDate:addDaysISO(date,paymentDays()),status:'draft',subject:job.title||offer?.subject||'Ausgeführte Arbeiten',notes:'Automatisch nach Abschluss der Baustelle erstellt. Bitte tatsächliche Leistungen und Mengen vor Versand prüfen.',lines:offer?structuredClone(offer.lines||[]):[{name:'Ausgeführte Arbeiten – '+(job.title||'Baustelle'),qty:1,unit:'Pauschale',price:0}],travel:0,discountType:normalizeDiscountType(offer?.discountType),discountValue:Number(offer?.discountValue ?? offer?.discount ?? 0)||0,tax:Number(offer?.tax??data.settings.tax)||0,offerId:offer?.id||'',offerNumber:offer?.number||'',sourceOfferNumber:offer?.number||'',jobId:job.id,createdAutomatically:true,documentType:'invoice',reminderStage:'none',lastReminderAt:'',paymentConfirmationSentAt:'',countryCode:currentCountryCode(),currencyCode:currentCurrencyCode(),invoiceLanguage:data.settings.appLanguage||'de',taxTreatment:data.settings.taxTreatment||'standard',taxNote:data.settings.taxNote||automaticTaxNote(currentCountryCode(),data.settings.taxTreatment||'standard')};
   invoiceCalc(inv);data.invoices.push(inv);job.invoiceId=inv.id;addAudit('Rechnungsentwurf automatisch erstellt',`${inv.number} · ${job.title}`);return inv;
 }
 function createInvoiceFromJob(id){const job=data.jobs.find(x=>x.id===id);if(!job)return;if(job.invoiceId)return editInvoice(job.invoiceId);const inv=createInvoiceFromJobObject(job);saveData('Rechnung erstellt',inv.number);editInvoice(inv.id);toast('Rechnungsentwurf erstellt')}
@@ -1397,7 +1427,7 @@ function editInvoice(id){const inv=data.invoices.find(x=>x.id===id);if(!inv)retu
 function applyInvoiceLockState(inv){const locked=isInvoiceLocked(inv),banner=document.getElementById('invoiceLockBanner'),save=document.getElementById('invoiceSaveBtn'),add=document.getElementById('invoiceAddLineBtn'),hint=document.getElementById('invoiceStatusHint');if(banner)banner.classList.toggle('hidden',!locked);document.querySelectorAll('[data-invoice-editable]').forEach(el=>el.disabled=locked);if(save)save.classList.toggle('hidden',locked);if(add)add.classList.toggle('hidden',locked);if(hint)hint.textContent=locked?`Ausgestellt am ${inv?.finalizedAt?new Date(inv.finalizedAt).toLocaleString('de-DE'):'bereits finalisiert'}. Für Änderungen bitte Korrektur oder Storno verwenden.`:'Entwürfe können frei bearbeitet werden. Beim Ausstellen wird die Rechnung gesperrt.';const corr=document.getElementById('invoiceCorrectionBtn'),cancel=document.getElementById('invoiceCancelDraftBtn');if(corr)corr.onclick=()=>createCorrectionDraft(inv?.id);if(cancel)cancel.onclick=()=>createCancellationDraft(inv?.id)}
 function renderInvoiceLines(locked=false){document.getElementById('invoiceLines').innerHTML=invoiceDraftLines.map((l,i)=>`<div class="item"><div class="field"><input class="input" value="${escapeHTML(l.name)}" placeholder="Leistung" ${locked?'disabled':''} oninput="invoiceDraftLines[${i}].name=this.value"></div><div class="row3"><input type="number" class="input" value="${l.qty}" step="0.01" ${locked?'disabled':''} oninput="invoiceDraftLines[${i}].qty=Number(this.value)"><input class="input" value="${escapeHTML(l.unit)}" ${locked?'disabled':''} oninput="invoiceDraftLines[${i}].unit=this.value"><input type="number" class="input" value="${l.price}" step="0.01" ${locked?'disabled':''} oninput="invoiceDraftLines[${i}].price=Number(this.value)"></div><div class="itemActions"><span class="mini">Menge · Einheit · Einzelpreis</span>${locked?'':'<button class="btn small danger" onclick="invoiceDraftLines.splice('+i+',1);renderInvoiceLines(false)">Löschen</button>'}</div></div>`).join('')}
 function addInvoiceLine(){const old=document.getElementById('invoiceId').value?data.invoices.find(x=>x.id===document.getElementById('invoiceId').value):null;if(isInvoiceLocked(old))return toast('🔒 Ausgestellte Rechnung ist gesperrt');invoiceDraftLines.push({name:'',qty:1,unit:'Pauschale',price:0});renderInvoiceLines(false)}
-function invoiceObject(){const id=document.getElementById('invoiceId').value,old=id?data.invoices.find(x=>x.id===id):null,countryCode=old?.countryCode||currentCountryCode(),currencyCode=old?.currencyCode||globalThis.APCountry?.country(countryCode)?.currency||currentCurrencyCode(),taxTreatment=document.getElementById('invoiceTaxTreatment')?.value||old?.taxTreatment||data.settings.taxTreatment||'standard',taxRate=Number(document.getElementById('invoiceTaxRate')?.value ?? old?.tax ?? data.settings.tax)||0,taxNote=document.getElementById('invoiceTaxNote')?.value.trim()||automaticTaxNote(countryCode,taxTreatment),inv={id:id||uid(),number:old?.number||nextUniqueInvoiceNumber(),customerId:document.getElementById('invoiceCustomer').value,date:document.getElementById('invoiceDate').value,dueDate:document.getElementById('invoiceDueDate').value,status:document.getElementById('invoiceStatus').value,subject:document.getElementById('invoiceSubject').value.trim(),notes:document.getElementById('invoiceNotes').value.trim(),lines:structuredClone(invoiceDraftLines),travel:0,discountType:normalizeDiscountType(document.getElementById('invoiceDiscountType')?.value),discountValue:Number(document.getElementById('invoiceDiscount').value)||0,tax:taxRate,offerId:old?.offerId||'',offerNumber:old?.offerNumber||'',sourceOfferNumber:old?.sourceOfferNumber||'',jobId:old?.jobId||'',createdAutomatically:old?.createdAutomatically||false,documentType:old?.documentType||'invoice',originalInvoiceId:old?.originalInvoiceId||'',correctionOf:old?.correctionOf||'',finalizedAt:old?.finalizedAt||'',finalizedSnapshot:old?.finalizedSnapshot||null,countryCode,currencyCode,invoiceLanguage:old?.invoiceLanguage||data.settings.appLanguage||'de',taxTreatment,taxNote};return invoiceCalc(inv)}
+function invoiceObject(){const id=document.getElementById('invoiceId').value,old=id?data.invoices.find(x=>x.id===id):null,countryCode=old?.countryCode||currentCountryCode(),currencyCode=old?.currencyCode||globalThis.APCountry?.country(countryCode)?.currency||currentCurrencyCode(),taxTreatment=document.getElementById('invoiceTaxTreatment')?.value||old?.taxTreatment||data.settings.taxTreatment||'standard',taxRate=Number(document.getElementById('invoiceTaxRate')?.value ?? old?.tax ?? data.settings.tax)||0,taxNote=document.getElementById('invoiceTaxNote')?.value.trim()||automaticTaxNote(countryCode,taxTreatment),inv={id:id||uid(),number:old?.number||nextUniqueInvoiceNumber(),customerId:document.getElementById('invoiceCustomer').value,date:document.getElementById('invoiceDate').value,dueDate:document.getElementById('invoiceDueDate').value,status:document.getElementById('invoiceStatus').value,subject:document.getElementById('invoiceSubject').value.trim(),notes:document.getElementById('invoiceNotes').value.trim(),lines:structuredClone(invoiceDraftLines),travel:0,discountType:normalizeDiscountType(document.getElementById('invoiceDiscountType')?.value),discountValue:Number(document.getElementById('invoiceDiscount').value)||0,tax:taxRate,offerId:old?.offerId||'',offerNumber:old?.offerNumber||'',sourceOfferNumber:old?.sourceOfferNumber||'',jobId:old?.jobId||'',createdAutomatically:old?.createdAutomatically||false,documentType:old?.documentType||'invoice',originalInvoiceId:old?.originalInvoiceId||'',correctionOf:old?.correctionOf||'',finalizedAt:old?.finalizedAt||'',finalizedSnapshot:old?.finalizedSnapshot||null,reminderStage:old?.reminderStage||'none',lastReminderAt:old?.lastReminderAt||'',paymentConfirmationSentAt:old?.paymentConfirmationSentAt||'',paidAt:old?.paidAt||'',countryCode,currencyCode,invoiceLanguage:old?.invoiceLanguage||data.settings.appLanguage||'de',taxTreatment,taxNote};return invoiceCalc(inv)}
 
 function persistInvoiceDraftFromEditor({audit=true}={}){
   const id=document.getElementById('invoiceId').value;
@@ -1447,26 +1477,93 @@ async function saveInvoice(){
   if(inv.offerId){const linkedOffer=(data.offers||[]).find(o=>o.id===inv.offerId),duplicate=findInvoiceForOffer(linkedOffer||inv.offerId);if(duplicate&&duplicate.id!==inv.id){toast(`⚠️ Für dieses Angebot existiert bereits Rechnung ${duplicate.number}`);editInvoice(duplicate.id);return}}
   const shouldFinalize=['open','paid'].includes(inv.status);if(shouldFinalize){const ok=await appConfirm({title:'Rechnung ausstellen?',text:`${inv.number} wird danach gegen inhaltliche Änderungen gesperrt. Falls später etwas geändert werden muss, erstellst du eine Korrektur oder ein Storno.`,confirmLabel:'Jetzt ausstellen',icon:'🔒'});if(!ok){document.getElementById('invoiceStatus').value='draft';inv.status='draft';return}}
   if(shouldFinalize)finalizeInvoiceRecord(inv,inv.status);
-  const i=data.invoices.findIndex(x=>x.id===inv.id);if(i>=0)data.invoices[i]=inv;else data.invoices.push(inv);saveData(shouldFinalize?'Rechnung finalisiert':'Rechnung gespeichert',inv.number);showScreen('invoices');toast(shouldFinalize?'🔒 Rechnung ausgestellt und gesperrt':'Rechnung gespeichert')
+  const i=data.invoices.findIndex(x=>x.id===inv.id);if(i>=0)data.invoices[i]=inv;else data.invoices.push(inv);saveData(shouldFinalize?'Rechnung finalisiert':'Rechnung gespeichert',inv.number);showScreen('invoices');toast(shouldFinalize?'🔒 Rechnung ausgestellt und gesperrt':'Rechnung gespeichert');if(inv.status==='paid'&&!inv.paymentConfirmationSentAt)setTimeout(()=>openInvoiceFollowup(inv.id,'payment_confirmation'),280)
 }
 async function finalizeInvoiceById(id){const inv=data.invoices.find(x=>x.id===id);if(!inv)return;if(isInvoiceLocked(inv))return editInvoice(id);const ok=await appConfirm({title:'Rechnung ausstellen?',text:`${inv.number} wird finalisiert und danach gegen Änderungen gesperrt.`,confirmLabel:'Rechnung ausstellen',icon:'🔒'});if(!ok)return;invoiceCalc(inv);finalizeInvoiceRecord(inv,'open');saveData('Rechnung finalisiert',inv.number);toast('🔒 Rechnung ausgestellt')}
 function invoiceStatusLabel(s){return({draft:'Entwurf',open:'Offen / ausgestellt',paid:'Bezahlt',cancelled:'Storniert'})[s]||s}
 function invoiceTypeLabel(inv){return inv.documentType==='cancellation'?'Storno':inv.correctionOf?'Korrektur':'Rechnung'}
-function renderInvoices(){const el=document.getElementById('invoiceList');if(!el)return;const list=[...data.invoices].sort((a,b)=>(b.date||'').localeCompare(a.date||''));el.innerHTML=list.length?list.map(inv=>{const c=data.customers.find(x=>x.id===inv.customerId),locked=isInvoiceLocked(inv),type=invoiceTypeLabel(inv);return `<div class="item"><div class="itemTop"><div><span class="badge ${inv.status==='paid'?'done':inv.status==='open'?'sent':inv.status==='cancelled'?'rejected':'draft'}">${invoiceStatusLabel(inv.status)}</span><h3 style="margin-top:8px">${escapeHTML(inv.subject)}</h3><p>${escapeHTML(c?.name||'Unbekannter Kunde')} · ${escapeHTML(inv.number)} · ${type} · fällig ${dateDE(inv.dueDate)}</p></div><strong>${invoiceMoney(inv.total,inv)}</strong></div><div class="itemActions"><button class="btn small" onclick="editInvoice('${inv.id}')">${locked?'Öffnen':'Bearbeiten'}</button><button class="btn small" onclick="previewInvoice('${inv.id}')">PDF</button>${inv.status==='draft'?`<button class="btn small primary" onclick="finalizeInvoiceById('${inv.id}')">🔒 Ausstellen</button>`:`<button class="btn small primary shareInvoiceBtn" onclick="shareInvoicePDF('${inv.id}')">📤 Teilen</button>`}${inv.status==='open'?`<button class="btn small" onclick="markInvoicePaid('${inv.id}')">✓ Bezahlt</button>`:''}${['open','paid'].includes(inv.status)&&inv.documentType!=='cancellation'?`<button class="btn small" onclick="createCorrectionDraft('${inv.id}')">↗ Korrektur</button><button class="btn small danger" onclick="createCancellationDraft('${inv.id}')">↩ Storno</button>`:''}</div></div>`}).join(''):'<div class="empty">Noch keine Rechnungen.</div>'}
-async function markInvoicePaid(id){const inv=data.invoices.find(x=>x.id===id);if(!inv)return;if(inv.status==='draft')return toast('Rechnung zuerst ausstellen');if(inv.status==='cancelled')return toast('Stornierte Rechnung kann nicht bezahlt werden');const ok=await appConfirm({title:'Zahlung bestätigen?',text:`${inv.number} als vollständig bezahlt markieren?`,confirmLabel:'Als bezahlt markieren',icon:'✓'});if(!ok)return;inv.status='paid';inv.paidAt=todayISO();saveData('Rechnung bezahlt',inv.number);toast('✓ Als bezahlt markiert')}
+function invoiceDaysOverdue(inv){if(!inv?.dueDate)return 0;const due=new Date(inv.dueDate+'T12:00:00'),today=new Date(todayISO()+'T12:00:00');return Math.max(0,Math.floor((today-due)/86400000))}
+function invoiceDaysSince(v){if(!v)return 999;return Math.max(0,Math.floor((Date.now()-new Date(v).getTime())/86400000))}
+function invoiceFollowupKind(inv){
+  if(!inv)return'';
+  if(inv.status==='paid'&&!inv.paymentConfirmationSentAt)return'payment_confirmation';
+  if(inv.status!=='open'||!inv.dueDate)return'';
+  const days=invoiceDaysOverdue(inv),stage=inv.reminderStage||'none';
+  if(days<1)return'';
+  if(stage==='none')return'payment_reminder';
+  if(stage==='reminder'&&days>=7&&invoiceDaysSince(inv.lastReminderAt)>=3)return'payment_dunning';
+  return'';
+}
+function invoiceFollowupLabel(kind){return({payment_reminder:'Zahlungserinnerung',payment_dunning:'Mahnung',payment_confirmation:'Zahlungseingangsbestätigung'})[kind]||''}
+function invoiceFollowupSubject(inv,kind){if(kind==='payment_reminder')return`Zahlungserinnerung zu Rechnung ${inv.number}`;if(kind==='payment_dunning')return`Mahnung zu Rechnung ${inv.number}`;return`Zahlungseingang bestätigt – Rechnung ${inv.number}`}
+function invoiceFollowupSalutation(inv,customer){const cc=invoiceCountryCode(inv);if(cc==='CH')return`Grüezi ${customer?.name||''}`.trim();if(cc==='AT')return`Grüß Gott ${customer?.name||''}`.trim();return`Guten Tag ${customer?.name||''}`.trim()}
+function invoiceFollowupClosing(inv){return invoiceCountryCode(inv)==='CH'?'Freundliche Grüsse':'Freundliche Grüße'}
+function invoiceFollowupText(inv,kind){
+  const c=data.customers.find(x=>x.id===inv.customerId)||{},company=data.settings.companyName||'Ihr Betrieb',sal=invoiceFollowupSalutation(inv,c),close=invoiceFollowupClosing(inv),amount=invoiceMoney(inv.total,inv),due=dateDE(inv.dueDate),days=invoiceDaysOverdue(inv),cc=invoiceCountryCode(inv);
+  if(kind==='payment_confirmation'){
+    return cc==='CH'?`${sal},\n\nbesten Dank. Wir bestätigen den Eingang Ihrer Zahlung über ${amount} zur Rechnung ${inv.number}.\n\nDamit ist die Rechnung bei uns als bezahlt verbucht.\n\n${close}\n${company}`:`${sal},\n\nvielen Dank. Wir bestätigen den Eingang Ihrer Zahlung über ${amount} zur Rechnung ${inv.number}.\n\nDamit ist die Rechnung bei uns als bezahlt verbucht.\n\n${close}\n${company}`;
+  }
+  if(kind==='payment_dunning'){
+    return cc==='CH'?`${sal},\n\nunsere Rechnung ${inv.number} über ${amount} war am ${due} fällig und ist nach unserer Zahlungserinnerung weiterhin offen.\n\nWir bitten Sie, den offenen Betrag zeitnah zu prüfen und zu begleichen. Falls die Zahlung bereits erfolgt ist, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n${close}\n${company}`:`${sal},\n\nunsere Rechnung ${inv.number} über ${amount} war am ${due} fällig und ist nach unserer Zahlungserinnerung weiterhin offen.\n\nWir bitten Sie, den offenen Betrag zeitnah zu prüfen und zu begleichen. Falls die Zahlung bereits erfolgt ist, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n${close}\n${company}`;
+  }
+  return cc==='CH'?`${sal},\n\nunsere Rechnung ${inv.number} über ${amount} war am ${due} fällig. Vielleicht ist sie im Alltag untergegangen.\n\nBitte prüfen Sie den offenen Betrag und begleichen Sie die Rechnung, sofern dies noch nicht erfolgt ist. Falls Sie bereits bezahlt haben, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n${close}\n${company}`:`${sal},\n\nunsere Rechnung ${inv.number} über ${amount} war am ${due} fällig. Vielleicht ist sie im Alltag untergegangen.\n\nBitte prüfen Sie den offenen Betrag und begleichen Sie die Rechnung, sofern dies noch nicht erfolgt ist. Falls Sie bereits bezahlt haben, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n${close}\n${company}`;
+}
+function invoiceFollowupStateHTML(inv){
+  if(inv.status==='paid')return inv.paymentConfirmationSentAt?`<div class="invoiceFollowupState done">✓ Zahlungseingang bestätigt · ${new Date(inv.paymentConfirmationSentAt).toLocaleDateString('de-DE')}</div>`:`<div class="invoiceFollowupState ready">✓ Zahlung erfasst · Bestätigung bereit</div>`;
+  if(inv.status!=='open'||!inv.dueDate)return'';
+  const days=invoiceDaysOverdue(inv),stage=inv.reminderStage||'none';
+  if(!days)return inv.dueDate===todayISO()?'<div class="invoiceFollowupState due">💶 Heute fällig</div>':'';
+  if(stage==='none')return`<div class="invoiceFollowupState overdue">⚠️ ${days} ${days===1?'Tag':'Tage'} überfällig · Erinnerung bereit</div>`;
+  if(stage==='reminder'&&days>=7&&invoiceDaysSince(inv.lastReminderAt)>=3)return`<div class="invoiceFollowupState overdue">⚠️ ${days} Tage überfällig · Mahnung bereit</div>`;
+  if(stage==='reminder')return`<div class="invoiceFollowupState sent">✉️ Zahlungserinnerung versendet${inv.lastReminderAt?' · '+new Date(inv.lastReminderAt).toLocaleDateString('de-DE'):''}</div>`;
+  if(stage==='dunning')return`<div class="invoiceFollowupState sent">⚠️ Mahnung versendet${inv.lastReminderAt?' · '+new Date(inv.lastReminderAt).toLocaleDateString('de-DE'):''}</div>`;
+  return'';
+}
+function invoiceFollowupActionHTML(inv){const kind=invoiceFollowupKind(inv);if(kind==='payment_reminder')return`<button class="btn small invoiceReminderBtn" onclick="openInvoiceFollowup('${inv.id}','payment_reminder')">✉️ Zahlungserinnerung</button>`;if(kind==='payment_dunning')return`<button class="btn small invoiceDunningBtn" onclick="openInvoiceFollowup('${inv.id}','payment_dunning')">⚠️ Mahnung vorbereiten</button>`;if(kind==='payment_confirmation')return`<button class="btn small invoicePaidConfirmBtn" onclick="openInvoiceFollowup('${inv.id}','payment_confirmation')">✅ Zahlung bestätigen</button>`;return''}
+function renderInvoiceFollowupDashboard(){
+  const box=document.getElementById('invoiceFollowupDashboard');if(!box)return;
+  const open=(data.invoices||[]).filter(i=>i.status==='open'&&i.documentType!=='cancellation'),overdue=open.filter(i=>invoiceDaysOverdue(i)>0),paidPending=(data.invoices||[]).filter(i=>i.status==='paid'&&!i.paymentConfirmationSentAt&&i.documentType!=='cancellation'),openTotal=open.reduce((s,i)=>s+(Number(i.total)||0),0);
+  const actionable=[...overdue.filter(i=>invoiceFollowupKind(i)),...paidPending].sort((a,b)=>invoiceFollowupKind(a)==='payment_dunning'?-1:1).slice(0,3);
+  if(!open.length&&!paidPending.length){box.innerHTML='';box.hidden=true;return}box.hidden=false;
+  const cards=actionable.map(inv=>{const c=data.customers.find(x=>x.id===inv.customerId),kind=invoiceFollowupKind(inv),days=invoiceDaysOverdue(inv),icon=kind==='payment_dunning'?'⚠️':kind==='payment_confirmation'?'✅':'✉️',label=invoiceFollowupLabel(kind);return`<div class="invoiceFollowupMini"><span>${icon}</span><div><b>${escapeHTML(inv.number)} · ${escapeHTML(c?.name||'Kunde')}</b><small>${kind==='payment_confirmation'?'Zahlung erfasst · Bestätigung bereit':`${days} ${days===1?'Tag':'Tage'} überfällig · ${label} bereit`}</small></div><button class="btn small" onclick="openInvoiceFollowup('${inv.id}','${kind}')">Vorbereiten</button></div>`}).join('');
+  box.innerHTML=`<div class="invoiceFollowupCard"><div class="invoiceFollowupHead"><div><span class="securityBadge">💶 FORDERUNGEN</span><h3>${open.length} offene ${open.length===1?'Rechnung':'Rechnungen'} · ${overdue.length} überfällig</h3><p>${invoiceMoney(openTotal,open[0]||{})} offen${paidPending.length?` · ${paidPending.length} Zahlungsbestätigung${paidPending.length===1?'':'en'} bereit`:''}</p></div><button class="btn small" onclick="showScreen('invoices')">Alle</button></div>${cards||'<div class="invoiceFollowupCalm">✓ Aktuell keine Nachfassaktion nötig.</div>'}</div>`;
+}
+function renderInvoices(){
+  const el=document.getElementById('invoiceList');if(!el)return;const list=[...data.invoices].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  el.innerHTML=list.length?list.map(inv=>{const c=data.customers.find(x=>x.id===inv.customerId),locked=isInvoiceLocked(inv),type=invoiceTypeLabel(inv),follow=invoiceFollowupActionHTML(inv);return `<div class="item invoiceListCard"><div class="itemTop"><div><span class="badge ${inv.status==='paid'?'done':inv.status==='open'?'sent':inv.status==='cancelled'?'rejected':'draft'}">${invoiceStatusLabel(inv.status)}</span><h3 style="margin-top:8px">${escapeHTML(inv.subject)}</h3><p>${escapeHTML(c?.name||'Unbekannter Kunde')} · ${escapeHTML(inv.number)} · ${type} · fällig ${dateDE(inv.dueDate)}</p>${invoiceFollowupStateHTML(inv)}</div><strong>${invoiceMoney(inv.total,inv)}</strong></div><div class="itemActions">${follow}<button class="btn small" onclick="editInvoice('${inv.id}')">${locked?'Öffnen':'Bearbeiten'}</button><button class="btn small" onclick="previewInvoice('${inv.id}')">PDF</button>${inv.status==='draft'?`<button class="btn small primary" onclick="finalizeInvoiceById('${inv.id}')">🔒 Ausstellen</button>`:`<button class="btn small primary shareInvoiceBtn" onclick="shareInvoicePDF('${inv.id}')">📤 Teilen</button>`}${inv.status==='open'?`<button class="btn small" onclick="markInvoicePaid('${inv.id}')">✓ Bezahlt</button>`:''}${['open','paid'].includes(inv.status)&&inv.documentType!=='cancellation'?`<button class="btn small" onclick="createCorrectionDraft('${inv.id}')">↗ Korrektur</button><button class="btn small danger" onclick="createCancellationDraft('${inv.id}')">↩ Storno</button>`:''}</div></div>`}).join(''):'<div class="empty">Noch keine Rechnungen.</div>';
+}
+function openInvoiceFollowup(id,kind=''){
+  const inv=data.invoices.find(x=>x.id===id);if(!inv)return;kind=kind||invoiceFollowupKind(inv);if(!kind)return toast('Aktuell ist keine Nachfassaktion nötig');const c=data.customers.find(x=>x.id===inv.customerId);if(!c?.email)return toast('Beim Kunden fehlt eine E-Mail-Adresse');
+  const modal=document.getElementById('invoiceFollowupModal');document.getElementById('invoiceFollowupInvoiceId').value=inv.id;document.getElementById('invoiceFollowupKind').value=kind;document.getElementById('invoiceFollowupEyebrow').textContent=kind==='payment_confirmation'?'ZAHLUNG EINGEGANGEN':'OFFENE RECHNUNG';document.getElementById('invoiceFollowupTitle').textContent=invoiceFollowupLabel(kind);document.getElementById('invoiceFollowupMeta').textContent=kind==='payment_confirmation'?`${inv.number} · ${c.name||'Kunde'} · ${invoiceMoney(inv.total,inv)} · bezahlt ${inv.paidAt?new Date(inv.paidAt).toLocaleDateString('de-DE'):''}`:`${inv.number} · ${c.name||'Kunde'} · ${invoiceMoney(inv.total,inv)} · fällig ${dateDE(inv.dueDate)}`;document.getElementById('invoiceFollowupRecipient').value=c.email;document.getElementById('invoiceFollowupSubject').value=invoiceFollowupSubject(inv,kind);document.getElementById('invoiceFollowupBody').value=invoiceFollowupText(inv,kind);const btn=document.getElementById('invoiceFollowupSendBtn');btn.disabled=false;btn.textContent='✉️ E-Mail senden';modal.classList.remove('hidden');document.body.classList.add('modalOpen');setTimeout(()=>document.getElementById('invoiceFollowupBody')?.focus(),120)
+}
+function closeInvoiceFollowupModal(e){const modal=document.getElementById('invoiceFollowupModal');if(e&&e.target!==modal)return;modal.classList.add('hidden');document.body.classList.remove('modalOpen')}
+async function sendInvoiceFollowup(){
+  const invoiceId=document.getElementById('invoiceFollowupInvoiceId').value,kind=document.getElementById('invoiceFollowupKind').value,body=document.getElementById('invoiceFollowupBody').value.trim(),inv=data.invoices.find(x=>x.id===invoiceId),c=inv?data.customers.find(x=>x.id===inv.customerId):null;if(!inv||!kind)return;if(!body)return toast('Nachricht ist leer');if(!globalThis.MailHub?.sendInvoiceMail)return toast('Firmen-E-Mail ist noch nicht bereit');
+  const ok=await appConfirm({title:`${invoiceFollowupLabel(kind)} senden?`,text:`Die vorbereitete E-Mail wird jetzt aus deinem verbundenen Firmenpostfach an ${c?.email||'den Kunden'} gesendet.`,confirmLabel:'E-Mail senden',icon:'✉️'});if(!ok)return;
+  const btn=document.getElementById('invoiceFollowupSendBtn');btn.disabled=true;btn.textContent='Wird gesendet …';
+  try{
+    await globalThis.CloudSync?.pushSnapshot?.().catch(()=>{});
+    await globalThis.MailHub.sendInvoiceMail(inv.id,kind,body,uid());
+    const now=new Date().toISOString();if(kind==='payment_reminder'){inv.reminderStage='reminder';inv.lastReminderAt=now}else if(kind==='payment_dunning'){inv.reminderStage='dunning';inv.lastReminderAt=now}else inv.paymentConfirmationSentAt=now;
+    saveData(`${invoiceFollowupLabel(kind)} versendet`,inv.number);closeInvoiceFollowupModal();toast('✓ E-Mail versendet');
+  }catch(e){console.error(e);toast(e?.message||'E-Mail konnte nicht gesendet werden');btn.disabled=false;btn.textContent='✉️ E-Mail senden'}
+}
+async function markInvoicePaid(id){
+  const inv=data.invoices.find(x=>x.id===id);if(!inv)return;if(inv.status==='draft')return toast('Rechnung zuerst ausstellen');if(inv.status==='cancelled')return toast('Stornierte Rechnung kann nicht bezahlt werden');const ok=await appConfirm({title:'Zahlung bestätigen?',text:`${inv.number} als vollständig bezahlt markieren?`,confirmLabel:'Als bezahlt markieren',icon:'✓'});if(!ok)return;inv.status='paid';inv.paidAt=new Date().toISOString();inv.paymentConfirmationSentAt=inv.paymentConfirmationSentAt||'';saveData('Rechnung bezahlt',inv.number);globalThis.Notifications?.notifySelf?.('Zahlung eingetragen',`Zahlungseingangsbestätigung für ${inv.number} ist vorbereitet.`,{type:'payment_received',tag:`payment-received-${inv.id}`,dedupeHours:12,url:'./?screen=invoices'}).catch(()=>{});toast('✓ Als bezahlt markiert');setTimeout(()=>openInvoiceFollowup(inv.id,'payment_confirmation'),280)
+}
 function correctionAlreadyExists(originalId){return(data.invoices||[]).find(i=>i.correctionOf===originalId&&i.status!=='cancelled')||null}
-async function createCorrectionDraft(id){const original=data.invoices.find(x=>x.id===id);if(!original)return;if(!isInvoiceLocked(original))return toast('Korrektur erst nach dem Ausstellen nötig');const existing=correctionAlreadyExists(id);if(existing){toast(`Korrekturentwurf ${existing.number} ist bereits vorhanden`);return editInvoice(existing.id)}const ok=await appConfirm({title:'Korrekturentwurf erstellen?',text:`Die Originalrechnung ${original.number} bleibt unverändert. Es wird ein neuer bearbeitbarer Entwurf mit neuer Rechnungsnummer angelegt.`,confirmLabel:'Korrektur erstellen',icon:'↗'});if(!ok)return;const copy={...structuredClone(original),id:uid(),number:nextUniqueInvoiceNumber(),status:'draft',date:todayISO(),dueDate:addDaysISO(todayISO(),paymentDays()),subject:`Korrektur zu ${original.number} – ${original.subject}`,notes:`Korrekturentwurf zu Rechnung ${original.number}. Bitte Änderungen vor dem Ausstellen prüfen.`,offerId:'',offerNumber:'',sourceOfferNumber:'',jobId:'',finalizedAt:'',finalizedSnapshot:null,paidAt:'',cancelledAt:'',cancelledByInvoiceId:'',correctionOf:original.id,originalInvoiceId:'',documentType:'correction',createdAutomatically:true};invoiceCalc(copy);data.invoices.push(copy);saveData('Korrekturentwurf erstellt',`${copy.number} zu ${original.number}`);editInvoice(copy.id);toast('↗ Korrekturentwurf erstellt')}
+async function createCorrectionDraft(id){const original=data.invoices.find(x=>x.id===id);if(!original)return;if(!isInvoiceLocked(original))return toast('Korrektur erst nach dem Ausstellen nötig');const existing=correctionAlreadyExists(id);if(existing){toast(`Korrekturentwurf ${existing.number} ist bereits vorhanden`);return editInvoice(existing.id)}const ok=await appConfirm({title:'Korrekturentwurf erstellen?',text:`Die Originalrechnung ${original.number} bleibt unverändert. Es wird ein neuer bearbeitbarer Entwurf mit neuer Rechnungsnummer angelegt.`,confirmLabel:'Korrektur erstellen',icon:'↗'});if(!ok)return;const copy={...structuredClone(original),id:uid(),number:nextUniqueInvoiceNumber(),status:'draft',date:todayISO(),dueDate:addDaysISO(todayISO(),paymentDays()),subject:`Korrektur zu ${original.number} – ${original.subject}`,notes:`Korrekturentwurf zu Rechnung ${original.number}. Bitte Änderungen vor dem Ausstellen prüfen.`,offerId:'',offerNumber:'',sourceOfferNumber:'',jobId:'',finalizedAt:'',finalizedSnapshot:null,paidAt:'',reminderStage:'none',lastReminderAt:'',paymentConfirmationSentAt:'',cancelledAt:'',cancelledByInvoiceId:'',correctionOf:original.id,originalInvoiceId:'',documentType:'correction',createdAutomatically:true};invoiceCalc(copy);data.invoices.push(copy);saveData('Korrekturentwurf erstellt',`${copy.number} zu ${original.number}`);editInvoice(copy.id);toast('↗ Korrekturentwurf erstellt')}
 function cancellationAlreadyExists(originalId){return(data.invoices||[]).find(i=>i.originalInvoiceId===originalId&&i.documentType==='cancellation')||null}
-async function createCancellationDraft(id){const original=data.invoices.find(x=>x.id===id);if(!original)return;if(!isInvoiceLocked(original)||original.status==='cancelled')return toast('Diese Rechnung kann nicht storniert werden');const existing=cancellationAlreadyExists(id);if(existing){toast(`Storno ${existing.number} ist bereits vorhanden`);return editInvoice(existing.id)}const ok=await appConfirm({title:'Stornoentwurf erstellen?',text:`Es wird ein separater Stornoentwurf mit Gegenbeträgen zu ${original.number} erstellt. Die Originalrechnung bleibt bis zum Ausstellen des Stornos unverändert.`,confirmLabel:'Storno erstellen',icon:'↩',danger:true});if(!ok)return;const inv={id:uid(),number:nextUniqueInvoiceNumber(),customerId:original.customerId,date:todayISO(),dueDate:todayISO(),status:'draft',subject:`Storno zu Rechnung ${original.number}`,notes:`Storno zu Rechnung ${original.number} vom ${dateDE(original.date)}.`,lines:(original.lines||[]).map(l=>({...structuredClone(l),price:-(Number(l.price)||0)})),travel:0,discountType:normalizeDiscountType(original.discountType),discountValue:normalizeDiscountType(original.discountType)==='percent'?(Number(original.discountValue)||0):-(Number(original.discountValue ?? original.discount)||0),tax:Number(original.tax)||0,offerId:'',offerNumber:'',sourceOfferNumber:'',jobId:'',createdAutomatically:true,documentType:'cancellation',originalInvoiceId:original.id,correctionOf:'',finalizedAt:'',finalizedSnapshot:null,countryCode:original.countryCode||currentCountryCode(),currencyCode:original.currencyCode||currentCurrencyCode(),invoiceLanguage:original.invoiceLanguage||data.settings.appLanguage||'de',taxTreatment:original.taxTreatment||data.settings.taxTreatment||'standard',taxNote:original.taxNote||automaticTaxNote(original.countryCode||currentCountryCode(),original.taxTreatment||data.settings.taxTreatment||'standard')};invoiceCalc(inv);data.invoices.push(inv);saveData('Stornoentwurf erstellt',`${inv.number} zu ${original.number}`);editInvoice(inv.id);toast('↩ Stornoentwurf erstellt')}
+async function createCancellationDraft(id){const original=data.invoices.find(x=>x.id===id);if(!original)return;if(!isInvoiceLocked(original)||original.status==='cancelled')return toast('Diese Rechnung kann nicht storniert werden');const existing=cancellationAlreadyExists(id);if(existing){toast(`Storno ${existing.number} ist bereits vorhanden`);return editInvoice(existing.id)}const ok=await appConfirm({title:'Stornoentwurf erstellen?',text:`Es wird ein separater Stornoentwurf mit Gegenbeträgen zu ${original.number} erstellt. Die Originalrechnung bleibt bis zum Ausstellen des Stornos unverändert.`,confirmLabel:'Storno erstellen',icon:'↩',danger:true});if(!ok)return;const inv={id:uid(),number:nextUniqueInvoiceNumber(),customerId:original.customerId,date:todayISO(),dueDate:todayISO(),status:'draft',subject:`Storno zu Rechnung ${original.number}`,notes:`Storno zu Rechnung ${original.number} vom ${dateDE(original.date)}.`,lines:(original.lines||[]).map(l=>({...structuredClone(l),price:-(Number(l.price)||0)})),travel:0,discountType:normalizeDiscountType(original.discountType),discountValue:normalizeDiscountType(original.discountType)==='percent'?(Number(original.discountValue)||0):-(Number(original.discountValue ?? original.discount)||0),tax:Number(original.tax)||0,offerId:'',offerNumber:'',sourceOfferNumber:'',jobId:'',createdAutomatically:true,documentType:'cancellation',originalInvoiceId:original.id,correctionOf:'',finalizedAt:'',finalizedSnapshot:null,reminderStage:'none',lastReminderAt:'',paymentConfirmationSentAt:'',countryCode:original.countryCode||currentCountryCode(),currencyCode:original.currencyCode||currentCurrencyCode(),invoiceLanguage:original.invoiceLanguage||data.settings.appLanguage||'de',taxTreatment:original.taxTreatment||data.settings.taxTreatment||'standard',taxNote:original.taxNote||automaticTaxNote(original.countryCode||currentCountryCode(),original.taxTreatment||data.settings.taxTreatment||'standard')};invoiceCalc(inv);data.invoices.push(inv);saveData('Stornoentwurf erstellt',`${inv.number} zu ${original.number}`);editInvoice(inv.id);toast('↩ Stornoentwurf erstellt')}
 function invoicePaperHTML(inv){
   const snap=inv.finalizedSnapshot||{},c=snap.customer||data.customers.find(x=>x.id===inv.customerId)||{},s=snap.company?{...data.settings,...snap.company}:data.settings,draft=inv.status==='draft',type=invoiceTypeLabel(inv),countryCode=snap.countryCode||inv.countryCode||s.countryCode||currentCountryCode(),currencyCode=snap.currencyCode||inv.currencyCode||s.currency||globalThis.APCountry?.country(countryCode)?.currency||'EUR',profile=globalThis.APCountry?.country(countryCode),taxTreatment=snap.taxTreatment||inv.taxTreatment||s.taxTreatment||'standard',taxNote=snap.taxNote||inv.taxNote||automaticTaxNote(countryCode,taxTreatment),fm=v=>money(v,currencyCode,countryCode);
-  const company=s.companyName||'Ihr Betrieb',owner=s.ownerName||'',mark=company.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'AP';
+  const company=s.companyName||'Ihr Betrieb',owner=s.ownerName||'',mark=company.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'AP',brand=brandDocAttrs(s);
   const rows=(inv.lines||[]).filter(l=>l.name).map((l,i)=>`<tr><td class="posCol">${String(i+1).padStart(2,'0')}</td><td><b>${escapeHTML(l.name)}</b>${l.workers&&l.hoursPerWorker?`<small>${l.workers} Mitarbeiter × ${l.hoursPerWorker} Std.</small>`:''}</td><td class="num">${Number(l.qty).toLocaleString('de-DE',{maximumFractionDigits:2})} ${escapeHTML(l.unit)}</td><td class="num">${fm(l.price)}</td><td class="num strong">${fm(l.qty*l.price)}</td></tr>`).join('');
   const discount=inv.discount?`<tr class="discountRow"><td></td><td><b>${discountDisplayLabel(inv)}</b></td><td></td><td></td><td class="num strong">− ${fm(Math.abs(inv.discount))}</td></tr>`:'';
-  return `<div class="offerPaper professionalPaper professionalInvoicePaper">
+  return `<div class="offerPaper professionalPaper professionalInvoicePaper docStyle-${brand.style} logo-${brand.pos}" style="--brand-accent:${brand.accent};--brand-soft:${brand.accent}16;--brand-mid:${brand.accent}2b">
     ${draft?'<div class="invoiceDraftWatermark">ENTWURF · NICHT AUSGESTELLT</div>':''}
     <div class="proHeader invoiceProHeader">
-      <div class="companyIdentity"><div class="companyMonogram">${escapeHTML(mark)}</div><div><h2>${escapeHTML(company)}</h2><p>${escapeHTML(s.address||'')}</p></div></div>
+      ${brandIdentityHTML(s,company,mark)}
       <div class="offerTitleBlock invoiceTitleBlock"><span>${escapeHTML(String(type).toUpperCase())}</span><strong>${escapeHTML(inv.number)}</strong></div>
     </div>
     <div class="proContactLine">${s.phone?`<span>Tel. ${escapeHTML(s.phone)}</span>`:''}${s.email?`<span>${escapeHTML(s.email)}</span>`:''}${owner?`<span>Ansprechpartner: ${escapeHTML(owner)}</span>`:''}</div>
@@ -1504,7 +1601,7 @@ function invoicePaperHTML(inv){
     </div>
   </div>`;
 }
-function previewInvoice(id){const inv=id?data.invoices.find(x=>x.id===id):invoiceObject();if(!inv)return;document.getElementById('invoicePreviewPaper').innerHTML=invoicePaperHTML(inv);document.getElementById('invoicePreviewSource').value=inv.id||'';showScreen('invoicePreview')}
+async function previewInvoice(id){const inv=id?data.invoices.find(x=>x.id===id):invoiceObject();if(!inv)return;const snap=inv.finalizedSnapshot||{},bs=snap.company?{...data.settings,...snap.company}:data.settings;await ensureBrandLogoLoaded(bs.brandLogoPath,bs.brandLogoMeta||{});document.getElementById('invoicePreviewPaper').innerHTML=invoicePaperHTML(inv);document.getElementById('invoicePreviewSource').value=inv.id||'';showScreen('invoicePreview')}
 function printInvoice(){const id=document.getElementById('invoicePreviewSource').value,inv=id?data.invoices.find(x=>x.id===id):invoiceObject();document.getElementById('printArea').innerHTML=invoicePaperHTML(inv);window.print()}
 
 
@@ -1550,171 +1647,112 @@ function invoicePdfBlob(inv){
   const W=595,H=842,left=40,right=555;
   const pageStreams=[];
   let cmds=[],y=0;
-
+  const accent=brandAccentFor(s),docStyle=brandStyleFor(s);
+  const hexRgb=(hex)=>{const h=validBrandHex(hex,'#1f7a4d').slice(1);return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255]};
+  const accentRgb=hexRgb(accent);
+  const logoData=brandLogoDataFor(s),logoMeta=brandLogoMetaFor(s);
+  let logoBytes=null;
+  if(/^data:image\/jpeg;base64,/i.test(logoData)){
+    try{const raw=atob(logoData.split(',')[1]||''),arr=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);logoBytes=arr}catch(e){logoBytes=null}
+  }
   const py=top=>H-top;
   const add=x=>cmds.push(x);
-  const text=(x,top,size,value,bold=false)=>{
+  const rgb=(v)=>v.map(x=>Number(x).toFixed(4)).join(' ');
+  const fillColor=(v)=>add(`${rgb(v)} rg\n`);
+  const strokeColor=(v)=>add(`${rgb(v)} RG\n`);
+  const black=()=>fillColor([0.09,0.12,0.15]);
+  const gray=()=>fillColor([0.38,0.43,0.48]);
+  const text=(x,top,size,value,bold=false,color=null)=>{
+    if(color)fillColor(color);else black();
     add(`BT /${bold?'F2':'F1'} ${size} Tf ${x.toFixed(1)} ${py(top).toFixed(1)} Td (${pdfEsc(value)}) Tj ET\n`);
   };
-  const textRight=(rightX,top,size,value,bold=false)=>{
-    const clean=pdfAscii(value);
-    const width=clean.length*size*.52;
-    text(Math.max(left,rightX-width),top,size,clean,bold);
+  const textRight=(rightX,top,size,value,bold=false,color=null)=>{
+    const clean=pdfAscii(value),width=clean.length*size*.52;
+    text(Math.max(left,rightX-width),top,size,clean,bold,color);
   };
-  const line=(x1,top1,x2,top2,width=.6)=>{
-    add(`${width} w ${x1.toFixed(1)} ${py(top1).toFixed(1)} m ${x2.toFixed(1)} ${py(top2).toFixed(1)} l S\n`);
+  const line=(x1,top1,x2,top2,width=.6,color=[.82,.85,.87])=>{
+    strokeColor(color);add(`${width} w ${x1.toFixed(1)} ${py(top1).toFixed(1)} m ${x2.toFixed(1)} ${py(top2).toFixed(1)} l S\n`);
   };
+  const rect=(x,top,w,h,color)=>{fillColor(color);add(`${x.toFixed(1)} ${py(top+h).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f\n`)};
+  const image=(x,top,w,h)=>{if(!logoBytes)return;add(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${py(top+h).toFixed(2)} cm /Im1 Do Q\n`)};
   const finishPage=()=>{pageStreams.push(cmds.join(''));cmds=[]};
   const header=(continuation=false)=>{
-    text(left,45,17,s.companyName||'Ihr Betrieb',true);
-    if(s.address)text(left,63,8.5,s.address,false);
-    textRight(right,45,15,inv.documentType==='cancellation'?'STORNO':inv.correctionOf?'KORREKTUR':'RECHNUNG',true);
-    textRight(right,63,9,inv.number||'',true);
-    line(left,80,right,80,.9);
-    if(continuation)text(left,100,9,`Fortsetzung ${inv.number}`,true);
+    if(docStyle!=='minimal')rect(0,0,W,docStyle==='classic'?3:5,accentRgb);
+    let companyX=left;
+    if(logoBytes){
+      const mw=Number(logoMeta.optimizedWidth)||600,mh=Number(logoMeta.optimizedHeight)||220,boxW=112,boxH=43,scale=Math.min(boxW/mw,boxH/mh),iw=Math.max(20,mw*scale),ih=Math.max(14,mh*scale);
+      image(left,28,iw,ih);companyX=left+Math.min(125,iw+14);
+    }
+    text(companyX,43,logoBytes?13.5:17,s.companyName||'Ihr Betrieb',true);
+    if(s.address)text(companyX,61,8.2,s.address,false,[.38,.43,.48]);
+    textRight(right,43,15,inv.documentType==='cancellation'?'STORNO':inv.correctionOf?'KORREKTUR':'RECHNUNG',true,docStyle==='classic'?[.09,.12,.15]:accentRgb);
+    textRight(right,62,9,inv.number||'',true);
+    line(left,82,right,82,1,accentRgb);
+    if(continuation)text(left,103,9,`Fortsetzung ${inv.number}`,true,accentRgb);
   };
-  const newPage=(continuation=true)=>{
-    if(cmds.length)finishPage();
-    header(continuation);
-    y=continuation?125:95;
-  };
+  const newPage=(continuation=true)=>{if(cmds.length)finishPage();header(continuation);y=continuation?128:96};
 
   header(false);
+  text(left,112,7.5,'RECHNUNGSEMPFAENGER',true,accentRgb);
+  text(left,130,11,customer.name||'',true);
+  if(customer.contact)text(left,146,8.5,customer.contact);
+  pdfWrap(customer.address||'',250,8.5).slice(0,2).forEach((ln,i)=>text(left,162+i*12,8.5,ln,false,[.35,.39,.43]));
+  if(customer.email)text(left,190,8,customer.email,false,[.35,.39,.43]);
 
-  // Empfänger + Metadaten
-  text(left,110,7.5,'RECHNUNGSEMPFAENGER',true);
-  text(left,128,11,customer.name||'',true);
-  if(customer.contact)text(left,144,8.5,customer.contact);
-  pdfWrap(customer.address||'',250,8.5).slice(0,2).forEach((ln,i)=>text(left,160+i*12,8.5,ln));
-  if(customer.email)text(left,188,8,customer.email);
+  text(365,112,7.5,'RECHNUNGSDATEN',true,accentRgb);
+  text(365,131,8,'Nummer',false,[.42,.46,.50]);textRight(right,131,8,inv.number||'',true);
+  text(365,147,8,'Datum',false,[.42,.46,.50]);textRight(right,147,8,dateDE(inv.date),true);
+  text(365,163,8,'Faellig',false,[.42,.46,.50]);textRight(right,163,8,dateDE(inv.dueDate),true);
+  if(inv.offerNumber){text(365,179,8,'Angebot',false,[.42,.46,.50]);textRight(right,179,8,inv.offerNumber,true)}
 
-  text(365,110,7.5,'RECHNUNGSDATEN',true);
-  text(365,129,8,'Nummer');
-  textRight(right,129,8,inv.number||'',true);
-  text(365,145,8,'Datum');
-  textRight(right,145,8,dateDE(inv.date),true);
-  text(365,161,8,'Faellig');
-  textRight(right,161,8,dateDE(inv.dueDate),true);
-  if(inv.offerNumber){
-    text(365,177,8,'Angebot');
-    textRight(right,177,8,inv.offerNumber,true);
-  }
-
-  text(left,220,7.5,'RECHNUNG FUER',true);
-  pdfWrap(inv.subject||'Ausgefuehrte Leistungen',500,16).slice(0,2).forEach((ln,i)=>text(left,242+i*18,16,ln,true));
-  let noteTop=inv.subject&&pdfWrap(inv.subject,500,16).length>1?286:268;
-  if(inv.notes){
-    const notes=pdfWrap(inv.notes,500,8.5).slice(0,3);
-    notes.forEach((ln,i)=>text(left,noteTop+i*12,8.5,ln));
-    noteTop+=notes.length*12+8;
-  }
-  y=Math.max(305,noteTop+8);
+  text(left,222,7.5,'RECHNUNG FUER',true,accentRgb);
+  pdfWrap(inv.subject||'Ausgefuehrte Leistungen',500,16).slice(0,2).forEach((ln,i)=>text(left,244+i*18,16,ln,true));
+  let noteTop=inv.subject&&pdfWrap(inv.subject,500,16).length>1?288:270;
+  if(inv.notes){const notes=pdfWrap(inv.notes,500,8.5).slice(0,3);notes.forEach((ln,i)=>text(left,noteTop+i*12,8.5,ln,false,[.35,.39,.43]));noteTop+=notes.length*12+8}
+  y=Math.max(307,noteTop+8);
 
   const tableHeader=()=>{
-    add(`0.95 g ${left} ${py(y+18)} ${right-left} 22 re f 0 g\n`);
-    text(left+4,y+14,8,'Pos.',true);
-    text(74,y+14,8,'Beschreibung',true);
-    text(340,y+14,8,'Menge',true);
-    textRight(468,y+14,8,'Einzelpreis',true);
-    textRight(right,y+14,8,'Gesamt',true);
-    y+=30;
+    const soft=docStyle==='minimal'?[1,1,1]:docStyle==='classic'?[.965,.955,.93]:accentRgb.map(v=>.93+v*.07);rect(left,y-2,right-left,22,soft);if(docStyle==='minimal')line(left,y-2,right,y-2,1,accentRgb);
+    text(left+4,y+14,8,'Pos.',true,accentRgb);text(74,y+14,8,'Beschreibung',true,accentRgb);text(340,y+14,8,'Menge',true,accentRgb);textRight(468,y+14,8,'Einzelpreis',true,accentRgb);textRight(right,y+14,8,'Gesamt',true,accentRgb);y+=30;
   };
   tableHeader();
-
   const lines=(inv.lines||[]).filter(l=>l.name);
   lines.forEach((l,index)=>{
-    const desc=pdfWrap(l.name,245,9);
-    const detail=l.workers&&l.hoursPerWorker?`${l.workers} Mitarbeiter x ${l.hoursPerWorker} Std.`:'';
-    const rowHeight=Math.max(24,desc.length*12+(detail?11:0)+7);
-    if(y+rowHeight>690){
-      newPage(true);
-      tableHeader();
-    }
-
-    text(left+5,y+12,8,String(index+1).padStart(2,'0'));
-    desc.forEach((ln,i)=>text(74,y+12+i*12,9,ln,i===0));
-    if(detail)text(74,y+12+desc.length*12,7.5,detail);
-    text(340,y+12,8,`${Number(l.qty||0).toLocaleString('de-DE',{maximumFractionDigits:2})} ${l.unit||''}`);
-    textRight(468,y+12,8,pm(l.price));
-    textRight(right,y+12,8,pm((Number(l.qty)||0)*(Number(l.price)||0)),true);
-    line(left,y+rowHeight-2,right,y+rowHeight-2,.35);
-    y+=rowHeight;
+    const desc=pdfWrap(l.name,245,9),detail=l.workers&&l.hoursPerWorker?`${l.workers} Mitarbeiter x ${l.hoursPerWorker} Std.`:'',rowHeight=Math.max(24,desc.length*12+(detail?11:0)+7);
+    if(y+rowHeight>690){newPage(true);tableHeader()}
+    text(left+5,y+12,8,String(index+1).padStart(2,'0'),false,[.50,.54,.58]);desc.forEach((ln,i)=>text(74,y+12+i*12,9,ln,i===0));if(detail)text(74,y+12+desc.length*12,7.5,detail,false,[.45,.49,.53]);text(340,y+12,8,`${Number(l.qty||0).toLocaleString('de-DE',{maximumFractionDigits:2})} ${l.unit||''}`);textRight(468,y+12,8,pm(l.price));textRight(right,y+12,8,pm((Number(l.qty)||0)*(Number(l.price)||0)),true);line(left,y+rowHeight-2,right,y+rowHeight-2,.35);y+=rowHeight;
   });
-
-  if(y>610)newPage(true);
-  y+=12;
-
+  if(y>610)newPage(true);y+=12;
   const base=inv.baseSubtotal??(Number(inv.subtotal||0)+Number(inv.discount||0));
-  text(355,y,8,'Summe Positionen');
-  textRight(right,y,8,pm(base),true); y+=17;
-
-  if(Number(inv.discount||0)){
-    text(355,y,8,pdfAscii(discountDisplayLabel(inv)));
-    textRight(right,y,8,`- ${pm(Math.abs(inv.discount))}`,true); y+=17;
-  }
-
-  text(355,y,8,'Zwischensumme');
-  textRight(right,y,8,pm(inv.subtotal),true); y+=17;
-
-  if(Number(inv.tax||0)){
-    text(355,y,8,`${profile?.taxLabel||'Steuer'} ${String(Number(inv.tax)).replace('.',',')}%`);
-    textRight(right,y,8,pm(Number(inv.subtotal||0)*Number(inv.tax||0)/100),true); y+=18;
-  }
-
-  line(350,y-7,right,y-7,.8);
-  text(350,y+10,11,'Rechnungsbetrag',true);
-  textRight(right,y+10,12,pm(inv.total),true);
-  y+=42;
-
+  text(355,y,8,'Summe Positionen',false,[.42,.46,.50]);textRight(right,y,8,pm(base),true);y+=17;
+  if(Number(inv.discount||0)){text(355,y,8,pdfAscii(discountDisplayLabel(inv)),false,[.42,.46,.50]);textRight(right,y,8,`- ${pm(Math.abs(inv.discount))}`,true);y+=17}
+  text(355,y,8,'Zwischensumme',false,[.42,.46,.50]);textRight(right,y,8,pm(inv.subtotal),true);y+=17;
+  if(Number(inv.tax||0)){text(355,y,8,`${profile?.taxLabel||'Steuer'} ${String(Number(inv.tax)).replace('.',',')}%`,false,[.42,.46,.50]);textRight(right,y,8,pm(Number(inv.subtotal||0)*Number(inv.tax||0)/100),true);y+=18}
+  line(350,y-7,right,y-7,1,accentRgb);text(350,y+10,11,'Rechnungsbetrag',true);textRight(right,y+10,13,pm(inv.total),true,accentRgb);y+=42;
   if(y>725)newPage(true);
-  text(left,y,7.5,'ZAHLUNGSINFORMATION',true);
-  text(left,y+17,8.5,`Bitte ueberweisen Sie den Betrag bis zum ${dateDE(inv.dueDate)}.`);
-  if(s.iban)text(left,y+34,8.5,`IBAN: ${s.iban}`,true);
-  if(s.bankName)text(left,y+50,8.5,`Bank: ${s.bankName}`);
-  if(taxNote)pdfWrap(taxNote,500,8).slice(0,2).forEach((ln,i)=>text(left,y+68+i*11,8,ln));
-
-  const footTop=805;
-  line(left,footTop-18,right,footTop-18,.45);
-  const footer=[s.companyName,s.address,s.taxNumber?`St.-Nr. ${s.taxNumber}`:'',s.vatId?`${countryCode==='CH'?'MWST-Nr.':countryCode==='AT'?'UID':'USt-IdNr.'} ${s.vatId}`:'',s.email].filter(Boolean).join(' | ');
-  pdfWrap(footer,510,7).slice(0,2).forEach((ln,i)=>text(left,footTop+i*10,7,ln));
-
+  text(left,y,7.5,'ZAHLUNGSINFORMATION',true,accentRgb);text(left,y+17,8.5,`Bitte ueberweisen Sie den Betrag bis zum ${dateDE(inv.dueDate)}.`);if(s.iban)text(left,y+34,8.5,`IBAN: ${s.iban}`,true);if(s.bankName)text(left,y+50,8.5,`Bank: ${s.bankName}`);if(taxNote)pdfWrap(taxNote,500,8).slice(0,2).forEach((ln,i)=>text(left,y+68+i*11,8,ln,false,[.38,.43,.48]));
+  const footTop=805;line(left,footTop-18,right,footTop-18,.8,accentRgb);const footer=[s.companyName,s.address,s.taxNumber?`St.-Nr. ${s.taxNumber}`:'',s.vatId?`${countryCode==='CH'?'MWST-Nr.':countryCode==='AT'?'UID':'USt-IdNr.'} ${s.vatId}`:'',s.email].filter(Boolean).join(' | ');pdfWrap(footer,510,7).slice(0,2).forEach((ln,i)=>text(left,footTop+i*10,7,ln,false,[.43,.47,.51]));
   finishPage();
 
-  // Build a minimal valid PDF with shared Helvetica fonts.
-  const pageCount=pageStreams.length;
-  const font1=3+pageCount*2;
-  const font2=font1+1;
-  const objects=[];
-  const pageRefs=[];
-
+  const pageCount=pageStreams.length,font1=3+pageCount*2,font2=font1+1,imgObj=logoBytes?font2+1:0,objects=[],pageRefs=[];
   objects[1]='<< /Type /Catalog /Pages 2 0 R >>';
   for(let i=0;i<pageCount;i++){
-    const pageObj=3+i*2,contentObj=pageObj+1;
-    pageRefs.push(`${pageObj} 0 R`);
-    objects[pageObj]=`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${font1} 0 R /F2 ${font2} 0 R >> >> /Contents ${contentObj} 0 R >>`;
-    const stream=pageStreams[i];
-    objects[contentObj]=`<< /Length ${stream.length} >>\nstream\n${stream}endstream`;
+    const pageObj=3+i*2,contentObj=pageObj+1;pageRefs.push(`${pageObj} 0 R`);
+    const xobj=logoBytes?` /XObject << /Im1 ${imgObj} 0 R >>`:'';
+    objects[pageObj]=`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${font1} 0 R /F2 ${font2} 0 R >>${xobj} >> /Contents ${contentObj} 0 R >>`;
+    const stream=pageStreams[i],streamLen=new TextEncoder().encode(stream).length;objects[contentObj]=`<< /Length ${streamLen} >>\nstream\n${stream}endstream`;
   }
-  objects[2]=`<< /Type /Pages /Kids [${pageRefs.join(' ')}] /Count ${pageCount} >>`;
-  objects[font1]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
-  objects[font2]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  objects[2]=`<< /Type /Pages /Kids [${pageRefs.join(' ')}] /Count ${pageCount} >>`;objects[font1]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';objects[font2]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  if(logoBytes){const mw=Math.max(1,Number(logoMeta.optimizedWidth)||600),mh=Math.max(1,Number(logoMeta.optimizedHeight)||220);objects[imgObj]={dict:`<< /Type /XObject /Subtype /Image /Width ${mw} /Height ${mh} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logoBytes.length} >>`,stream:logoBytes}}
 
-  let pdf='%PDF-1.4\n';
-  const offsets=[0];
+  const enc=new TextEncoder(),chunks=[],offsets=[0];let total=0;const push=(bytes)=>{chunks.push(bytes);total+=bytes.length};push(enc.encode('%PDF-1.4\n%AP19\n'));
   for(let i=1;i<objects.length;i++){
-    if(!objects[i])continue;
-    offsets[i]=pdf.length;
-    pdf+=`${i} 0 obj\n${objects[i]}\nendobj\n`;
+    const obj=objects[i];if(!obj)continue;offsets[i]=total;push(enc.encode(`${i} 0 obj\n`));
+    if(typeof obj==='string')push(enc.encode(obj));else{push(enc.encode(obj.dict+'\nstream\n'));push(obj.stream);push(enc.encode('\nendstream'))}
+    push(enc.encode('\nendobj\n'));
   }
-  const xref=pdf.length;
-  pdf+=`xref\n0 ${objects.length}\n0000000000 65535 f \n`;
-  for(let i=1;i<objects.length;i++){
-    const off=offsets[i]||0;
-    pdf+=`${String(off).padStart(10,'0')} 00000 n \n`;
-  }
-  pdf+=`trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-
-  return new Blob([pdf],{type:'application/pdf'});
+  const xref=total;let tail=`xref\n0 ${objects.length}\n0000000000 65535 f \n`;for(let i=1;i<objects.length;i++)tail+=`${String(offsets[i]||0).padStart(10,'0')} 00000 n \n`;tail+=`trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;push(enc.encode(tail));
+  return new Blob(chunks,{type:'application/pdf'});
 }
 
 async function shareInvoicePDF(id){
@@ -1724,6 +1762,8 @@ async function shareInvoicePDF(id){
   if(inv.status==='draft')return toast('Rechnung zuerst ausstellen, dann teilen');
 
   const customer=data.customers.find(x=>x.id===inv.customerId)||{};
+  const snap=inv.finalizedSnapshot||{},brandSettings=snap.company?{...data.settings,...snap.company}:data.settings;
+  await ensureBrandLogoLoaded(brandSettings.brandLogoPath,brandSettings.brandLogoMeta||{});
   const blob=invoicePdfBlob(inv);
   const filename=safePdfFilename(inv);
   const message=`Rechnung ${inv.number} von ${data.settings.companyName||'unserem Betrieb'} über ${invoiceMoney(inv.total,inv)}.`;
@@ -1783,8 +1823,8 @@ function onCompanyTaxTreatmentChange(){const countryCode=document.getElementById
 function populateInvoiceTaxControls(inv={}){const countryCode=inv.countryCode||currentCountryCode(),treatment=taxTreatmentForCountry(countryCode,inv.taxTreatment||data.settings.taxTreatment||'standard'),profile=globalThis.APCountry?.country(countryCode),treatmentEl=document.getElementById('invoiceTaxTreatment'),note=document.getElementById('invoiceTaxNote'),hint=document.getElementById('invoiceCountryHint'),label=document.getElementById('invoiceTaxRateLabel');if(treatmentEl){treatmentEl.innerHTML=taxTreatmentOptions(countryCode,treatment);treatmentEl.value=treatment}renderTaxRateOptions('invoiceTaxRate',countryCode,treatment,Number(inv.tax??data.settings.tax)||0);if(note)note.value=inv.taxNote||automaticTaxNote(countryCode,treatment);if(hint)hint.textContent=`${profile?.flag||''} ${profile?.name||countryCode} · ${profile?.currency||'EUR'} · Diese Werte werden beim Ausstellen fest gespeichert.`;if(label)label.textContent=profile?.taxLabel||'Steuersatz';setDiscountType('invoice',document.getElementById('invoiceDiscountType')?.value||'euro')}
 function onInvoiceTaxTreatmentChange(){const id=document.getElementById('invoiceId')?.value,inv=data.invoices.find(x=>x.id===id),countryCode=inv?.countryCode||currentCountryCode(),treatment=document.getElementById('invoiceTaxTreatment').value||'standard',profile=globalThis.APCountry?.country(countryCode);renderTaxRateOptions('invoiceTaxRate',countryCode,treatment,profile?.standardRate||0);document.getElementById('invoiceTaxNote').value=automaticTaxNote(countryCode,treatment)}
 function onInvoiceTaxRateChange(){}
-function loadSettingsForm(){const s=data.settings;s.countryCode=s.countryCode||'DE';s.currency=s.currency||globalThis.APCountry?.country(s.countryCode)?.currency||'EUR';s.appLanguage='de';s.taxTreatment=s.taxTreatment||((Number(s.tax)||0)===0?(s.countryCode==='CH'?'non_registered':'small_business'):'standard');document.getElementById('companyName').value=s.companyName||'';document.getElementById('ownerName').value=s.ownerName||'';document.getElementById('companyPhone').value=s.phone||'';document.getElementById('companyAddress').value=s.address||'';document.getElementById('weatherLocation').value=s.weatherLocation||s.address||'';document.getElementById('companyEmail').value=s.email||'';document.getElementById('companyCountry').value=s.countryCode;document.getElementById('appLanguage').value='de';document.getElementById('taxTreatment').innerHTML=taxTreatmentOptions(s.countryCode,s.taxTreatment);document.getElementById('taxTreatment').value=taxTreatmentForCountry(s.countryCode,s.taxTreatment);renderTaxRateOptions('taxMode',s.countryCode,s.taxTreatment,Number(s.tax)||0);document.getElementById('taxNote').value=s.taxNote||automaticTaxNote(s.countryCode,s.taxTreatment);document.getElementById('paymentTerm').value=s.paymentTerm||'';document.getElementById('taxNumber').value=s.taxNumber||'';document.getElementById('vatId').value=s.vatId||'';document.getElementById('iban').value=s.iban||'';document.getElementById('bankName').value=s.bankName||'';updateCompanyTaxHint()}
-function saveSettings(){const countryCode=document.getElementById('companyCountry').value||'DE',profile=globalThis.APCountry?.country(countryCode),taxTreatment=taxTreatmentForCountry(countryCode,document.getElementById('taxTreatment').value),tax=treatmentForcesZeroTax(taxTreatment)?0:Number(document.getElementById('taxMode').value)||0;data.settings={...data.settings,companyName:document.getElementById('companyName').value.trim(),ownerName:document.getElementById('ownerName').value.trim(),phone:document.getElementById('companyPhone').value.trim(),address:document.getElementById('companyAddress').value.trim(),weatherLocation:document.getElementById('weatherLocation').value.trim(),email:document.getElementById('companyEmail').value.trim(),countryCode,currency:profile?.currency||'EUR',appLanguage:'de',taxTreatment,tax,taxNote:document.getElementById('taxNote').value.trim()||automaticTaxNote(countryCode,taxTreatment),paymentTerm:document.getElementById('paymentTerm').value.trim(),taxNumber:document.getElementById('taxNumber').value.trim(),vatId:document.getElementById('vatId').value.trim(),iban:document.getElementById('iban').value.trim(),bankName:document.getElementById('bankName').value.trim()};localStorage.removeItem(WEATHER_CACHE_KEY);saveData();refreshWeather(true);toast('Betrieb gespeichert')}
+function loadSettingsForm(){const s=data.settings;s.countryCode=s.countryCode||'DE';s.currency=s.currency||globalThis.APCountry?.country(s.countryCode)?.currency||'EUR';s.appLanguage='de';s.taxTreatment=s.taxTreatment||((Number(s.tax)||0)===0?(s.countryCode==='CH'?'non_registered':'small_business'):'standard');document.getElementById('companyName').value=s.companyName||'';document.getElementById('ownerName').value=s.ownerName||'';document.getElementById('companyPhone').value=s.phone||'';document.getElementById('companyAddress').value=s.address||'';document.getElementById('weatherLocation').value=s.weatherLocation||s.address||'';document.getElementById('companyEmail').value=s.email||'';document.getElementById('companyCountry').value=s.countryCode;document.getElementById('appLanguage').value='de';document.getElementById('taxTreatment').innerHTML=taxTreatmentOptions(s.countryCode,s.taxTreatment);document.getElementById('taxTreatment').value=taxTreatmentForCountry(s.countryCode,s.taxTreatment);renderTaxRateOptions('taxMode',s.countryCode,s.taxTreatment,Number(s.tax)||0);document.getElementById('taxNote').value=s.taxNote||automaticTaxNote(s.countryCode,s.taxTreatment);document.getElementById('paymentTerm').value=s.paymentTerm||'';document.getElementById('taxNumber').value=s.taxNumber||'';document.getElementById('vatId').value=s.vatId||'';document.getElementById('iban').value=s.iban||'';document.getElementById('bankName').value=s.bankName||'';updateCompanyTaxHint();if(s.brandLogoPath&&!s.brandLogoLocalDataUrl)ensureBrandLogoLoaded(s.brandLogoPath,s.brandLogoMeta||{}).then(()=>renderBrandingSettings());renderBrandingSettings()}
+function saveSettings(){const countryCode=document.getElementById('companyCountry').value||'DE',profile=globalThis.APCountry?.country(countryCode),taxTreatment=taxTreatmentForCountry(countryCode,document.getElementById('taxTreatment').value),tax=treatmentForcesZeroTax(taxTreatment)?0:Number(document.getElementById('taxMode').value)||0;data.settings={...data.settings,companyName:document.getElementById('companyName').value.trim(),ownerName:document.getElementById('ownerName').value.trim(),phone:document.getElementById('companyPhone').value.trim(),address:document.getElementById('companyAddress').value.trim(),weatherLocation:document.getElementById('weatherLocation').value.trim(),email:document.getElementById('companyEmail').value.trim(),countryCode,currency:profile?.currency||'EUR',appLanguage:'de',taxTreatment,tax,taxNote:document.getElementById('taxNote').value.trim()||automaticTaxNote(countryCode,taxTreatment),paymentTerm:document.getElementById('paymentTerm').value.trim(),taxNumber:document.getElementById('taxNumber').value.trim(),vatId:document.getElementById('vatId').value.trim(),iban:document.getElementById('iban').value.trim(),bankName:document.getElementById('bankName').value.trim(),brandAccent:validBrandHex(document.getElementById('brandAccent')?.value||data.settings.brandAccent||data.settings.brandAccentAuto||'#1f7a4d'),documentStyle:document.getElementById('documentStyle')?.value||data.settings.documentStyle||'auto',logoPosition:document.getElementById('logoPosition')?.value||data.settings.logoPosition||'left'};localStorage.removeItem(WEATHER_CACHE_KEY);saveData();refreshWeather(true);syncPendingBrandLogo().catch(()=>{});toast('Betrieb gespeichert')}
 
 const WEATHER_FETCH_TIMEOUT_MS=12000;
 async function weatherFetch(url,timeoutMs=WEATHER_FETCH_TIMEOUT_MS){
