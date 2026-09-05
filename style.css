@@ -1160,3 +1160,46 @@ body.sheetOpen{overflow:hidden}
     font-size:12px;
   }
 }
+
+/* v11.15 – iPhone E-Mail-Sekretärin: Aktionsleisten niemals hinter Bottom-Navigation */
+#emailManualTestCard,
+#emailAssistResult{
+  scroll-margin-bottom:calc(120px + env(safe-area-inset-bottom));
+}
+@media(max-width:620px){
+  #emailAssistant{
+    padding-bottom:calc(230px + env(safe-area-inset-bottom));
+  }
+  #emailManualTestCard{
+    padding-bottom:18px;
+  }
+  #emailManualTestCard>.actions,
+  #emailAssistResult>.actions{
+    position:sticky;
+    bottom:calc(78px + env(safe-area-inset-bottom));
+    z-index:12;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:9px;
+    width:100%;
+    margin-top:18px;
+    padding:11px 0 4px;
+    background:linear-gradient(180deg,rgba(20,25,34,0),var(--card) 24%);
+  }
+  #emailManualTestCard>.actions .btn,
+  #emailAssistResult>.actions .btn{
+    width:100%;
+    min-width:0;
+    min-height:54px;
+    white-space:normal;
+    line-height:1.25;
+  }
+  #emailAssistOfferHint,
+  #emailManualTestCard .field:last-of-type{
+    scroll-margin-bottom:calc(190px + env(safe-area-inset-bottom));
+  }
+  html{
+    scroll-padding-bottom:calc(165px + env(safe-area-inset-bottom));
+  }
+}
+

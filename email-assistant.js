@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.14 – E-Mail-Sekretärin + Terminlogik + DE/AT/CH-Korrespondenz + echte Mailbox-Grundlage
+/* AngebotsPilot v11.15 – E-Mail-Sekretärin + Terminlogik + DE/AT/CH-Korrespondenz + echte Mailbox-Grundlage
    Sicherer Testmodus ohne automatischen Mailversand und ohne kostenpflichtige KI-API.
    Klassifikation ist regelbasiert. Aktionen werden erst nach ausdrücklicher Bestätigung ausgeführt. */
 (function(){
@@ -72,7 +72,16 @@
       /akzeptier/,/einverstanden/,/passt für uns/,/passt fuer uns/,
       /machen sie das/,/können sie loslegen/,/koennen sie loslegen/,/zugesagt/,/angenommen/
     ];
-    const appointment=[/termin/,/wann können/,/wann koennen/,/wann wäre/,/wann waere/,/start/,/beginn/,/ab wann/,/vorbeikommen/,/besichtigung/,/welcher tag/,/zeitlich/];
+    const appointment=[
+      /termin/,
+      /wann\s+(?:können|koennen|könnten|koennten)/,
+      /wann\s+(?:wäre|waere|ist)\s+(?:ein\s+)?(?:start|beginn|termin)/,
+      /wann.{0,50}(?:anfangen|beginnen|starten|loslegen)/,
+      /(?:anfangen|beginnen|starten|loslegen).{0,35}(?:wann|termin|datum)/,
+      /wann wäre/,/wann waere/,/starttermin/,/startanfrage/,/arbeitsbeginn/,/baubeginn/,
+      /(?:start|beginn).{0,45}(?:möglich|moeglich|frei|passen)/,
+      /ab wann/,/vorbeikommen/,/besichtigung/,/welcher tag/,/zeitlich/
+    ];
     const question=[/\?/,/frage/,/können sie/,/koennen sie/,/wie /,/was /,/warum /,/bitte um rückmeldung/,/bitte um rueckmeldung/];
 
     if(declined.some(r=>r.test(t)))return{intent:'declined',base:.96};
