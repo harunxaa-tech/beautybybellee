@@ -1352,3 +1352,102 @@ body.sheetOpen{overflow:hidden}
 @media(max-width:520px){
   .secretariatHomeCard{padding:15px 14px 14px}.secretariatHomeTop{gap:8px}.secretariatHomeOrb{width:44px;height:44px;border-radius:14px}.secretariatIdentity{gap:10px}.secretariatIdentity h2{font-size:20px}.secretariatStatus{padding:6px 7px;font-size:8px}.secretariatStats{gap:6px}.secretariatStat{padding:9px}.secretariatStat strong{font-size:17px}.secretariatQueueItem{padding:10px}.secretariatQueueIcon{width:35px;height:35px}.secretariatHomeActions{gap:7px}
 }
+
+/* v11.24 – Startseite: 10-Sekunden-Morgenübersicht */
+#today .compactHero{padding:14px 16px;margin-bottom:11px;border-radius:21px}
+#today .compactHero .pill{padding:6px 9px;font-size:10px}
+#today .compactHero h2{font-size:25px;line-height:1.06;margin:8px 0 6px}
+#today .compactHero p{font-size:12px;line-height:1.35;max-width:92%}
+
+#today .todayStatsCompact{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 11px}
+#today .todayStatsCompact .stat{min-width:0;border-radius:15px;padding:9px 10px;box-shadow:none}
+#today .todayStatsCompact .stat span{display:block;font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#today .todayStatsCompact .stat strong{font-size:18px;line-height:1.05;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#today .todayStatsCompact .stat.money strong{font-size:12px;letter-spacing:-.03em;margin-top:8px}
+
+#today .weatherCompact{padding:11px 13px!important;border-radius:17px!important;margin-bottom:11px!important}
+#today .weatherCompactReading{margin-top:3px}
+#today .weatherCompactReading .weatherTemp{font-size:27px!important}
+#today .weatherCompactReading .weatherIcon{font-size:23px!important}
+#today .weatherCompactLocation{font-size:9px}
+#today .weatherMetaCompact{margin-top:6px!important}
+#today .weatherMetaCompact .pill{font-size:8px!important;padding:4px 6px!important}
+#today .weatherRiskCompact{margin-top:6px!important;padding:7px 9px!important;font-size:9px!important;line-height:1.28!important}
+
+.secretariatHome{margin-bottom:11px}
+.secretariatHomeCard.compact{padding:13px 14px;border-radius:21px}
+.secretariatHomeCard.compact:before{top:15px;bottom:15px}
+.secretariatHomeCard.compact .secretariatHomeOrb{width:39px;height:39px;border-radius:13px;font-size:18px}
+.secretariatHomeCard.compact .secretariatIdentity{gap:9px}
+.secretariatHomeCard.compact .secretariatIdentity h2{font-size:19px}
+.secretariatHomeCard.compact .secretariatEyebrow{font-size:7.5px;margin-bottom:3px}
+.secretariatHomeCard.compact .secretariatStatus{padding:5px 7px;font-size:7.5px}
+.secretariatPulse{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 9px;color:var(--text);font-size:11px;line-height:1.25}
+.secretariatPulse b{font-size:11px}
+.secretariatPulse small{color:var(--muted);font-size:9px}
+.secretariatPulseSep{color:var(--muted)}
+.secretariatQueue.compact{gap:6px}
+.secretariatQueue.compact .secretariatQueueItem{padding:8px 9px;border-radius:13px;gap:9px}
+.secretariatQueue.compact .secretariatQueueIcon{width:31px;height:31px;border-radius:10px;font-size:14px}
+.secretariatQueue.compact .secretariatQueueBody small{font-size:7.5px;margin-bottom:2px}
+.secretariatQueue.compact .secretariatQueueBody b{font-size:10.5px}
+.secretariatQueue.compact .secretariatQueueBody span{font-size:8.5px;margin-top:2px}
+.secretariatQueue.compact .secretariatQueueArrow{font-size:16px}
+.secretariatHomeActions.compact{margin-top:8px;gap:7px}
+.secretariatHomeActions.compact .secretariatOpen{min-height:37px;font-size:11px;border-radius:12px}
+.secretariatHomeActions.compact .secretariatRefresh{width:37px;height:37px;min-height:37px;border-radius:12px}
+.secretariatHomeCard.compact .secretariatFineprint{font-size:7.5px;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.secretariatCalmLine{display:flex;align-items:center;gap:9px;margin:10px 0 7px;padding:9px 10px;border-radius:13px;border:1px solid rgba(102,217,154,.16);background:rgba(102,217,154,.055)}
+.secretariatCalmLine>span{font-size:15px;color:var(--ok)}
+.secretariatCalmLine b,.secretariatCalmLine small{display:block}.secretariatCalmLine b{font-size:10.5px}.secretariatCalmLine small{font-size:8.5px;color:var(--muted);margin-top:1px}
+
+#today .compactSectionTitle{margin:15px 2px 8px;align-items:center}
+#today .compactSectionTitle h2{font-size:18px}
+#today .compactSectionTitle span,#today .textLink{font-size:10px}
+.textLink{border:0;background:transparent;color:var(--muted);padding:6px 0;font-weight:800}
+#today .quickGridCompact{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#today .quickGridCompact .quick{min-height:70px;padding:9px 6px;border-radius:15px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#today .quickGridCompact .quick .emoji{font-size:19px;line-height:1}
+#today .quickGridCompact .quick b{font-size:10px;margin-top:6px;white-space:nowrap}
+#today .quickGridCompact .quick small{display:none}
+
+#today .invoiceFollowupDashboard{margin:13px 0 15px}
+#today .invoiceFollowupCard.compact{padding:13px;border-radius:19px;gap:8px}
+#today .invoiceFollowupCard.compact .invoiceFollowupHead{align-items:center;gap:8px}
+#today .invoiceFollowupCard.compact .invoiceFollowupHead .securityBadge{font-size:8px;padding:5px 7px}
+#today .invoiceFollowupCard.compact .invoiceFollowupHead h3{font-size:14px;margin:5px 0 2px}
+#today .invoiceFollowupCard.compact .invoiceFollowupHead p{font-size:8.5px}
+#today .invoiceFollowupCard.compact .invoiceFollowupMini{grid-template-columns:auto minmax(0,1fr) auto;padding:9px 10px;gap:8px;border-radius:13px}
+#today .invoiceFollowupCard.compact .invoiceFollowupMini>span{font-size:16px}
+#today .invoiceFollowupCard.compact .invoiceFollowupMini b{font-size:9.5px}
+#today .invoiceFollowupCard.compact .invoiceFollowupMini small{font-size:8px;margin-top:2px}
+#today .invoiceFollowupCard.compact .invoiceFollowupMini .btn{grid-column:auto;width:auto;min-height:34px;padding:0 9px;font-size:9px;border-radius:10px}
+.invoiceFollowupMore{appearance:none;border:0;background:transparent;color:var(--muted);font-size:9px;font-weight:850;text-align:left;padding:1px 3px;cursor:pointer}
+
+#today .todayCompactCard{padding:11px 12px;border-radius:18px;margin-bottom:11px}
+#today .todayCompactCard.compactEmpty{display:flex;align-items:center;gap:8px;padding:9px 11px}
+#today .todayCompactCard.compactEmpty #todayTasks,#today .todayCompactCard.compactEmpty #todayEvents{flex:1;min-width:0}
+#today .todayAddTask{margin-left:auto;white-space:nowrap;min-height:34px;padding:0 9px;font-size:9px;border-radius:10px}
+.todayEmpty{display:flex;align-items:center;gap:9px;color:var(--muted);min-height:35px}
+.todayEmpty>span{width:29px;height:29px;display:grid;place-items:center;border:1px solid var(--line);background:var(--card2);border-radius:10px;font-size:13px}
+.todayEmpty b,.todayEmpty small{display:block}.todayEmpty b{font-size:10px;color:var(--text)}.todayEmpty small{font-size:8.5px;margin-top:1px}
+#today .todayCompactCard.compactEmpty .timeline{padding-left:0}
+#today .todayCompactCard.compactEmpty .timeline:before{display:none}
+
+@media(max-width:620px){
+  #today .todayStatsCompact{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #today .weatherMetaCompact{display:none!important}
+  #today .weatherRiskCompact{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  #today .invoiceFollowupCard.compact .invoiceFollowupMini{grid-template-columns:auto minmax(0,1fr) auto}
+  #today .invoiceFollowupCard.compact .invoiceFollowupMini .btn{grid-column:auto;width:auto;min-height:34px}
+}
+@media(max-width:390px){
+  #today .compactHero h2{font-size:23px}
+  #today .todayStatsCompact{gap:5px}
+  #today .todayStatsCompact .stat{padding:8px 7px}
+  #today .todayStatsCompact .stat strong{font-size:17px}
+  #today .todayStatsCompact .stat.money strong{font-size:10.5px}
+  .secretariatHomeCard.compact{padding:12px}
+  .secretariatHomeCard.compact .secretariatStatus{font-size:7px;padding:5px 6px}
+  #today .quickGridCompact .quick b{font-size:9px}
+}

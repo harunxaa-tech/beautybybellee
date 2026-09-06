@@ -163,7 +163,7 @@
     const queue=[
       ...openItems.map(i=>({kind:'assistant',date:i.created_at,item:i})),
       ...newImportant.map(x=>({kind:'mail',date:x.m.received_at,item:x.m}))
-    ].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,3);
+    ].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,2);
     const queueHtml=queue.map(x=>{
       if(x.kind==='assistant'){
         const i=x.item,m=homeIntentMeta(i.detected_intent),who=i.customer_name||i.sender_email||'Kunde',offer=i.offer_number?` · ${i.offer_number}`:'';
@@ -172,13 +172,15 @@
       const m=x.item,meta=homeMailMeta(m),who=m.from_name||m.from_email||'Unbekannter Absender';
       return `<button type="button" class="secretariatQueueItem" onclick="MailHub.review('${esc(m.id)}')"><span class="secretariatQueueIcon">${meta.icon}</span><span class="secretariatQueueBody"><small>${meta.label}</small><b>${esc(m.subject||'Ohne Betreff')}</b><span>${esc(who)}</span></span><span class="secretariatQueueArrow">›</span></button>`;
     }).join('');
-    host.innerHTML=`<div class="secretariatHomeCard"><div class="secretariatHomeTop"><div class="secretariatIdentity"><div class="secretariatHomeOrb"><span>✦</span></div><div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Wichtige Kundenmails, Rückmeldungen und Freigaben.</p></div></div><span class="secretariatStatus ${totalOpen?'attention':''}"><span class="secretariatStatusDot"></span>${totalOpen?`${totalOpen} OFFEN`:'AKTUELL'}</span></div><div class="secretariatSummary"><strong>${esc(headline)}</strong><small>${esc(detail)}</small></div><div class="secretariatStats"><div class="secretariatStat"><span>Neue Mails</span><strong>${newImportant.length}</strong></div><div class="secretariatStat"><span>Freigaben</span><strong>${openItems.length}</strong></div><div class="secretariatStat"><span>Heute geprüft</span><strong>${todayChecked}</strong></div></div>${queueHtml?`<div class="secretariatQueue">${queueHtml}</div>`:`<div class="secretariatEmptyState"><span>✓</span><div><b>Keine offenen Vorgänge</b><small>Du kannst direkt in deinen Arbeitstag starten.</small></div></div>`}<div class="secretariatHomeActions"><button type="button" class="btn primary secretariatOpen" onclick="openEmailAssistant()">Sekretariat öffnen</button><button type="button" class="btn secretariatRefresh ${homeSyncing?'syncing':''}" onclick="MailHub.syncHome()" aria-label="Postfach aktualisieren" ${homeSyncing?'disabled':''}>↻</button></div><div class="secretariatFineprint">🔒 <b>Versand nur nach Freigabe</b> · ${esc(homeLastSyncLabel(c))}${filtered.length?` · ${filtered.length} weitere Mail${filtered.length===1?'':'s'} sicher nach unten sortiert`:''}</div></div>`;
+    const checkedHtml=todayChecked?`<span class="secretariatPulseSep">·</span><small>✓ ${todayChecked} heute geprüft</small>`:`<small>Noch nichts geprüft</small>`;
+    const openLabel=totalOpen?`Alle ${totalOpen} öffnen`:'Sekretariat öffnen';
+    host.innerHTML=`<div class="secretariatHomeCard compact"><div class="secretariatHomeTop"><div class="secretariatIdentity"><div class="secretariatHomeOrb"><span>✦</span></div><div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2></div></div><span class="secretariatStatus ${totalOpen?'attention':''}"><span class="secretariatStatusDot"></span>${totalOpen?`${totalOpen} OFFEN`:'AKTUELL'}</span></div>${totalOpen?`<div class="secretariatPulse"><b>${newImportant.length} neue ${newImportant.length===1?'Mail':'Mails'}</b><span class="secretariatPulseSep">·</span><b>${openItems.length} ${openItems.length===1?'Freigabe':'Freigaben'}</b>${checkedHtml}</div>`:`<div class="secretariatCalmLine"><span>✓</span><div><b>Alles im Blick</b><small>Keine offenen wichtigen Vorgänge.</small></div></div>`}${queueHtml?`<div class="secretariatQueue compact">${queueHtml}</div>`:''}<div class="secretariatHomeActions compact"><button type="button" class="btn primary secretariatOpen" onclick="openEmailAssistant()">${openLabel}</button><button type="button" class="btn secretariatRefresh ${homeSyncing?'syncing':''}" onclick="MailHub.syncHome()" aria-label="Postfach aktualisieren" ${homeSyncing?'disabled':''}>↻</button></div><div class="secretariatFineprint">🔒 Versand nur nach Freigabe · ${esc(homeLastSyncLabel(c))}</div></div>`;
   }
   async function maybeAutoSyncHome(){
     const c=activeConnection();if(!c||c.status!=='connected'||homeSyncing)return;
     let age=Infinity;try{age=Date.now()-new Date(c.last_sync_at||0).getTime()}catch{}
     if(age<10*60*1000)return;
-    const key=`ap_secretariat_autosync_v1123_${c.id}`;try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1')}catch{}
+    const key=`ap_secretariat_autosync_v1124_${c.id}`;try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1')}catch{}
     homeSyncing=true;renderHomeSecretariat();
     try{await invoke('mail-sync',{connection_id:c.id});await loadConnections();await Promise.all([loadMessages(),loadAssistantItems()]);renderConnection();renderInbox()}
     catch(e){console.warn('Sekretariat Auto-Sync',e)}

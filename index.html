@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.23">
+<link rel="stylesheet" href="style.css?v=11.24">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -18,13 +18,14 @@
 <header class="top"><div class="brand"><small id="cloudModeLabel">DIGITALER HANDWERKER · LOKAL</small><h1>AngebotsPilot</h1></div><div class="topActions"><button class="iconBtn notificationBell" onclick="openNotifications()" aria-label="Benachrichtigungen">🔔<span id="notificationBadge" class="notificationBadge hidden" hidden>0</span></button><button class="iconBtn" id="themeBtn">◐</button><button class="iconBtn" onclick="showScreen('more')">⚙️</button></div></header>
 
 <section class="screen active" id="today">
-<div class="card hero"><span class="pill"><span class="dot"></span><span id="todayDate"></span></span><h2>Guten Morgen, <span id="ownerGreeting">Handwerker</span>.</h2><p id="dailyMessage">Hier siehst du, was heute wichtig ist.</p></div>
+<div class="card hero compactHero"><span class="pill"><span class="dot"></span><span id="todayDate"></span></span><h2>Guten Morgen, <span id="ownerGreeting">Handwerker</span>.</h2><p id="dailyMessage">Hier siehst du, was heute wichtig ist.</p></div>
 <div id="secretariatHome" class="secretariatHome owner-office-only" aria-live="polite">
   <div class="secretariatHomeCard secretariatHomeLoading">
     <div class="secretariatHomeOrb"><span>✦</span></div>
     <div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Wichtige Kundenmails werden im Hintergrund vorbereitet …</p></div>
   </div>
 </div>
+<div class="stats owner-only todayStatsCompact" id="ownerTodayStats"><div class="stat"><span>Aufgaben</span><strong id="statTasks">0</strong></div><div class="stat"><span>Termine</span><strong id="statEvents">0</strong></div><div class="stat"><span>Angebote</span><strong id="statOffers">0</strong></div><div class="stat money"><span>Wert</span><strong id="statValue">0 €</strong></div></div>
 <div class="card weatherHero weatherCompact" id="weatherDashboard" role="button" tabindex="0" onclick="showScreen('weather')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showScreen('weather')}">
   <div class="weatherCompactTop">
     <div class="weatherCompactInfo">
@@ -36,7 +37,6 @@
   <div class="weatherMeta weatherMetaCompact" id="weatherMeta"></div>
   <div id="weatherRisk" class="riskBox weatherRiskCompact">Wetterdaten werden geladen …</div>
 </div>
-<div class="stats owner-only" id="ownerTodayStats"><div class="stat"><span>Offene Aufgaben</span><strong id="statTasks">0</strong></div><div class="stat"><span>Termine heute</span><strong id="statEvents">0</strong></div><div class="stat"><span>Offene Angebote</span><strong id="statOffers">0</strong></div><div class="stat"><span>Angebotswert</span><strong id="statValue">0 €</strong></div></div>
 
 <div class="office-only officeDashboard" id="officeDashboard">
   <div class="officeModeBanner"><span>🗂️</span><div><b>Büro-Arbeitsplatz</b><small>Kunden · Angebote · Termine · Rechnungen · Baustellenplanung</small></div><strong>CLOUD</strong></div>
@@ -80,11 +80,11 @@
   <div class="sectionTitle workerSectionTitle"><div><h2>Meine Baustellen</h2><span id="workerHomeJobMeta">Deine nächsten Einsätze</span></div><button type="button" class="btn small" onclick="refreshMyJobs()">↻</button></div>
   <div id="workerHomeJobs" class="workerHomeJobs"></div>
 </div>
-<div class="sectionTitle owner-only"><h2>Schnellstart</h2><span>1 Klick</span></div>
-<div class="quickGrid owner-only"><button class="quick" onclick="newOffer()"><span class="emoji">📄</span><b>Neues Angebot</b><small>Kunde, Positionen, PDF</small></button><button class="quick" onclick="newEvent()"><span class="emoji">📅</span><b>Termin planen</b><small>Baustelle oder Besichtigung</small></button><button class="quick" onclick="newCustomer()"><span class="emoji">👤</span><b>Kunde anlegen</b><small>Kontaktdaten und Adresse</small></button><button class="quick" onclick="newTask()"><span class="emoji">✅</span><b>Aufgabe erstellen</b><small>Nichts mehr vergessen</small></button></div>
+<div class="sectionTitle owner-only compactSectionTitle"><h2>Schnell</h2><span>1 Tipp</span></div>
+<div class="quickGrid owner-only quickGridCompact"><button class="quick" onclick="newOffer()"><span class="emoji">📄</span><b>Angebot</b><small>Neu</small></button><button class="quick" onclick="newEvent()"><span class="emoji">📅</span><b>Termin</b><small>Planen</small></button><button class="quick" onclick="newCustomer()"><span class="emoji">👤</span><b>Kunde</b><small>Anlegen</small></button><button class="quick" onclick="newTask()"><span class="emoji">✅</span><b>Aufgabe</b><small>Neu</small></button></div>
 <div id="invoiceFollowupDashboard" class="invoiceFollowupDashboard owner-office-only"></div>
-<div class="sectionTitle"><h2 id="todayTasksTitle">Heute erledigen</h2><span id="taskProgress">0 erledigt</span></div><div class="card"><div id="todayTasks" class="list"></div><button class="btn ghost owner-office-only" style="width:100%;margin-top:10px" onclick="newTask()">＋ Aufgabe hinzufügen</button></div>
-<div class="sectionTitle"><h2>Heutige Termine</h2><span>Kalender</span></div><div class="card"><div id="todayEvents" class="timeline"></div></div>
+<div class="sectionTitle compactSectionTitle"><h2 id="todayTasksTitle">Heute erledigen</h2><span id="taskProgress">0 erledigt</span></div><div class="card todayCompactCard" id="todayTasksCard"><div id="todayTasks" class="list"></div><button class="btn ghost small owner-office-only todayAddTask" onclick="newTask()">＋ Aufgabe</button></div>
+<div class="sectionTitle compactSectionTitle"><h2>Heutige Termine</h2><button class="textLink" type="button" onclick="showScreen('calendar')">Kalender →</button></div><div class="card todayCompactCard" id="todayEventsCard"><div id="todayEvents" class="timeline"></div></div>
 </section>
 
 <section class="screen" id="offers">
@@ -150,7 +150,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.23</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.24</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -162,7 +162,7 @@
 <section class="screen" id="emailAssistant">
   <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETARIAT · FREIGABEMODUS</div><h2>Sekretariat</h2><p class="mini">Deine digitale Sekretärin bündelt Kundenmails, Rückmeldungen und Freigaben an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
   <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.23 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.24 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
   </div>
 
   <div class="card mailConnectCard">
@@ -1088,22 +1088,22 @@
 </div>
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.23" defer></script>
-<script src="country-config.js?v=11.23" defer></script>
-<script src="data-repository.js?v=11.23" defer></script>
-<script src="einvoice.js?v=11.23" defer></script>
-<script src="script.js?v=11.23" defer></script>
-<script src="cloud-files.js?v=11.23" defer></script>
-<script src="cloud-sync.js?v=11.23" defer></script>
-<script src="team.js?v=11.23" defer></script>
-<script src="assignments.js?v=11.23" defer></script>
-<script src="time-tracking.js?v=11.23" defer></script>
-<script src="notifications.js?v=11.23" defer></script>
-<script src="mail-hub.js?v=11.23" defer></script>
-<script src="email-assistant.js?v=11.23" defer></script>
-<script src="acceptance.js?v=11.23" defer></script>
-<script src="custom-selects.js?v=11.23" defer></script>
-<script src="cloud-auth.js?v=11.23" defer></script>
+<script src="cloud-config.js?v=11.24" defer></script>
+<script src="country-config.js?v=11.24" defer></script>
+<script src="data-repository.js?v=11.24" defer></script>
+<script src="einvoice.js?v=11.24" defer></script>
+<script src="script.js?v=11.24" defer></script>
+<script src="cloud-files.js?v=11.24" defer></script>
+<script src="cloud-sync.js?v=11.24" defer></script>
+<script src="team.js?v=11.24" defer></script>
+<script src="assignments.js?v=11.24" defer></script>
+<script src="time-tracking.js?v=11.24" defer></script>
+<script src="notifications.js?v=11.24" defer></script>
+<script src="mail-hub.js?v=11.24" defer></script>
+<script src="email-assistant.js?v=11.24" defer></script>
+<script src="acceptance.js?v=11.24" defer></script>
+<script src="custom-selects.js?v=11.24" defer></script>
+<script src="cloud-auth.js?v=11.24" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
