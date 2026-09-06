@@ -425,7 +425,7 @@ function currencySymbol(code=currentCurrencyCode()){return globalThis.APCountry?
 function dateDE(s){if(!s)return'';return new Date(s+'T12:00:00').toLocaleDateString('de-DE')}
 function todayISO(){return new Date().toISOString().slice(0,10)}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.navBtn').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));window.scrollTo({top:0,behavior:'smooth'});renderAll()}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.navBtn').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));window.scrollTo({top:0,behavior:'smooth'});renderAll();if(id==='today')globalThis.MailHub?.refreshHome?.().catch?.(()=>{})}
 document.querySelectorAll('.navBtn').forEach(b=>b.onclick=()=>showScreen(b.dataset.screen));
 document.getElementById('themeBtn').onclick=()=>{document.documentElement.classList.toggle('light');localStorage.setItem('dh_theme',document.documentElement.classList.contains('light')?'light':'dark')};if(localStorage.getItem('dh_theme')==='light')document.documentElement.classList.add('light');
 

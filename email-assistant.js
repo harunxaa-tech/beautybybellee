@@ -269,7 +269,7 @@
 
   async function analyze(){
     try{
-      const {membership}=cloud();if(!['owner','office'].includes(membership?.role||''))throw new Error('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar.');
+      const {membership}=cloud();if(!['owner','office'].includes(membership?.role||''))throw new Error('Sekretariat ist nur für Chef und Büro verfügbar.');
       const a=currentAnalysis();renderAnalysis(a);q('emailAssistAnalyze').disabled=true;q('emailAssistAnalyze').textContent='Analyse gespeichert ✓';
       try{a.cloudRow=await persistAnalysis(a);if(a.sourceMailMessageId){const {client}=cloud();await client?.from('mail_messages').update({workflow_status:'reviewed',updated_at:new Date().toISOString()}).eq('id',a.sourceMailMessageId);globalThis.MailHub?.refresh?.().catch?.(()=>{})}await loadHistory()}catch(e){console.warn('Analyse konnte nicht in Cloud gespeichert werden',e);globalThis.toast?.('Analyse erstellt · Cloud-Verlauf konnte nicht gespeichert werden')}
       setTimeout(()=>{q('emailAssistAnalyze').disabled=false;q('emailAssistAnalyze').textContent='Nachricht prüfen'},900);
@@ -322,7 +322,7 @@
 
   async function loadHistory(){
     const {client,company,membership}=cloud(),box=q('emailAssistHistory');if(!box)return;
-    if(!client||!company||!['owner','office'].includes(membership?.role||'')){box.innerHTML='<div class="empty">E-Mail-Sekretärin ist nur für Chef und Büro verfügbar.</div>';return}
+    if(!client||!company||!['owner','office'].includes(membership?.role||'')){box.innerHTML='<div class="empty">Sekretariat ist nur für Chef und Büro verfügbar.</div>';return}
     box.innerHTML='<div class="empty">Verlauf wird geladen …</div>';
     const {data,error}=await client.from('email_assistant_items').select('*').eq('company_id',company.id).order('created_at',{ascending:false}).limit(40);if(error){box.innerHTML='<div class="empty">Verlauf konnte nicht geladen werden.</div>';return}
     items=data||[];
@@ -331,7 +331,7 @@
 
   function reopen(id){const i=items.find(x=>x.id===id);if(!i)return;q('emailAssistSender').value=i.sender_email||'';q('emailAssistSenderName').value=i.sender_name||'';q('emailAssistSubject').value=i.subject||'';q('emailAssistBody').value=i.body||'';populateOfferHint();if(i.offer_local_id&&offerById(i.offer_local_id))q('emailAssistOfferHint').value=i.offer_local_id;globalThis.APCustomSelect?.sync?.();const customer=customerById(i.customer_local_id),offer=offerById(i.offer_local_id),existingJob=offer?activeJobByOffer(offer.id):null;let slot=i.suggested_start_date?{startDate:i.suggested_start_date,startTime:String(i.suggested_start_time||'08:00').slice(0,5),endDate:i.suggested_end_date||i.suggested_start_date}:null;if(existingJob&&(i.detected_intent==='appointment'||i.detected_intent==='accepted'))slot=slotFromJob(existingJob);const a={senderEmail:i.sender_email||'',senderName:i.sender_name||'',subject:i.subject||'',body:i.body||'',intent:i.detected_intent||'unknown',confidence:Number(i.confidence)||0,customer,offer,durationValue:Number(i.duration_value)||Number(offer?.durationValue)||1,durationUnit:i.duration_unit||offer?.durationUnit||'days',slot,existingJob,reply:i.reply_draft||'',cloudRow:i,sourceMailMessageId:i.source_mail_message_id||'',sent:/Antwort versendet/i.test(i.action_note||'')};if(a.intent==='appointment')a.reply=replyFor(a);renderAnalysis(a);window.scrollTo({top:0,behavior:'smooth'})}
 
-  async function remove(id){const ok=await globalThis.appConfirm?.({title:'Eintrag löschen?',text:'Nur dieser E-Mail-Sekretärin-Verlauf wird gelöscht. Kunden, Angebote und Baustellen bleiben unverändert.',confirmLabel:'Löschen',icon:'🗑️',danger:true});if(!ok)return;const {client}=cloud();const {error}=await client.from('email_assistant_items').delete().eq('id',id);if(error)return globalThis.toast?.('Eintrag konnte nicht gelöscht werden');await loadHistory();globalThis.toast?.('Eintrag gelöscht')}
+  async function remove(id){const ok=await globalThis.appConfirm?.({title:'Eintrag löschen?',text:'Nur dieser Sekretariat-Verlauf wird gelöscht. Kunden, Angebote und Baustellen bleiben unverändert.',confirmLabel:'Löschen',icon:'🗑️',danger:true});if(!ok)return;const {client}=cloud();const {error}=await client.from('email_assistant_items').delete().eq('id',id);if(error)return globalThis.toast?.('Eintrag konnte nicht gelöscht werden');await loadHistory();globalThis.toast?.('Eintrag gelöscht')}
 
   function clearForm(){['emailAssistSender','emailAssistSenderName','emailAssistSubject','emailAssistBody'].forEach(id=>{if(q(id))q(id).value=''});q('emailAssistOfferHint').value='';q('emailAssistResult').classList.add('hidden');const src=q('emailAssistSource');if(src){src.classList.add('hidden');src.innerHTML=''}sourceMailMessageId='';active=null;globalThis.APCustomSelect?.sync?.()}
 
@@ -348,7 +348,7 @@
     setTimeout(()=>analyze(),180);
   }
 
-  async function open(){updateLocaleHint();const {membership}=cloud();if(!['owner','office'].includes(membership?.role||'')){globalThis.toast?.('E-Mail-Sekretärin ist nur für Chef und Büro verfügbar');globalThis.showScreen?.('more');return}globalThis.showScreen?.('emailAssistant');populateOfferHint();clearForm();await Promise.all([loadHistory(),globalThis.MailHub?.refresh?.()])}
+  async function open(){updateLocaleHint();const {membership}=cloud();if(!['owner','office'].includes(membership?.role||'')){globalThis.toast?.('Sekretariat ist nur für Chef und Büro verfügbar');globalThis.showScreen?.('more');return}globalThis.showScreen?.('emailAssistant');populateOfferHint();clearForm();await Promise.all([loadHistory(),globalThis.MailHub?.refresh?.()])}
 
   globalThis.openEmailAssistant=open;
   globalThis.EmailAssistant={open,analyze,copyReply,sendReply,prepare,loadHistory,reopen,remove,clearForm,loadMailMessage,populateOfferHint,_debug:{classify,matchCustomer,matchOffer,parseRequestedDate,findFreeSlot,replyFor,correspondenceProfile,durationLabel,deDate}};

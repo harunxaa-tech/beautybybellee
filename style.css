@@ -1297,3 +1297,58 @@ body.sheetOpen{overflow:hidden}
 .customerInvoiceDetails>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer;font-weight:800}.customerInvoiceDetails>summary::-webkit-details-marker{display:none}.customerInvoiceDetails>summary small{color:var(--muted,#9aa4b2);font-weight:500;font-size:12px;text-align:right}
 .customerInvoiceInner{padding:4px 16px 16px}.softCheck{display:flex;gap:11px;align-items:flex-start;padding:13px;border-radius:14px;background:rgba(255,255,255,.035);margin-top:8px}.softCheck input{margin-top:4px}.softCheck span{display:grid;gap:3px}.softCheck small{color:var(--muted,#9aa4b2);line-height:1.4}
 @media(max-width:560px){.customerInvoiceDetails .row{grid-template-columns:1fr}.invoiceComplianceBox{padding:14px}.customerInvoiceDetails>summary{align-items:flex-start;flex-direction:column;gap:3px}.customerInvoiceDetails>summary small{text-align:left}}
+
+/* v11.23 – Sekretariat als Morgen-Zentrale auf Heute */
+.secretariatHome{margin:0 0 14px}
+.secretariatHomeCard{
+  position:relative;overflow:hidden;background:
+    radial-gradient(circle at 92% 6%,rgba(216,255,62,.16),transparent 34%),
+    linear-gradient(145deg,rgba(255,255,255,.025),transparent 58%),var(--card);
+  border:1px solid rgba(216,255,62,.17);border-radius:25px;padding:17px;box-shadow:var(--shadow)
+}
+.secretariatHomeCard:before{content:"";position:absolute;left:0;top:19px;bottom:19px;width:3px;border-radius:0 8px 8px 0;background:var(--accent);opacity:.88}
+.secretariatHomeTop{display:flex;align-items:flex-start;justify-content:space-between;gap:13px}
+.secretariatIdentity{display:flex;align-items:center;gap:12px;min-width:0}
+.secretariatHomeOrb{width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;border-radius:16px;background:rgba(216,255,62,.11);border:1px solid rgba(216,255,62,.2);color:var(--accent);font-size:22px;font-weight:950;box-shadow:inset 0 0 20px rgba(216,255,62,.035)}
+.secretariatHomeOrb span{transform:translateY(-1px)}
+.secretariatEyebrow{display:block;color:var(--accent);font-size:9px;letter-spacing:.16em;font-weight:950;margin-bottom:4px}
+.secretariatIdentity h2,.secretariatHomeLoading h2{font-size:22px;line-height:1.1;margin:0}
+.secretariatIdentity p,.secretariatHomeLoading p{color:var(--muted);font-size:12px;line-height:1.4;margin:5px 0 0}
+.secretariatStatus{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:7px 9px;color:var(--muted);font-size:9px;font-weight:950;letter-spacing:.07em}
+.secretariatStatus .secretariatStatusDot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px rgba(102,217,154,.5)}
+.secretariatStatus.attention{color:var(--text);border-color:rgba(216,255,62,.28);background:rgba(216,255,62,.08)}
+.secretariatStatus.attention .secretariatStatusDot{background:var(--accent);box-shadow:0 0 8px rgba(216,255,62,.55)}
+.secretariatStatus.offline .secretariatStatusDot{background:var(--muted);box-shadow:none}
+.secretariatSummary{margin:15px 0 11px;padding:12px 13px;border:1px solid var(--line);background:rgba(0,0,0,.09);border-radius:17px}
+:root.light .secretariatSummary{background:rgba(16,24,32,.025)}
+.secretariatSummary strong{display:block;font-size:15px;line-height:1.35}
+.secretariatSummary small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:4px}
+.secretariatStats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:11px}
+.secretariatStat{min-width:0;border:1px solid var(--line);background:var(--card2);border-radius:15px;padding:10px 11px}
+.secretariatStat span{display:block;color:var(--muted);font-size:9px;line-height:1.2}
+.secretariatStat strong{display:block;font-size:18px;line-height:1;margin-top:7px;letter-spacing:-.02em}
+.secretariatQueue{display:grid;gap:7px}
+.secretariatQueueItem{width:100%;display:flex;align-items:center;gap:11px;text-align:left;border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:16px;padding:11px 12px;min-width:0}
+.secretariatQueueItem:active{transform:scale(.992)}
+.secretariatQueueIcon{width:38px;height:38px;flex:0 0 auto;display:grid;place-items:center;border-radius:12px;background:var(--card);font-size:17px;border:1px solid var(--line)}
+.secretariatQueueBody{min-width:0;flex:1}
+.secretariatQueueBody small{display:block;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.05em;margin-bottom:3px}
+.secretariatQueueBody b{display:block;font-size:12px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secretariatQueueBody span{display:block;color:var(--muted);font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secretariatQueueArrow{color:var(--muted);font-size:20px;line-height:1}
+.secretariatHomeActions{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:11px}
+.secretariatHomeActions .secretariatOpen{flex:1;min-height:42px}
+.secretariatRefresh{width:42px;height:42px;min-height:42px;padding:0;border-radius:13px}
+.secretariatRefresh.syncing{animation:secretariatSpin 1.1s linear infinite}
+@keyframes secretariatSpin{to{transform:rotate(360deg)}}
+.secretariatFineprint{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:9px;margin-top:10px;padding-left:2px}
+.secretariatFineprint b{color:var(--text);font-weight:800}
+.secretariatHomeLoading{min-height:92px;display:flex;align-items:center;gap:12px}
+.secretariatHomeLoading .secretariatHomeOrb{animation:pulse 1.25s infinite}
+.secretariatEmptyState{display:flex;align-items:center;gap:12px;margin:14px 0 4px;padding:13px;border:1px solid rgba(102,217,154,.15);background:rgba(102,217,154,.055);border-radius:17px}
+.secretariatEmptyState>span{font-size:20px}.secretariatEmptyState b,.secretariatEmptyState small{display:block}.secretariatEmptyState small{color:var(--muted);margin-top:3px;line-height:1.35}
+.secretariatSetup{margin-top:14px;padding:14px;border:1px solid var(--line);background:var(--card2);border-radius:18px}
+.secretariatSetup b,.secretariatSetup small{display:block}.secretariatSetup small{color:var(--muted);margin-top:4px;line-height:1.4}.secretariatSetup .btn{width:100%;margin-top:11px}
+@media(max-width:520px){
+  .secretariatHomeCard{padding:15px 14px 14px}.secretariatHomeTop{gap:8px}.secretariatHomeOrb{width:44px;height:44px;border-radius:14px}.secretariatIdentity{gap:10px}.secretariatIdentity h2{font-size:20px}.secretariatStatus{padding:6px 7px;font-size:8px}.secretariatStats{gap:6px}.secretariatStat{padding:9px}.secretariatStat strong{font-size:17px}.secretariatQueueItem{padding:10px}.secretariatQueueIcon{width:35px;height:35px}.secretariatHomeActions{gap:7px}
+}

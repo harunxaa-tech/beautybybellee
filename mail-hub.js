@@ -7,8 +7,12 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   let connections=[];
   let messages=[];
+  let assistantItems=[];
   let capabilities={microsoft:{ready:false},google:{ready:false},other:{ready:false}};
   let loading=false;
+  let homeRefreshing=false;
+  let homeSyncing=false;
+  let homeLastRefreshAt=0;
   let imapProvider='';
   let showFiltered=false;
 
@@ -46,6 +50,11 @@
     const c=activeConnection();if(!c)return messages=[];
     const {data,error}=await client.from('mail_messages').select('*').eq('company_id',company.id).eq('connection_id',c.id).eq('direction','inbound').order('received_at',{ascending:false}).limit(40);
     if(error)throw error;messages=data||[];
+  }
+  async function loadAssistantItems(){
+    const {client,company}=cloud();if(!client||!company)return assistantItems=[];
+    const {data,error}=await client.from('email_assistant_items').select('id,detected_intent,confidence,workflow_status,subject,customer_name,sender_email,offer_number,created_at,source_mail_message_id,action_note').eq('company_id',company.id).order('created_at',{ascending:false}).limit(40);
+    if(error)throw error;assistantItems=data||[];return assistantItems;
   }
   function activeConnection(){return connections.find(x=>x.status==='connected')||connections[0]||null}
 
@@ -110,6 +119,92 @@
     if(bulk>=2)return{bucket:'filtered',reason:reasons.slice(0,2).join(' · '),confidence:.98};
     return{bucket:'primary',reason:'Im Zweifel sichtbar',confidence:.5};
   }
+  function isTodayLocal(value){
+    if(!value)return false;const d=new Date(value),n=new Date();return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate();
+  }
+  function homeIntentMeta(intent){
+    return ({accepted:{icon:'✓',label:'ZUSAGE ERKANNT',tone:'accepted'},declined:{icon:'↩',label:'ABSAGE ERKANNT',tone:'declined'},appointment:{icon:'📅',label:'TERMINFRAGE',tone:'appointment'},question:{icon:'?',label:'KUNDENFRAGE',tone:'question'},unknown:{icon:'✉',label:'PRÜFUNG OFFEN',tone:'unknown'}})[intent]||{icon:'✉',label:'VORGANG',tone:'unknown'};
+  }
+  function homeMailMeta(m){
+    const text=`${m?.subject||''} ${m?.body_preview||m?.body_text||''}`.toLowerCase();
+    if(/annehm|angenommen|zusage|beauftrag|auftrag erteilen|accept/.test(text))return{icon:'✓',label:'MÖGLICHE ZUSAGE'};
+    if(/termin|wann (?:könn|koenn)|start|beginn|zeitpunkt|appointment/.test(text))return{icon:'📅',label:'TERMIN / START'};
+    if(/ablehn|absage|nicht beauftrag|declin/.test(text))return{icon:'↩',label:'MÖGLICHE ABSAGE'};
+    if(/rechnung|zahlung|bezahlt|überweis|ueberweis|invoice|payment/.test(text))return{icon:'€',label:'RECHNUNG / ZAHLUNG'};
+    if(customerEmails().has(normEmail(m?.from_email)))return{icon:'👤',label:'BEKANNTER KUNDE'};
+    return{icon:'✉',label:'NEUE KUNDENMAIL'};
+  }
+  function homeLastSyncLabel(c){
+    if(homeSyncing)return'Postfach wird gerade aktualisiert';
+    if(!c?.last_sync_at)return'Postfach verbunden';
+    try{return`Postfach zuletzt ${new Date(c.last_sync_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} aktualisiert`}catch{return'Postfach verbunden'}
+  }
+  function renderHomeSecretariat(){
+    const host=q('secretariatHome');if(!host)return;
+    const allowed=['owner','office'].includes(role());host.hidden=!allowed;if(!allowed)return;
+    const {client,company}=cloud();
+    if(!client||!company){host.innerHTML=`<div class="secretariatHomeCard secretariatHomeLoading"><div class="secretariatHomeOrb"><span>✦</span></div><div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Cloud und Postfach werden vorbereitet …</p></div></div>`;return}
+    const c=activeConnection();
+    if(!c||c.status!=='connected'){
+      host.innerHTML=`<div class="secretariatHomeCard"><div class="secretariatHomeTop"><div class="secretariatIdentity"><div class="secretariatHomeOrb"><span>✦</span></div><div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Deine digitale Sekretärin für Kundenmails und Rückmeldungen.</p></div></div><span class="secretariatStatus offline"><span class="secretariatStatusDot"></span>NICHT VERBUNDEN</span></div><div class="secretariatSetup"><b>Einmal Firmen-Postfach verbinden</b><small>Danach erscheinen wichtige Kundenmails morgens automatisch hier. Antworten und Aktionen bleiben immer unter deiner Freigabe.</small><button type="button" class="btn primary" onclick="openEmailAssistant()">Sekretariat einrichten</button></div><div class="secretariatFineprint">🔒 <b>Keine automatische Antwort.</b> Du behältst die Kontrolle.</div></div>`;return
+    }
+    const triaged=messages.map(m=>({m,t:triageMessage(m)}));
+    const primary=triaged.filter(x=>x.t.bucket==='primary');
+    const filtered=triaged.filter(x=>x.t.bucket==='filtered');
+    const newImportant=primary.filter(x=>x.m.workflow_status==='new');
+    const openItems=assistantItems.filter(i=>!['done','archived'].includes(String(i.workflow_status||'').toLowerCase()));
+    const todayChecked=assistantItems.filter(i=>isTodayLocal(i.created_at)).length;
+    const totalOpen=newImportant.length+openItems.length;
+    let headline='Alles im Blick.';
+    let detail='Keine neuen wichtigen Kundenmails oder offenen Freigaben.';
+    if(newImportant.length&&openItems.length){headline=`${totalOpen} Vorgänge brauchen deine Aufmerksamkeit.`;detail=`${newImportant.length} neue ${newImportant.length===1?'Mail':'Mails'} · ${openItems.length} bereits vorbereitete ${openItems.length===1?'Freigabe':'Freigaben'}.`}
+    else if(newImportant.length){headline=`${newImportant.length} neue wichtige ${newImportant.length===1?'Mail wartet':'Mails warten'} auf dich.`;detail='Die Sekretärin hält mögliche Kunden- und Auftragsmails bewusst sichtbar.'}
+    else if(openItems.length){headline=`${openItems.length} ${openItems.length===1?'Vorgang wartet':'Vorgänge warten'} auf deine Freigabe.`;detail='Analyse und Antwort sind vorbereitet. Versendet oder gebucht wird erst nach deiner Bestätigung.'}
+    const queue=[
+      ...openItems.map(i=>({kind:'assistant',date:i.created_at,item:i})),
+      ...newImportant.map(x=>({kind:'mail',date:x.m.received_at,item:x.m}))
+    ].sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,3);
+    const queueHtml=queue.map(x=>{
+      if(x.kind==='assistant'){
+        const i=x.item,m=homeIntentMeta(i.detected_intent),who=i.customer_name||i.sender_email||'Kunde',offer=i.offer_number?` · ${i.offer_number}`:'';
+        return `<button type="button" class="secretariatQueueItem" onclick="MailHub.openAssistantItem('${esc(i.id)}')"><span class="secretariatQueueIcon">${m.icon}</span><span class="secretariatQueueBody"><small>${m.label}</small><b>${esc(i.subject||'Ohne Betreff')}</b><span>${esc(who)}${esc(offer)}</span></span><span class="secretariatQueueArrow">›</span></button>`;
+      }
+      const m=x.item,meta=homeMailMeta(m),who=m.from_name||m.from_email||'Unbekannter Absender';
+      return `<button type="button" class="secretariatQueueItem" onclick="MailHub.review('${esc(m.id)}')"><span class="secretariatQueueIcon">${meta.icon}</span><span class="secretariatQueueBody"><small>${meta.label}</small><b>${esc(m.subject||'Ohne Betreff')}</b><span>${esc(who)}</span></span><span class="secretariatQueueArrow">›</span></button>`;
+    }).join('');
+    host.innerHTML=`<div class="secretariatHomeCard"><div class="secretariatHomeTop"><div class="secretariatIdentity"><div class="secretariatHomeOrb"><span>✦</span></div><div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Wichtige Kundenmails, Rückmeldungen und Freigaben.</p></div></div><span class="secretariatStatus ${totalOpen?'attention':''}"><span class="secretariatStatusDot"></span>${totalOpen?`${totalOpen} OFFEN`:'AKTUELL'}</span></div><div class="secretariatSummary"><strong>${esc(headline)}</strong><small>${esc(detail)}</small></div><div class="secretariatStats"><div class="secretariatStat"><span>Neue Mails</span><strong>${newImportant.length}</strong></div><div class="secretariatStat"><span>Freigaben</span><strong>${openItems.length}</strong></div><div class="secretariatStat"><span>Heute geprüft</span><strong>${todayChecked}</strong></div></div>${queueHtml?`<div class="secretariatQueue">${queueHtml}</div>`:`<div class="secretariatEmptyState"><span>✓</span><div><b>Keine offenen Vorgänge</b><small>Du kannst direkt in deinen Arbeitstag starten.</small></div></div>`}<div class="secretariatHomeActions"><button type="button" class="btn primary secretariatOpen" onclick="openEmailAssistant()">Sekretariat öffnen</button><button type="button" class="btn secretariatRefresh ${homeSyncing?'syncing':''}" onclick="MailHub.syncHome()" aria-label="Postfach aktualisieren" ${homeSyncing?'disabled':''}>↻</button></div><div class="secretariatFineprint">🔒 <b>Versand nur nach Freigabe</b> · ${esc(homeLastSyncLabel(c))}${filtered.length?` · ${filtered.length} weitere Mail${filtered.length===1?'':'s'} sicher nach unten sortiert`:''}</div></div>`;
+  }
+  async function maybeAutoSyncHome(){
+    const c=activeConnection();if(!c||c.status!=='connected'||homeSyncing)return;
+    let age=Infinity;try{age=Date.now()-new Date(c.last_sync_at||0).getTime()}catch{}
+    if(age<10*60*1000)return;
+    const key=`ap_secretariat_autosync_v1123_${c.id}`;try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1')}catch{}
+    homeSyncing=true;renderHomeSecretariat();
+    try{await invoke('mail-sync',{connection_id:c.id});await loadConnections();await Promise.all([loadMessages(),loadAssistantItems()]);renderConnection();renderInbox()}
+    catch(e){console.warn('Sekretariat Auto-Sync',e)}
+    finally{homeSyncing=false;homeLastRefreshAt=Date.now();renderHomeSecretariat()}
+  }
+  async function refreshHome(force=false){
+    if(!['owner','office'].includes(role())){renderHomeSecretariat();return}
+    const {client,company}=cloud();if(!client||!company){renderHomeSecretariat();return}
+    if(homeRefreshing)return;
+    if(!force&&homeLastRefreshAt&&Date.now()-homeLastRefreshAt<30000){renderHomeSecretariat();return}
+    homeRefreshing=true;
+    try{await loadConnections();await Promise.all([loadMessages(),loadAssistantItems()]);homeLastRefreshAt=Date.now();renderHomeSecretariat();void maybeAutoSyncHome()}
+    catch(e){console.warn('Sekretariat Startseite',e);renderHomeSecretariat()}
+    finally{homeRefreshing=false}
+  }
+  async function syncHome(){
+    const c=activeConnection();if(!c||c.status!=='connected')return globalThis.openEmailAssistant?.();
+    if(homeSyncing)return;homeSyncing=true;renderHomeSecretariat();
+    try{const r=await invoke('mail-sync',{connection_id:c.id});await loadConnections();await Promise.all([loadMessages(),loadAssistantItems()]);renderConnection();renderInbox();globalThis.toast?.(r.new_count?`✓ ${r.new_count} neue Mail${r.new_count===1?'':'s'} geladen`:'Sekretariat ist aktuell')}
+    catch(e){globalThis.toast?.(e.message||'Postfach konnte nicht aktualisiert werden')}
+    finally{homeSyncing=false;homeLastRefreshAt=Date.now();renderHomeSecretariat()}
+  }
+  async function openAssistantItem(id){
+    await globalThis.openEmailAssistant?.();setTimeout(()=>globalThis.EmailAssistant?.reopen?.(id),60);
+  }
+
   function mailCard(m,triage,filtered=false){
     return `<div class="mailMessage ${m.workflow_status==='new'?'unreviewed':''} ${filtered?'mailMessageFiltered':''}">${filtered?`<div class="mailFilterBadge">Weitere Mail · ${esc(triage.reason||'Automatisch erkannt')}</div>`:''}<div class="mailMessageTop"><span>${m.workflow_status==='new'?'●':'✓'}</span><div><b>${esc(m.from_name||m.from_email||'Unbekannter Absender')}</b><small>${esc(m.from_email||'')} · ${esc(dt(m.received_at))}</small></div></div><h3>${esc(m.subject||'Ohne Betreff')}</h3><p>${esc(m.body_preview||m.body_text||'').slice(0,260)}</p><div class="mailMessageActions ${filtered?'mailFilteredActions':''}"><button class="btn ${filtered?'':'primary'} small" type="button" onclick="MailHub.review('${m.id}')">Sekretärin prüfen lassen</button>${filtered?`<button class="btn small" type="button" onclick="MailHub.keepSender('${m.id}')">⭐ Künftig oben</button>`:''}</div></div>`;
   }
@@ -139,7 +234,7 @@
 
   async function refresh(){
     if(!['owner','office'].includes(role()))return;
-    try{await Promise.all([loadCapabilities(),loadConnections()]);await loadMessages();renderConnection();renderInbox();showOAuthReturn()}catch(e){console.error('MailHub refresh',e);renderConnection();renderInbox()}
+    try{await Promise.all([loadCapabilities(),loadConnections()]);await Promise.all([loadMessages(),loadAssistantItems()]);homeLastRefreshAt=Date.now();renderConnection();renderInbox();renderHomeSecretariat();showOAuthReturn()}catch(e){console.error('MailHub refresh',e);renderConnection();renderInbox();renderHomeSecretariat()}
   }
 
   async function confirmProviderSwitch(){
@@ -220,9 +315,9 @@
   async function sync(connectionId){
     if(loading)return;loading=true;renderInbox();
     const btn=q('mailInboxSyncBtn');if(btn)btn.textContent='Wird abgerufen …';
-    try{const r=await invoke('mail-sync',{connection_id:connectionId});await loadConnections();await loadMessages();renderConnection();renderInbox();globalThis.toast?.(r.new_count?`✓ ${r.new_count} neue Mail${r.new_count===1?'':'s'} geladen`:'Posteingang ist aktuell')}
+    try{const r=await invoke('mail-sync',{connection_id:connectionId});await loadConnections();await Promise.all([loadMessages(),loadAssistantItems()]);homeLastRefreshAt=Date.now();renderConnection();renderInbox();renderHomeSecretariat();globalThis.toast?.(r.new_count?`✓ ${r.new_count} neue Mail${r.new_count===1?'':'s'} geladen`:'Posteingang ist aktuell')}
     catch(e){globalThis.toast?.(e.message||'Mails konnten nicht geladen werden')}
-    finally{loading=false;if(btn)btn.textContent='↻ Neue Mails abrufen';renderInbox()}
+    finally{loading=false;if(btn)btn.textContent='↻ Neue Mails abrufen';renderInbox();renderHomeSecretariat()}
   }
 
   async function disconnect(connectionId){
@@ -239,10 +334,10 @@
   function toggleFiltered(){showFiltered=!showFiltered;renderInbox()}
   function keepSender(id){
     const m=messages.find(x=>x.id===id),email=normEmail(m?.from_email);if(!email)return;
-    const set=keptSenders();set.add(email);localStorage.setItem('ap_mail_keep_senders_v1117',JSON.stringify([...set]));renderInbox();globalThis.toast?.('⭐ Absender bleibt künftig im Hauptposteingang');
+    const set=keptSenders();set.add(email);localStorage.setItem('ap_mail_keep_senders_v1117',JSON.stringify([...set]));renderInbox();renderHomeSecretariat();globalThis.toast?.('⭐ Absender bleibt künftig im Hauptposteingang');
   }
 
-  async function review(id){const m=messages.find(x=>x.id===id);if(!m)return;globalThis.EmailAssistant?.loadMailMessage?.(m)}
+  async function review(id){const m=messages.find(x=>x.id===id);if(!m)return;globalThis.showScreen?.('emailAssistant');await new Promise(r=>setTimeout(r,30));globalThis.EmailAssistant?.loadMailMessage?.(m)}
 
   async function sendReply(mailMessageId,replyBody,requestId){
     return await invoke('mail-send',{action:'reply',mail_message_id:mailMessageId,reply_body:replyBody,request_id:requestId});
@@ -251,5 +346,8 @@
     return await invoke('invoice-followup-send',{invoice_id:invoiceId,kind,reply_body:replyBody,request_id:requestId});
   }
 
-  globalThis.MailHub={refresh,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,toggleFiltered,keepSender,review,sendReply,sendInvoiceMail,_state:()=>({connections,messages,capabilities})};
+  globalThis.MailHub={refresh,refreshHome,syncHome,openAssistantItem,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,toggleFiltered,keepSender,review,sendReply,sendInvoiceMail,_state:()=>({connections,messages,assistantItems,capabilities})};
+  window.addEventListener('load',()=>{setTimeout(()=>refreshHome(false).catch(()=>{}),1100);setTimeout(()=>refreshHome(false).catch(()=>{}),3600)});
+  window.addEventListener('angebotspilot:syncstate',()=>{if(Date.now()-homeLastRefreshAt>5000)setTimeout(()=>refreshHome(false).catch(()=>{}),180)});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&q('today')?.classList.contains('active'))refreshHome(false).catch(()=>{})});
 })();
