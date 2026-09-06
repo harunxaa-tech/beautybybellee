@@ -191,6 +191,23 @@
     if(!blob)throw(downloadResult.status==='fulfilled'?downloadResult.value.error:downloadResult.reason);
     return{path:clean,url:urlResult.status==='fulfilled'?urlResult.value:'',blob};
   }
+  async function uploadStructuredInvoice(blob,fileName='rechnung.xml',invoiceLocalId=''){
+    if(!ready())throw new Error('Cloud ist nicht verbunden');
+    if(!['owner','office'].includes(membership?.role||''))throw new Error('Nur Inhaber oder Büro dürfen E‑Rechnungen archivieren');
+    if(!(blob instanceof Blob))throw new Error('Ungültige E‑Rechnungsdatei');
+    const inv=String(invoiceLocalId||'rechnung').replace(/[^a-z0-9_-]+/gi,'_').slice(0,80)||'rechnung';
+    const path=`${company.id}/invoices/${inv}/structured/${uuid()}-${safeName(fileName)}`;
+    const {error}=await client.storage.from(BUCKET).upload(path,blob,{contentType:blob.type||'application/xml',upsert:false,cacheControl:'31536000'});
+    if(error)throw error;
+    return{path,url:await signedUrl(path,86400)};
+  }
+  async function getStructuredInvoice(path){
+    if(!ready()||!path)return null;
+    const clean=String(path);
+    if(!clean.startsWith(company.id+'/invoices/'))throw new Error('E‑Rechnung gehört nicht zu diesem Betrieb');
+    const {data,error}=await client.storage.from(BUCKET).download(clean);if(error)throw error;
+    return{path:clean,blob:data,url:await signedUrl(clean,3600)};
+  }
   async function deleteCloudFile(id){
     if(!ready())return false;
     let meta=cache.get(String(id));
@@ -207,5 +224,5 @@
   function detach(){client=session=company=membership=null;cache.clear()}
   function state(){return{ready:ready(),companyId:company?.id||'',role:membership?.role||'',userId:session?.user?.id||''}}
   function canDelete(photo){if(!photo?.cloud)return true;return ['owner','office'].includes(membership?.role||'')||photo.createdBy===session?.user?.id}
-  globalThis.CloudFiles={attach,detach,state,ready,canDelete,refresh,refreshJob,uploadPendingForJob,uploadJobFile,listCustomerFiles,uploadCustomerFiles,getCustomerFile,uploadBrandLogo,uploadBrandReference,uploadBrandReferencePreview,getBrandAsset,deleteCloudFile,deleteJobPhoto};
+  globalThis.CloudFiles={attach,detach,state,ready,canDelete,refresh,refreshJob,uploadPendingForJob,uploadJobFile,listCustomerFiles,uploadCustomerFiles,getCustomerFile,uploadBrandLogo,uploadBrandReference,uploadBrandReferencePreview,getBrandAsset,uploadStructuredInvoice,getStructuredInvoice,deleteCloudFile,deleteJobPhoto};
 })();
