@@ -249,6 +249,18 @@
     d.settings.address=cloudCompany.address||d.settings.address||'';
     d.settings.email=cloudCompany.email||session.user.email||d.settings.email||'';
     d.settings.tax=Number(cloudCompany.tax_rate)||0;
+    d.settings.countryCode=cloudCompany.country_code||d.settings.countryCode||'DE';
+    d.settings.currency=cloudCompany.currency_code||d.settings.currency||'EUR';
+    d.settings.taxTreatment=cloudCompany.tax_treatment||d.settings.taxTreatment||'standard';
+    d.settings.taxNote=cloudCompany.tax_note||d.settings.taxNote||'';
+    d.settings.paymentTerm=`${Number(cloudCompany.payment_days)||7} Tage`;
+    d.settings.taxNumber=cloudCompany.tax_number||d.settings.taxNumber||'';
+    d.settings.vatId=cloudCompany.vat_id||d.settings.vatId||'';
+    d.settings.iban=cloudCompany.iban||d.settings.iban||'';
+    d.settings.bankName=cloudCompany.bank_name||d.settings.bankName||'';
+    d.settings.businessMode=cloudCompany.business_mode||d.settings.businessMode||'solo';
+    d.settings.enabledModules=cloudCompany.enabled_modules||d.settings.enabledModules||{};
+    globalThis.BusinessSetup?.applyFeatureProfile?.(d.settings.enabledModules,d.settings.businessMode);
     const previousBrandLogoPath=d.settings.brandLogoPath||'';
     const incomingBrandLogoPath=cloudCompany.brand_logo_path||d.settings.brandLogoPath||'';
     if(incomingBrandLogoPath!==previousBrandLogoPath)d.settings.brandLogoLocalDataUrl='';
@@ -326,6 +338,7 @@
       globalThis.CloudSync?.detach?.();
       globalThis.Notifications?.detach?.();
       globalThis.SecurityCenter?.detach?.();
+      globalThis.BusinessSetup?.detach?.();
       renderAccount();
       requireEntry();
       return;
@@ -397,6 +410,7 @@
       // WICHTIG: Erst Zugang freigeben, dann Cloud-Sync im Hintergrund.
       renderAccount();
       requireEntry();
+      Promise.resolve(globalThis.BusinessSetup?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('BusinessSetup attach failed',e));
       Promise.resolve(globalThis.SecurityCenter?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('SecurityCenter attach failed',e));
       Promise.resolve(globalThis.loadHomeQuickActionsFromCloud?.()).catch(e=>console.warn('Schnellzugriff laden fehlgeschlagen',e));
       Promise.resolve(globalThis.Notifications?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('Notifications attach failed',e));
@@ -691,6 +705,7 @@
       await globalThis.Notifications?.attach?.(client,session,cloudCompany,cloudMembership);
       renderAccount();
       requireEntry();
+      Promise.resolve(globalThis.BusinessSetup?.attach?.(client,session,cloudCompany,cloudMembership)).catch(()=>{});
     }catch(e){
       console.error(e);
       showStep('entryRecoverCompany2');
@@ -784,6 +799,7 @@
     globalThis.CloudSync?.detach?.();
     globalThis.Notifications?.detach?.();
     globalThis.SecurityCenter?.detach?.();
+    globalThis.BusinessSetup?.detach?.();
     renderAccount();
     requireEntry();
   };
