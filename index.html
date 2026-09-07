@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.29.5">
-<link rel="manifest" href="manifest.json?v=11.29.5">
+<link rel="stylesheet" href="style.css?v=11.29.8">
+<link rel="manifest" href="manifest.json?v=11.29.8">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -85,7 +85,8 @@
 <section class="screen" id="offers">
 <div class="sectionTitle"><h2>Angebote</h2><button class="btn primary small" onclick="newOffer()">＋ Neu</button></div>
 <div class="tabs" id="offerTabs"><button class="tab active" data-filter="all">Alle</button><button class="tab" data-filter="draft">Entwurf</button><button class="tab" data-filter="sent">Versendet</button><button class="tab" data-filter="accepted">Angenommen</button></div>
-<div id="offerList" class="list" style="margin-top:10px"></div>
+<div class="offerSwipeHint"><span>‹</span> Nach links wischen zum Löschen</div>
+<div id="offerList" class="list offerListSwipe" style="margin-top:8px"></div>
 </section>
 
 <section class="screen" id="customers">
@@ -191,7 +192,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.29.5</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.29.8</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -204,7 +205,7 @@
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.29.5</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.29.8</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -506,6 +507,25 @@
     <p class="mini">Diese Einstellungen sind freiwillig. Du kannst sie jederzeit später ändern.</p>
   </details>
 </div>
+<details class="numberingSettings" id="numberingSettings">
+  <summary><div><b>🔢 Dokumentnummern</b><small>Optional · bestehende Nummern weiterführen</small></div><span>›</span></summary>
+  <div class="numberingSettingsBody">
+    <div class="numberingIntro"><span>↗</span><div><b>Von einer alten Software wechseln?</b><small>Trage nur die nächste Nummer ein. AngebotsPilot zählt die Zahl am Ende danach automatisch weiter.</small></div></div>
+    <div class="numberingGrid">
+      <div class="numberingCard">
+        <label for="offerNumberNextSetting">Nächste Angebotsnummer</label>
+        <input class="input" id="offerNumberNextSetting" placeholder="z. B. ANG-2026-184" autocomplete="off" oninput="updateNumberingExamples()">
+        <small id="offerNumberNextExample">Leer = AngebotsPilot-Standard</small>
+      </div>
+      <div class="numberingCard">
+        <label for="invoiceNumberNextSetting">Nächste Rechnungsnummer</label>
+        <input class="input" id="invoiceNumberNextSetting" placeholder="z. B. RE-2026-091" autocomplete="off" oninput="updateNumberingExamples()">
+        <small id="invoiceNumberNextExample">Leer = AngebotsPilot-Standard</small>
+      </div>
+    </div>
+    <div class="numberingTrust"><span>✓</span><p>Bereits verwendete Nummern bleiben unverändert. Doppelte Nummern werden blockiert. Die eingestellte nächste Nummer muss mit einer Zahl enden.</p></div>
+  </div>
+</details>
 <div class="sectionTitle" style="margin-top:18px"><h3>Land & Steuern</h3><span id="countryCurrencyBadge">EUR</span></div>
 <div class="row"><div class="field"><label>Land des Betriebs</label><select id="companyCountry" onchange="onCompanyCountryChange()"><option value="DE">🇩🇪 Deutschland</option><option value="AT">🇦🇹 Österreich</option><option value="CH">🇨🇭 Schweiz</option></select></div><div class="field"><label>App-Sprache</label><select id="appLanguage"><option value="de">Deutsch</option></select><small>Weitere Sprachen werden erst nach geprüfter Übersetzung freigeschaltet.</small></div></div>
 <div class="row"><div class="field"><label>Steuerbehandlung</label><select id="taxTreatment" onchange="onCompanyTaxTreatmentChange()"></select><small>Die App prüft keine steuerliche Berechtigung automatisch.</small></div><div class="field"><label id="taxRateLabel">Steuersatz</label><select id="taxMode"></select></div></div>
@@ -547,7 +567,7 @@
   <div class="sectionTitle">
     <div>
       <div class="eyebrow appEyebrow">ANGEBOT</div>
-      <h2>Neues Angebot</h2>
+      <h2 id="offerEditorHeading">Neues Angebot</h2>
     </div>
     <button class="btn small finishBtn" onclick="autoSaveOfferAndClose()">✓ Fertig</button>
   </div>
@@ -569,52 +589,66 @@
 
   <div class="card compactOfferCard">
     <div class="flowStep"><span>2</span><div><b>Auftrag</b><small>Was soll gemacht werden?</small></div></div>
-    <div class="field simpleField">
+    <div class="field simpleField offerLabeledField">
+      <label>Titel des Auftrags</label>
       <input class="input cleanInput" id="offerSubject" placeholder="z. B. Terrassenreinigung">
     </div>
-    <div class="field simpleField">
-      <textarea class="cleanTextarea" id="offerNotes" placeholder="Optional: kurze Beschreibung oder Besonderheiten"></textarea>
+    <div class="field simpleField offerLabeledField">
+      <label>Beschreibung <span>optional</span></label>
+      <textarea class="cleanTextarea" id="offerNotes" placeholder="Besonderheiten, Umfang oder kurze Hinweise"></textarea>
     </div>
   </div>
 
   <div class="card compactOfferCard">
-    <div class="itemTop">
-      <div class="flowStep" style="margin:0"><span>3</span><div><b>Positionen</b><small>Material & Leistungen hinzufügen</small></div></div>
+    <div class="itemTop offerPositionsHead">
+      <div class="flowStep" style="margin:0"><span>3</span><div><b>Positionen</b><small id="offerPositionMeta">Material & Leistungen hinzufügen</small></div></div>
       <button class="btn primary small addPositionMain" onclick="openPositionPicker()">＋ Position</button>
+    </div>
+    <div class="offerPriceMode" id="offerPriceMode" aria-live="polite">
+      <span class="offerPriceModeIcon">€</span>
+      <div><b id="offerPriceModeTitle">Preisangabe</b><small id="offerPriceModeText">Die Steuer-Einstellung deines Betriebs wird automatisch berücksichtigt.</small></div>
+      <em id="offerPriceModeBadge">AUTO</em>
     </div>
     <div id="offerLines" class="offerLinesSimple"></div>
     <button class="btn ghost addFirstPosition" onclick="openPositionPicker()">＋ Position hinzufügen</button>
   </div>
 
-  <div class="card compactOfferCard offerPlanningCard">
-    <div class="flowStep"><span>4</span><div><b>Planung</b><small>Datum, Status &amp; geschätzte Dauer</small></div></div>
-    <div class="row">
-      <div class="field simpleField">
-        <label>Datum</label>
-        <input type="date" class="input cleanInput" id="offerDate">
-      </div>
-      <div class="field simpleField">
-        <label>Status</label>
-        <select id="offerStatus">
-          <option value="draft">Entwurf</option>
-          <option value="sent">Versendet</option>
-          <option value="accepted">Angenommen</option>
-          <option value="declined">Abgelehnt</option>
-          <option value="completed">Abgeschlossen</option>
-        </select>
-      </div>
-    </div>
-    <div class="field offerDurationField simpleField">
-      <label>Geschätzte Ausführungsdauer</label>
-      <div class="durationControl"><input type="number" min="0.25" step="1" class="input" id="offerDurationValue" value="1"><select id="offerDurationUnit" onchange="syncOfferDurationUI()"><option value="days">Tage</option><option value="hours">Stunden</option></select></div>
-      <small id="offerDurationHint">Für Kalenderplanung und Sekretariat.</small>
-    </div>
+  <div class="card compactOfferCard offerSummaryCard" id="offerEditorSummaryCard">
+    <div class="offerSummaryHead"><div><span class="eyebrow appEyebrow">ÜBERSICHT</span><h3>Angebotssumme</h3></div><span class="offerSummaryTaxBadge" id="offerSummaryTaxBadge">AUTO</span></div>
+    <div class="offerEditorSummary" id="offerSummaryBody"></div>
+    <div class="offerSummaryNote" id="offerSummaryTaxNote"></div>
   </div>
 
-  <details class="card moreDetails">
-    <summary>Weitere Angaben</summary>
+  <details class="card moreDetails offerDetailsCard">
+    <summary><span><b>Planung & weitere Angaben</b><small id="offerDetailsSummary">Heute · Entwurf · 1 Tag</small></span></summary>
     <div class="detailsInner">
-      <div class="field discountField">
+      <div class="field simpleField offerDetailField documentNumberField">
+        <div class="discountFieldHead"><label>Angebotsnummer</label><span class="mini">Optional anpassen</span></div>
+        <input class="input cleanInput" id="offerNumber" autocomplete="off" oninput="markDocumentNumberManual(this)">
+        <small id="offerNumberHint">Wird automatisch vorgeschlagen. Du kannst sie bei einem Entwurf ändern.</small>
+      </div>
+      <div class="row offerPlanningRow">
+        <div class="field simpleField">
+          <label>Datum</label>
+          <input type="date" class="input cleanInput" id="offerDate" onchange="renderOfferDetailsSummary()">
+        </div>
+        <div class="field simpleField">
+          <label>Status</label>
+          <select id="offerStatus" onchange="renderOfferDetailsSummary()">
+            <option value="draft">Entwurf</option>
+            <option value="sent">Versendet</option>
+            <option value="accepted">Angenommen</option>
+            <option value="declined">Abgelehnt</option>
+            <option value="completed">Abgeschlossen</option>
+          </select>
+        </div>
+      </div>
+      <div class="field offerDurationField simpleField offerDetailField">
+        <label>Geschätzte Ausführungsdauer</label>
+        <div class="durationControl"><input type="number" min="0.25" step="1" class="input" id="offerDurationValue" value="1" oninput="syncOfferDurationUI()"><select id="offerDurationUnit" onchange="syncOfferDurationUI()"><option value="days">Tage</option><option value="hours">Stunden</option></select></div>
+        <small id="offerDurationHint">Für Kalenderplanung und Sekretariat.</small>
+      </div>
+      <div class="field discountField offerDetailField">
         <div class="discountFieldHead"><label>Rabatt</label><span class="mini">Optional</span></div>
         <input type="hidden" id="offerDiscountType" value="euro">
         <div class="discountControl">
@@ -622,7 +656,7 @@
             <button type="button" class="active" data-discount-owner="offer" data-discount-type="euro" onclick="setDiscountType('offer','euro')"><span id="offerDiscountCurrencySymbol">€</span></button>
             <button type="button" data-discount-owner="offer" data-discount-type="percent" onclick="setDiscountType('offer','percent')">%</button>
           </div>
-          <div class="discountInputWrap"><input type="number" class="input cleanInput" id="offerDiscount" value="0" min="0" step="0.01" inputmode="decimal"><span id="offerDiscountSuffix">€</span></div>
+          <div class="discountInputWrap"><input type="number" class="input cleanInput" id="offerDiscount" value="0" min="0" step="0.01" inputmode="decimal" oninput="renderOfferEditorSummary()"><span id="offerDiscountSuffix">€</span></div>
         </div>
         <small>Anfahrt wird als normale Position hinzugefügt und dadurch nur einmal berechnet.</small>
       </div>
@@ -646,6 +680,11 @@
   </div>
   <div class="card">
     <input type="hidden" id="invoiceId">
+    <div class="field documentNumberField">
+      <div class="discountFieldHead"><label>Rechnungsnummer</label><span class="mini">Entwurf</span></div>
+      <input class="input" id="invoiceNumber" autocomplete="off" data-invoice-editable oninput="markDocumentNumberManual(this)">
+      <small id="invoiceNumberHint">Wird automatisch vorgeschlagen. Vor dem Ausstellen kannst du sie ändern.</small>
+    </div>
     <div class="field">
       <label>Kunde</label>
       <select id="invoiceCustomer" class="hiddenNativeSelect" data-invoice-editable></select>
@@ -1330,25 +1369,25 @@
 
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.29.5" defer></script>
-<script src="country-config.js?v=11.29.5" defer></script>
-<script src="data-repository.js?v=11.29.5" defer></script>
-<script src="einvoice.js?v=11.29.5" defer></script>
-<script src="script.js?v=11.29.5" defer></script>
-<script src="customer-import.js?v=11.29.5" defer></script>
-<script src="cloud-files.js?v=11.29.5" defer></script>
-<script src="cloud-sync.js?v=11.29.5" defer></script>
-<script src="team.js?v=11.29.5" defer></script>
-<script src="assignments.js?v=11.29.5" defer></script>
-<script src="time-tracking.js?v=11.29.5" defer></script>
-<script src="notifications.js?v=11.29.5" defer></script>
-<script src="mail-hub.js?v=11.29.5" defer></script>
-<script src="email-assistant.js?v=11.29.5" defer></script>
-<script src="acceptance.js?v=11.29.5" defer></script>
-<script src="custom-selects.js?v=11.29.5" defer></script>
-<script src="security.js?v=11.29.5" defer></script>
-<script src="onboarding-setup.js?v=11.29.5" defer></script>
-<script src="cloud-auth.js?v=11.29.5" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.5").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.29.8" defer></script>
+<script src="country-config.js?v=11.29.8" defer></script>
+<script src="data-repository.js?v=11.29.8" defer></script>
+<script src="einvoice.js?v=11.29.8" defer></script>
+<script src="script.js?v=11.29.8" defer></script>
+<script src="customer-import.js?v=11.29.8" defer></script>
+<script src="cloud-files.js?v=11.29.8" defer></script>
+<script src="cloud-sync.js?v=11.29.8" defer></script>
+<script src="team.js?v=11.29.8" defer></script>
+<script src="assignments.js?v=11.29.8" defer></script>
+<script src="time-tracking.js?v=11.29.8" defer></script>
+<script src="notifications.js?v=11.29.8" defer></script>
+<script src="mail-hub.js?v=11.29.8" defer></script>
+<script src="email-assistant.js?v=11.29.8" defer></script>
+<script src="acceptance.js?v=11.29.8" defer></script>
+<script src="custom-selects.js?v=11.29.8" defer></script>
+<script src="security.js?v=11.29.8" defer></script>
+<script src="onboarding-setup.js?v=11.29.8" defer></script>
+<script src="cloud-auth.js?v=11.29.8" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.8").catch(()=>{}));}</script>
 </body>
 </html>

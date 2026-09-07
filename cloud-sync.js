@@ -232,7 +232,7 @@
           name:d.settings?.companyName||company.name,trade:d.settings?.trade||company.trade||'garden',
           address:d.settings?.address||'',phone:d.settings?.phone||'',email:d.settings?.email||session.user.email||'',
           tax_number:d.settings?.taxNumber||'',vat_id:d.settings?.vatId||'',iban:d.settings?.iban||'',
-          bank_name:d.settings?.bankName||'',tax_rate:n(d.settings?.tax),country_code:d.settings?.countryCode||'DE',currency_code:d.settings?.currency||'EUR',app_language:d.settings?.appLanguage||'de',tax_treatment:d.settings?.taxTreatment||'standard',tax_note:d.settings?.taxNote||'',
+          bank_name:d.settings?.bankName||'',tax_rate:n(d.settings?.tax),country_code:d.settings?.countryCode||'DE',currency_code:d.settings?.currency||'EUR',app_language:d.settings?.appLanguage||'de',tax_treatment:d.settings?.taxTreatment||'standard',tax_note:d.settings?.taxNote||'',offer_number_next:d.settings?.offerNumberNext||'',invoice_number_next:d.settings?.invoiceNumberNext||'',
           payment_days:Math.max(0,Number(String(d.settings?.paymentTerm||'7').match(/\d+/)?.[0]||7)),business_mode:d.settings?.businessMode||company.business_mode||'solo',enabled_modules:d.settings?.enabledModules||company.enabled_modules||{},brand_logo_path:d.settings?.brandLogoPath||'',brand_accent:d.settings?.brandAccent||'',document_style:d.settings?.documentStyle||'auto',logo_position:d.settings?.logoPosition||'left',brand_logo_meta:d.settings?.brandLogoMeta||{},brand_reference_path:d.settings?.brandReferencePath||'',brand_reference_preview_path:d.settings?.brandReferencePreviewPath||'',brand_reference_name:d.settings?.brandReferenceName||'',brand_reference_meta:d.settings?.brandReferenceMeta||{}
         }).eq('id',company.id);
       }
@@ -277,11 +277,12 @@
   }
   async function pullCloud(){
     setProgress(18,'Cloud-Daten werden geladen','Kunden …');
-    const [customers,catalog,offers,jobs,events,tasks,invoices,assignments,members]=await Promise.all([
+    const [customers,catalog,offers,jobs,events,tasks,invoices,assignments,members,allOfferNumbers]=await Promise.all([
       selectActive('customers'),selectActive('catalog_items'),selectActive('offers'),selectActive('jobs'),
       selectActive('events'),selectActive('tasks'),selectActive('invoices'),
       client.from('job_assignments').select('job_id,user_id').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]}),
-      client.from('company_members').select('user_id,display_name,email,role,status').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]})
+      client.from('company_members').select('user_id,display_name,email,role,status').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]}),
+      client.from('offers').select('number').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]})
     ]);
     const customerLocal=new Map(customers.map(x=>[x.id,x.local_id||x.id]));
     const offerLocal=new Map(offers.map(x=>[x.id,x.local_id||x.id]));
@@ -306,7 +307,7 @@
       companyName:company.name||s.companyName||'',trade:company.trade||s.trade||'garden',address:company.address||s.address||'',
       phone:company.phone||s.phone||'',email:company.email||session.user.email||s.email||'',tax:Number(company.tax_rate)||0,
       paymentTerm:`${Number(company.payment_days)||7} Tage`,taxNumber:company.tax_number||'',vatId:company.vat_id||'',
-      iban:company.iban||'',bankName:company.bank_name||'',businessMode:company.business_mode||s.businessMode||'solo',enabledModules:company.enabled_modules||s.enabledModules||{},countryCode:company.country_code||s.countryCode||'DE',currency:company.currency_code||s.currency||'EUR',appLanguage:company.app_language||s.appLanguage||'de',taxTreatment:company.tax_treatment||s.taxTreatment||((Number(company.tax_rate)||0)===0?'small_business':'standard'),taxNote:company.tax_note||s.taxNote||'',brandLogoPath:company.brand_logo_path||s.brandLogoPath||'',brandAccent:company.brand_accent||s.brandAccent||'',brandAccentAuto:s.brandAccentAuto||'',documentStyle:company.document_style||s.documentStyle||'auto',logoPosition:company.logo_position||s.logoPosition||'left',brandLogoMeta:company.brand_logo_meta||s.brandLogoMeta||{},brandReferencePath:company.brand_reference_path||s.brandReferencePath||'',brandReferencePreviewPath:company.brand_reference_preview_path||s.brandReferencePreviewPath||'',brandReferenceName:company.brand_reference_name||s.brandReferenceName||'',brandReferenceMeta:company.brand_reference_meta||s.brandReferenceMeta||{},ownerName:session.user.user_metadata?.full_name||s.ownerName||''
+      iban:company.iban||'',bankName:company.bank_name||'',offerNumberNext:company.offer_number_next||'',invoiceNumberNext:company.invoice_number_next||'',businessMode:company.business_mode||s.businessMode||'solo',enabledModules:company.enabled_modules||s.enabledModules||{},countryCode:company.country_code||s.countryCode||'DE',currency:company.currency_code||s.currency||'EUR',appLanguage:company.app_language||s.appLanguage||'de',taxTreatment:company.tax_treatment||s.taxTreatment||((Number(company.tax_rate)||0)===0?'small_business':'standard'),taxNote:company.tax_note||s.taxNote||'',brandLogoPath:company.brand_logo_path||s.brandLogoPath||'',brandAccent:company.brand_accent||s.brandAccent||'',brandAccentAuto:s.brandAccentAuto||'',documentStyle:company.document_style||s.documentStyle||'auto',logoPosition:company.logo_position||s.logoPosition||'left',brandLogoMeta:company.brand_logo_meta||s.brandLogoMeta||{},brandReferencePath:company.brand_reference_path||s.brandReferencePath||'',brandReferencePreviewPath:company.brand_reference_preview_path||s.brandReferencePreviewPath||'',brandReferenceName:company.brand_reference_name||s.brandReferenceName||'',brandReferenceMeta:company.brand_reference_meta||s.brandReferenceMeta||{},ownerName:session.user.user_metadata?.full_name||s.ownerName||''
     });
     if((s.brandLogoPath||'')!==previousBrandLogoPath)s.brandLogoLocalDataUrl='';if((s.brandReferencePreviewPath||'')!==previousBrandReferencePreviewPath)s.brandReferenceLocalPreview='';
     d.settings=s;
@@ -326,7 +327,11 @@
     // derive reverse job/invoice/event links
     d.invoices.forEach(inv=>{if(inv.jobId){const j=d.jobs.find(x=>x.id===inv.jobId);if(j)j.invoiceId=inv.id}});
     d.events.forEach(ev=>{if(ev.jobId){const j=d.jobs.find(x=>x.id===ev.jobId);if(j)j.eventId=ev.id}if(ev.offerId){const o=d.offers.find(x=>x.id===ev.offerId);if(o)o.eventId=ev.id}});
-    d.meta=d.meta||{};d.meta.cloudCompanyId=company.id;d.meta.authUserId=session.user.id;d.meta.storageMode='cloud-sync';d.meta.cloudInitialSyncDone=true;d.meta.lastCloudPullAt=new Date().toISOString();d.meta.deletedEntities=[];
+    d.meta=d.meta||{};
+    const offerHigh=(d.meta.offerNumberHighWaterByYear&&typeof d.meta.offerNumberHighWaterByYear==='object')?d.meta.offerNumberHighWaterByYear:{};
+    (allOfferNumbers||[]).forEach(row=>{const m=String(row?.number||'').match(/^AP-(\d{4})-(\d+)$/);if(m)offerHigh[m[1]]=Math.max(Number(offerHigh[m[1]])||0,Number(m[2])||0)});
+    d.meta.offerNumberHighWaterByYear=offerHigh;
+    d.meta.cloudCompanyId=company.id;d.meta.authUserId=session.user.id;d.meta.storageMode='cloud-sync';d.meta.cloudInitialSyncDone=true;d.meta.lastCloudPullAt=new Date().toISOString();d.meta.deletedEntities=[];
     persistLocal(d);
     setProgress(100,'Cloud geladen','Dein Betrieb ist auf diesem Gerät bereit.');
     globalThis.renderAll?.();
