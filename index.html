@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.29">
-<link rel="manifest" href="manifest.json?v=11.29">
+<link rel="stylesheet" href="style.css?v=11.29.1">
+<link rel="manifest" href="manifest.json?v=11.29.1">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -18,13 +18,14 @@
 <header class="top"><div class="brand"><small id="cloudModeLabel">DIGITALER HANDWERKER · LOKAL</small><h1>AngebotsPilot</h1></div><div class="topActions"><button class="iconBtn notificationBell" onclick="openNotifications()" aria-label="Benachrichtigungen">🔔<span id="notificationBadge" class="notificationBadge hidden" hidden>0</span></button><button class="iconBtn" id="themeBtn">◐</button><button class="iconBtn" onclick="showScreen('more')">⚙️</button></div></header>
 
 <section class="screen active" id="today">
-<div class="card hero compactHero"><span class="pill"><span class="dot"></span><span id="todayDate"></span></span><h2>Guten Morgen, <span id="ownerGreeting">Handwerker</span>.</h2><p id="dailyMessage">Hier siehst du, was heute wichtig ist.</p></div>
+<div class="card hero compactHero todayMorningBrief"><span class="pill"><span class="dot"></span><span id="todayDate"></span></span><h2>Guten Morgen, <span id="ownerGreeting">Handwerker</span>.</h2><p id="dailyMessage">Hier siehst du, was heute wichtig ist.</p></div>
 <div id="secretariatHome" data-feature="secretariat" class="secretariatHome owner-office-only" aria-live="polite">
   <div class="secretariatHomeCard secretariatHomeLoading">
     <div class="secretariatHomeOrb"><span>✦</span></div>
     <div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Wichtige Kundenmails werden im Hintergrund vorbereitet …</p></div>
   </div>
 </div>
+<div id="invoiceFollowupDashboard" class="invoiceFollowupDashboard owner-office-only"></div>
 <div class="stats owner-only todayStatsCompact" id="ownerTodayStats"><div class="stat"><span>Aufgaben</span><strong id="statTasks">0</strong></div><div class="stat"><span>Termine</span><strong id="statEvents">0</strong></div><div class="stat"><span>Angebote</span><strong id="statOffers">0</strong></div><div class="stat money"><span>Wert</span><strong id="statValue">0 €</strong></div></div>
 <div class="card weatherHero weatherCompact" data-feature="jobs" id="weatherDashboard" role="button" tabindex="0" onclick="showScreen('weather')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showScreen('weather')}">
   <div class="weatherCompactTop">
@@ -75,10 +76,9 @@
   <div class="sectionTitle workerSectionTitle"><div><h2>Meine Baustellen</h2><span id="workerHomeJobMeta">Deine nächsten Einsätze</span></div><button type="button" class="btn small" onclick="refreshMyJobs()">↻</button></div>
   <div id="workerHomeJobs" class="workerHomeJobs"></div>
 </div>
-<div class="sectionTitle owner-only compactSectionTitle"><h2>Schnell</h2><span>1 Tipp</span></div>
+<div class="sectionTitle owner-only compactSectionTitle"><h2>Schnellzugriff</h2><span>Gedrückt halten zum Anpassen</span></div>
 <div class="quickGrid owner-only quickGridCompact customizableHomeQuickGrid" id="ownerHomeQuickGrid" aria-label="Persönliche Schnellaktionen"></div>
-<div id="invoiceFollowupDashboard" class="invoiceFollowupDashboard owner-office-only"></div>
-<div class="sectionTitle compactSectionTitle"><h2 id="todayTasksTitle">Heute erledigen</h2><span id="taskProgress">0 erledigt</span></div><div class="card todayCompactCard" id="todayTasksCard"><div id="todayTasks" class="list"></div><button class="btn ghost small owner-office-only todayAddTask" onclick="newTask()">＋ Aufgabe</button></div>
+<div class="sectionTitle compactSectionTitle"><h2 id="todayTasksTitle">Heute erledigen</h2><button class="textLink todayProgressLink" type="button" onclick="showScreen('tasks')"><span id="taskProgress">0 erledigt</span><span aria-hidden="true">→</span></button></div><div class="card todayCompactCard" id="todayTasksCard"><div id="todayTasks" class="list"></div><button class="btn ghost small owner-office-only todayAddTask" onclick="newTask()">＋ Aufgabe</button></div>
 <div class="sectionTitle compactSectionTitle"><h2>Heutige Termine</h2><button class="textLink" type="button" onclick="showScreen('calendar')">Kalender →</button></div><div class="card todayCompactCard" id="todayEventsCard"><div id="todayEvents" class="timeline"></div></div>
 </section>
 
@@ -191,7 +191,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.29</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.29.1</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -1310,25 +1310,25 @@
 
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.29" defer></script>
-<script src="country-config.js?v=11.29" defer></script>
-<script src="data-repository.js?v=11.29" defer></script>
-<script src="einvoice.js?v=11.29" defer></script>
-<script src="script.js?v=11.29" defer></script>
-<script src="customer-import.js?v=11.29" defer></script>
-<script src="cloud-files.js?v=11.29" defer></script>
-<script src="cloud-sync.js?v=11.29" defer></script>
-<script src="team.js?v=11.29" defer></script>
-<script src="assignments.js?v=11.29" defer></script>
-<script src="time-tracking.js?v=11.29" defer></script>
-<script src="notifications.js?v=11.29" defer></script>
-<script src="mail-hub.js?v=11.29" defer></script>
-<script src="email-assistant.js?v=11.29" defer></script>
-<script src="acceptance.js?v=11.29" defer></script>
-<script src="custom-selects.js?v=11.29" defer></script>
-<script src="security.js?v=11.29" defer></script>
-<script src="onboarding-setup.js?v=11.29" defer></script>
-<script src="cloud-auth.js?v=11.29" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.29.1" defer></script>
+<script src="country-config.js?v=11.29.1" defer></script>
+<script src="data-repository.js?v=11.29.1" defer></script>
+<script src="einvoice.js?v=11.29.1" defer></script>
+<script src="script.js?v=11.29.1" defer></script>
+<script src="customer-import.js?v=11.29.1" defer></script>
+<script src="cloud-files.js?v=11.29.1" defer></script>
+<script src="cloud-sync.js?v=11.29.1" defer></script>
+<script src="team.js?v=11.29.1" defer></script>
+<script src="assignments.js?v=11.29.1" defer></script>
+<script src="time-tracking.js?v=11.29.1" defer></script>
+<script src="notifications.js?v=11.29.1" defer></script>
+<script src="mail-hub.js?v=11.29.1" defer></script>
+<script src="email-assistant.js?v=11.29.1" defer></script>
+<script src="acceptance.js?v=11.29.1" defer></script>
+<script src="custom-selects.js?v=11.29.1" defer></script>
+<script src="security.js?v=11.29.1" defer></script>
+<script src="onboarding-setup.js?v=11.29.1" defer></script>
+<script src="cloud-auth.js?v=11.29.1" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.1").catch(()=>{}));}</script>
 </body>
 </html>

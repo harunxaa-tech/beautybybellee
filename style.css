@@ -1688,3 +1688,68 @@ body.businessSetupActive{overflow:hidden!important}
   #weather .weatherPlannerBottom{grid-template-columns:1fr}
   #weather .weatherPlannerSubmit{min-height:54px}
 }
+
+
+/* v11.29.1 – Heute-Zentrale: ruhiger, schneller erfassbar, Mobile-first */
+#today .todayMorningBrief{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;padding:3px 2px 10px!important;margin-bottom:7px!important}
+#today .todayMorningBrief .pill{background:transparent!important;border:0!important;padding:0!important;color:var(--muted);font-size:9px!important;letter-spacing:.035em}
+#today .todayMorningBrief .dot{width:6px;height:6px;box-shadow:0 0 7px var(--accent)}
+#today .todayMorningBrief h2{font-size:28px!important;line-height:1.04!important;letter-spacing:-.035em;margin:7px 0 4px!important}
+#today .todayMorningBrief p{font-size:11.5px!important;line-height:1.35!important;max-width:96%!important;color:var(--muted)}
+
+#today .invoiceFollowupDashboard{margin:0 0 11px}
+#today .todayStatsCompact{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:4px;gap:0!important;margin:0 0 11px!important;overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.12)}
+#today .todayStatsCompact .stat{background:transparent!important;border:0!important;border-radius:13px!important;padding:9px 8px!important;box-shadow:none!important;text-align:left}
+#today .todayStatsCompact .stat+.stat{border-left:1px solid var(--line)!important;border-radius:0!important}
+#today .todayStatsCompact .stat span{font-size:8px!important;letter-spacing:.015em}
+#today .todayStatsCompact .stat strong{font-size:17px!important;margin-top:5px!important}
+#today .todayStatsCompact .stat.money strong{font-size:10.5px!important;margin-top:8px!important}
+
+#today .compactSectionTitle{margin:14px 2px 7px!important}
+#today .compactSectionTitle h2{font-size:17px!important;letter-spacing:-.02em}
+#today .compactSectionTitle>span{font-size:8.5px!important;white-space:nowrap}
+#today .todayProgressLink{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:9px!important;white-space:nowrap}
+#today .todayProgressLink span:last-child{font-size:13px;color:var(--text)}
+
+#today .quickGridCompact{gap:7px!important}
+#today .quickGridCompact .quick{min-height:76px!important;padding:9px 5px!important;border-radius:17px!important;background:linear-gradient(155deg,rgba(255,255,255,.018),transparent 65%),var(--card);box-shadow:none}
+#today .quickGridCompact .quick .emoji{width:32px;height:32px;display:grid;place-items:center;border-radius:11px;background:var(--card2);border:1px solid var(--line);font-size:17px!important;line-height:1!important;margin:0 auto}
+#today .quickGridCompact .quick b{font-size:9.5px!important;margin-top:6px!important;letter-spacing:-.01em}
+#today .quickGridCompact .quick.homeQuickPressReady .emoji{border-color:var(--accent)}
+
+#today .weatherCompact{box-shadow:none!important;background:linear-gradient(135deg,rgba(106,184,255,.055),rgba(216,255,62,.025)),var(--card)!important}
+#today .weatherCompactArrow{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--card2);border:1px solid var(--line);font-size:20px!important}
+
+#today .todayCompactCard{box-shadow:none!important}
+#today .todayCompactCard .list{gap:7px}
+#today .todayCompactCard .item{padding:10px 10px;border-radius:14px}
+#today .todayCompactCard .item h3{font-size:12px}
+#today .todayCompactCard .item p{font-size:9px;margin-top:3px}
+#today .todayCompactCard .taskCheck{flex:0 0 auto}
+#today .todayCompactCard .timeline{display:grid;gap:7px}
+#today .todayCompactCard .event{padding-bottom:8px}
+#today .todayCompactCard .event:last-of-type{padding-bottom:0}
+.todayListMore{width:100%;border:0;background:transparent;color:var(--muted);padding:7px 2px 1px;text-align:left;font-size:9px;font-weight:850}
+.todayListMore:active{color:var(--text)}
+
+@media(max-width:620px){
+  .app{padding-left:13px;padding-right:13px}
+  .top{padding:12px 1px 10px}
+  .brand small{font-size:8px;letter-spacing:.12em}
+  .brand h1{font-size:23px;margin-top:2px;letter-spacing:-.025em}
+  .topActions{gap:6px}
+  .iconBtn{width:42px;min-height:42px;border-radius:13px}
+  #today .todayMorningBrief h2{font-size:26px!important}
+  #today .todayMorningBrief p{font-size:11px!important}
+  #today .todayStatsCompact .stat{padding-left:7px!important;padding-right:7px!important}
+  #today .todayStatsCompact .stat span{font-size:7.5px!important}
+  #today .todayStatsCompact .stat strong{font-size:16px!important}
+  #today .compactSectionTitle>span{max-width:48%;overflow:hidden;text-overflow:ellipsis}
+}
+@media(max-width:360px){
+  #today .todayMorningBrief h2{font-size:24px!important}
+  #today .todayStatsCompact .stat{padding-left:5px!important;padding-right:5px!important}
+  #today .todayStatsCompact .stat strong{font-size:15px!important}
+  #today .todayStatsCompact .stat.money strong{font-size:9px!important}
+  #today .quickGridCompact .quick b{font-size:8.5px!important}
+}

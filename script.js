@@ -788,13 +788,18 @@ function renderToday(){
   const hero=document.querySelector('#today .hero h2');if(hero)hero.firstChild.textContent=`${greetingForNow()}, `;
   const t=todayISO(),todayTasks=data.tasks.filter(x=>x.date===t),openTasks=todayTasks.filter(x=>!x.done),todayEvents=data.events.filter(x=>eventOccursOnDate(x,t)).sort((a,b)=>a.time.localeCompare(b.time));
   const openOffers=data.offers.filter(o=>['draft','sent'].includes(o.status));
+  const priorityRank={high:0,normal:1,low:2};
+  const sortedTodayTasks=[...todayTasks].sort((a,b)=>Number(a.done)-Number(b.done)||(priorityRank[a.priority]??1)-(priorityRank[b.priority]??1)||String(a.title||'').localeCompare(String(b.title||''),'de'));
+  const visibleTasks=sortedTodayTasks.slice(0,3),visibleEvents=todayEvents.slice(0,3),doneCount=todayTasks.filter(x=>x.done).length;
   document.getElementById('statTasks').textContent=openTasks.length;
   document.getElementById('statEvents').textContent=todayEvents.length;
   document.getElementById('statOffers').textContent=openOffers.length;
   document.getElementById('statValue').textContent=euro(openOffers.reduce((s,o)=>s+(o.total||0),0));
-  document.getElementById('taskProgress').textContent=`${todayTasks.filter(x=>x.done).length} von ${todayTasks.length} erledigt`;
-  document.getElementById('todayTasks').innerHTML=todayTasks.length?todayTasks.map(taskHTML).join(''):'<div class="todayEmpty"><span>✓</span><div><b>Keine Aufgaben heute</b><small>Alles frei.</small></div></div>';
-  document.getElementById('todayEvents').innerHTML=todayEvents.length?todayEvents.map(e=>`<div class="event"><div class="eventTime">${e.time} Uhr · ${escapeHTML(e.type)}</div><b>${escapeHTML(e.title)}</b><div class="mini">${escapeHTML(e.address||'')}</div></div>`).join(''):'<div class="todayEmpty"><span>○</span><div><b>Keine Termine heute</b><small>Der Kalender ist frei.</small></div></div>';
+  document.getElementById('taskProgress').textContent=!todayTasks.length?'Keine offen':doneCount===todayTasks.length?'Alles erledigt':`${doneCount} von ${todayTasks.length} erledigt`;
+  const taskMore=todayTasks.length>visibleTasks.length?`<button type="button" class="todayListMore" onclick="showScreen('tasks')">+ ${todayTasks.length-visibleTasks.length} weitere ${todayTasks.length-visibleTasks.length===1?'Aufgabe':'Aufgaben'} →</button>`:'';
+  const eventMore=todayEvents.length>visibleEvents.length?`<button type="button" class="todayListMore" onclick="showScreen('calendar')">+ ${todayEvents.length-visibleEvents.length} weitere ${todayEvents.length-visibleEvents.length===1?'Termin':'Termine'} →</button>`:'';
+  document.getElementById('todayTasks').innerHTML=todayTasks.length?visibleTasks.map(taskHTML).join('')+taskMore:'<div class="todayEmpty"><span>✓</span><div><b>Keine Aufgaben heute</b><small>Alles frei.</small></div></div>';
+  document.getElementById('todayEvents').innerHTML=todayEvents.length?visibleEvents.map(e=>`<div class="event"><div class="eventTime">${e.time} Uhr · ${escapeHTML(e.type)}</div><b>${escapeHTML(e.title)}</b><div class="mini">${escapeHTML(e.address||'')}</div></div>`).join('')+eventMore:'<div class="todayEmpty"><span>○</span><div><b>Keine Termine heute</b><small>Der Kalender ist frei.</small></div></div>';
   document.getElementById('todayTasksCard')?.classList.toggle('compactEmpty',!todayTasks.length);
   document.getElementById('todayEventsCard')?.classList.toggle('compactEmpty',!todayEvents.length);
   const tasksTitle=document.getElementById('todayTasksTitle');if(tasksTitle)tasksTitle.textContent=worker?'Meine Aufgaben':office?'Büro-Aufgaben heute':'Heute erledigen';
@@ -811,7 +816,12 @@ function renderToday(){
         ?'Termine, Angebote und offene Büroaufgaben für heute sind vorbereitet.'
         :'Im Büro ist aktuell nichts Dringendes offen.';
   }else{
-    document.getElementById('dailyMessage').textContent=openTasks.length||todayEvents.length?'Dein Tag ist vorbereitet. Arbeite die wichtigsten Punkte nacheinander ab.':'Heute ist noch frei – ideal für Angebote, Akquise oder Planung.';
+    const overdue=(data.invoices||[]).filter(i=>i.status==='open'&&i.dueDate&&i.dueDate<t&&i.documentType!=='cancellation').length;
+    document.getElementById('dailyMessage').textContent=overdue
+      ?`Zuerst prüfen: ${overdue} ${overdue===1?'Rechnung ist':'Rechnungen sind'} überfällig.`
+      :openTasks.length||todayEvents.length
+        ?'Dein Tag ist vorbereitet. Die wichtigsten Punkte stehen direkt darunter.'
+        :'Heute ist noch frei – ideal für Angebote, Akquise oder Planung.';
   }
   if(!worker)renderInvoiceFollowupDashboard();
 }

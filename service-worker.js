@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-29';
+const CACHE='angebotspilot-v11-29-1';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.29','./cloud-config.js?v=11.29',
-  './country-config.js?v=11.29','./data-repository.js?v=11.29','./einvoice.js?v=11.29','./script.js?v=11.29','./customer-import.js?v=11.29','./cloud-files.js?v=11.29','./cloud-sync.js?v=11.29',
-  './team.js?v=11.29','./assignments.js?v=11.29','./time-tracking.js?v=11.29','./notifications.js?v=11.29','./mail-hub.js?v=11.29','./email-assistant.js?v=11.29','./acceptance.js?v=11.29','./custom-selects.js?v=11.29',
-  './security.js?v=11.29','./onboarding-setup.js?v=11.29','./cloud-auth.js?v=11.29','./manifest.json?v=11.29','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.29.1','./cloud-config.js?v=11.29.1',
+  './country-config.js?v=11.29.1','./data-repository.js?v=11.29.1','./einvoice.js?v=11.29.1','./script.js?v=11.29.1','./customer-import.js?v=11.29.1','./cloud-files.js?v=11.29.1','./cloud-sync.js?v=11.29.1',
+  './team.js?v=11.29.1','./assignments.js?v=11.29.1','./time-tracking.js?v=11.29.1','./notifications.js?v=11.29.1','./mail-hub.js?v=11.29.1','./email-assistant.js?v=11.29.1','./acceptance.js?v=11.29.1','./custom-selects.js?v=11.29.1',
+  './security.js?v=11.29.1','./onboarding-setup.js?v=11.29.1','./cloud-auth.js?v=11.29.1','./manifest.json?v=11.29.1','./icon-192.svg','./icon-512.svg'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
