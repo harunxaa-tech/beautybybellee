@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.24 – Handwerker-Workflow mit Firmen-Mailbox, kompaktem Morgen-Sekretariat mit digitaler Sekretärin, Rechnungs-Nachfasslogik, automatischem Dokumentdesign, Stilimport aus bestehenden Dokumenten, veredelten Mehrseiten-PDFs, automatischem Rechnungs-Compliance-Check für DE/AT/CH und strukturierten E-Rechnungen und digitalem Abnahmeprotokoll.",
+  "description": "AngebotsPilot v11.26 – Handwerker-Workflow mit Sekretariat, Angeboten, Baustellen, Rechnungen, DE/AT/CH-Compliance, E-Rechnung, Abnahmeprotokoll und datensparsamem Bestandskunden-Import aus CSV/XLSX mit Dublettenprüfung und Importprotokoll.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

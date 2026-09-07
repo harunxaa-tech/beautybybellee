@@ -396,6 +396,7 @@
       // WICHTIG: Erst Zugang freigeben, dann Cloud-Sync im Hintergrund.
       renderAccount();
       requireEntry();
+      Promise.resolve(globalThis.loadHomeQuickActionsFromCloud?.()).catch(e=>console.warn('Schnellzugriff laden fehlgeschlagen',e));
       Promise.resolve(globalThis.Notifications?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('Notifications attach failed',e));
 
       const startCloudSync=async()=>{

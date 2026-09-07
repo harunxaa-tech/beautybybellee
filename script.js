@@ -1,5 +1,5 @@
 const KEY='digitaler_handwerker_v3';
-const PRIVACY_VERSION='1.0';
+const PRIVACY_VERSION='1.1';
 const WEATHER_CACHE_KEY='dh_weather_cache_v1';
 const defaultData={settings:{companyName:'',ownerName:'',phone:'',email:'',address:'',weatherLocation:'',tax:0,paymentTerm:'7 Tage',taxNumber:'',vatId:'',iban:'',bankName:'',brandLogoPath:'',brandLogoLocalDataUrl:'',brandAccent:'',brandAccentAuto:'',documentStyle:'auto',logoPosition:'left',brandLogoMeta:{},brandLogoPendingCloud:false,brandReferencePath:'',brandReferencePreviewPath:'',brandReferenceName:'',brandReferenceMeta:{},brandReferenceLocalPreview:'',brandReferencePendingCloud:false,countryCode:'DE',currency:'EUR',appLanguage:'de',taxTreatment:'small_business',taxNote:''},privacy:{version:PRIVACY_VERSION,consents:{weather:false,location:false,external:false,analytics:false},role:'owner',acceptedAt:null},audit:[],customers:[],offers:[],events:[],tasks:[],jobs:[],invoices:[],catalog:[{id:uid(),name:'Gartenarbeit / Fachkraft',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Anfahrt',unit:'Pauschale',price:50,type:'service',trade:'garden'},{id:uid(),name:'Rasen mähen und Pflege',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Hecken- und Strauchschnitt',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Rollrasen verlegen',unit:'m²',price:18,type:'service',trade:'garden'},{id:uid(),name:'Humus / Mutterboden',unit:'m³',price:65,type:'material',trade:'garden'},{id:uid(),name:'Entsorgung Grünabfall',unit:'Pauschale',price:120,type:'service',trade:'garden'}]};
 
@@ -406,7 +406,7 @@ migrateLegacyTravelV108();
 
 
 function uid(){return AppRepository?.makeId?AppRepository.makeId():(globalThis.crypto?.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,9))}
-function loadData(){try{const raw=AppRepository.load(KEY),base=structuredClone(defaultData),merged={...base,...raw,settings:{...base.settings,...(raw.settings||{})},privacy:{...base.privacy,...(raw.privacy||{}),consents:{...base.privacy.consents,...(raw.privacy?.consents||{})}},audit:Array.isArray(raw.audit)?raw.audit:[],users:Array.isArray(raw.users)?raw.users:[],customers:(Array.isArray(raw.customers)?raw.customers:base.customers).map(c=>({...c,folderNotes:c.folderNotes||'',photos:Array.isArray(c.photos)?c.photos:[],customerType:c.customerType||'auto',countryCode:c.countryCode||raw.settings?.countryCode||base.settings.countryCode||'DE',vatId:c.vatId||'',buyerReference:c.buyerReference||'',supplierNumber:c.supplierNumber||'',eInvoiceAddress:c.eInvoiceAddress||'',eInvoiceRequired:!!c.eInvoiceRequired,electronicInvoiceConsentAt:c.electronicInvoiceConsentAt||''})),invoices:(Array.isArray(raw.invoices)?raw.invoices:[]).map(inv=>({...inv,serviceDate:inv.serviceDate||inv.date||'',recipientType:inv.recipientType||'auto',recipientCountryCode:inv.recipientCountryCode||inv.countryCode||raw.settings?.countryCode||base.settings.countryCode||'DE',recipientVatId:inv.recipientVatId||'',buyerReference:inv.buyerReference||'',eInvoiceFormat:inv.eInvoiceFormat||'auto',structuredStoragePath:inv.structuredStoragePath||'',structuredSha256:inv.structuredSha256||'',complianceStatus:inv.complianceStatus||'unchecked',complianceReport:inv.complianceReport||{},complianceCheckedAt:inv.complianceCheckedAt||''})),jobs:(Array.isArray(raw.jobs)?raw.jobs:base.jobs).map(j=>({...j,startTime:j.startTime||'08:00',durationValue:Number(j.durationValue)||1,durationUnit:j.durationUnit==='hours'?'hours':'days',docNote:j.docNote||'',photos:Array.isArray(j.photos)?j.photos:[]}))};AppRepository.prepare(merged,raw);return merged}catch(e){const fresh=structuredClone(defaultData);AppRepository.prepare(fresh,{});return fresh}}
+function loadData(){try{const raw=AppRepository.load(KEY),base=structuredClone(defaultData),merged={...base,...raw,settings:{...base.settings,...(raw.settings||{})},privacy:{...base.privacy,...(raw.privacy||{}),consents:{...base.privacy.consents,...(raw.privacy?.consents||{})}},audit:Array.isArray(raw.audit)?raw.audit:[],users:Array.isArray(raw.users)?raw.users:[],customers:(Array.isArray(raw.customers)?raw.customers:base.customers).map(c=>({...c,folderNotes:c.folderNotes||'',photos:Array.isArray(c.photos)?c.photos:[],customerType:c.customerType||'auto',countryCode:c.countryCode||raw.settings?.countryCode||base.settings.countryCode||'DE',vatId:c.vatId||'',buyerReference:c.buyerReference||'',supplierNumber:c.supplierNumber||'',eInvoiceAddress:c.eInvoiceAddress||'',eInvoiceRequired:!!c.eInvoiceRequired,electronicInvoiceConsentAt:c.electronicInvoiceConsentAt||'',customerNumber:c.customerNumber||'',importSource:c.importSource||'manual',importBatchId:c.importBatchId||'',importedAt:c.importedAt||''})),invoices:(Array.isArray(raw.invoices)?raw.invoices:[]).map(inv=>({...inv,serviceDate:inv.serviceDate||inv.date||'',recipientType:inv.recipientType||'auto',recipientCountryCode:inv.recipientCountryCode||inv.countryCode||raw.settings?.countryCode||base.settings.countryCode||'DE',recipientVatId:inv.recipientVatId||'',buyerReference:inv.buyerReference||'',eInvoiceFormat:inv.eInvoiceFormat||'auto',structuredStoragePath:inv.structuredStoragePath||'',structuredSha256:inv.structuredSha256||'',complianceStatus:inv.complianceStatus||'unchecked',complianceReport:inv.complianceReport||{},complianceCheckedAt:inv.complianceCheckedAt||''})),jobs:(Array.isArray(raw.jobs)?raw.jobs:base.jobs).map(j=>({...j,startTime:j.startTime||'08:00',durationValue:Number(j.durationValue)||1,durationUnit:j.durationUnit==='hours'?'hours':'days',docNote:j.docNote||'',photos:Array.isArray(j.photos)?j.photos:[]}))};AppRepository.prepare(merged,raw);return merged}catch(e){const fresh=structuredClone(defaultData);AppRepository.prepare(fresh,{});return fresh}}
 function addAudit(action,details=''){data.audit=data.audit||[];data.audit.unshift({id:uid(),at:new Date().toISOString(),action,details});data.audit=data.audit.slice(0,100)}
 function persistAppState(){AppRepository.save(data,KEY);return data}
 function saveData(action='Daten geändert',details=''){addAudit(action,details);persistAppState();renderAll()}
@@ -562,7 +562,138 @@ function migrateLegacyTravelV108(){
   if(changed)persistAppState();
 }
 
-function renderAll(){renderToday();renderOffers();renderInvoices();renderCustomers();renderCalendar();renderTasks();renderJobs();renderCatalog();loadSettingsForm();renderPrivacy();renderCachedWeather();applyRoleUI();if(document.getElementById('customerDetail')?.classList.contains('active'))renderCustomerFolder()}
+
+// v11.25 – persoenliche Schnellaktionen auf der Startseite.
+const HOME_QUICK_DEFAULT=['offer','event','customer','job'];
+const HOME_QUICK_DEFS={
+  offer:{icon:'📄',label:'Angebot',short:'Angebot',hint:'Neues Angebot erstellen'},
+  event:{icon:'📅',label:'Termin',short:'Termin',hint:'Termin oder Besichtigung planen'},
+  customer:{icon:'👤',label:'Kunde',short:'Kunde',hint:'Neuen Kunden anlegen'},
+  job:{icon:'🏗️',label:'Baustelle',short:'Baustelle',hint:'Neue Baustelle erstellen'},
+  invoice:{icon:'🧾',label:'Rechnung',short:'Rechnung',hint:'Neue Rechnung erstellen'},
+  task:{icon:'✅',label:'Aufgabe',short:'Aufgabe',hint:'Neue Aufgabe anlegen'},
+  secretariat:{icon:'✦',label:'Sekretariat',short:'Sekretariat',hint:'Postfach und Freigaben öffnen'},
+  time:{icon:'⏱️',label:'Zeiterfassung',short:'Zeiten',hint:'Teamzeiten und Zeiterfassung öffnen'}
+};
+let homeQuickActionsCache=null,homeQuickActionsCacheKey='',homeQuickEditSlot=-1,homeQuickCloudLoadedFor='';
+function homeQuickIdentity(){
+  const st=globalThis.getCloudState?.()||{};
+  const companyId=st.company?.id||data?.meta?.cloudCompanyId||data?.meta?.companyId||'local';
+  const userId=st.session?.user?.id||data?.meta?.authUserId||data?.meta?.currentUserId||'local';
+  return{companyId,userId,key:`angebotspilot_home_quick_v1_${companyId}_${userId}`};
+}
+function normalizeHomeQuickActions(raw){
+  const allowed=Object.keys(HOME_QUICK_DEFS),out=[];
+  (Array.isArray(raw)?raw:[]).forEach(k=>{if(allowed.includes(k)&&!out.includes(k))out.push(k)});
+  [...HOME_QUICK_DEFAULT,...allowed].forEach(k=>{if(out.length<4&&!out.includes(k))out.push(k)});
+  return out.slice(0,4);
+}
+function getHomeQuickActions(){
+  const {key}=homeQuickIdentity();
+  if(homeQuickActionsCache&&homeQuickActionsCacheKey===key)return homeQuickActionsCache;
+  homeQuickActionsCache=null;homeQuickActionsCacheKey=key;
+  try{homeQuickActionsCache=normalizeHomeQuickActions(JSON.parse(localStorage.getItem(key)||'null'))}
+  catch(e){homeQuickActionsCache=[...HOME_QUICK_DEFAULT]}
+  return homeQuickActionsCache;
+}
+function storeHomeQuickActionsLocal(actions){
+  const {key}=homeQuickIdentity();homeQuickActionsCacheKey=key;
+  homeQuickActionsCache=normalizeHomeQuickActions(actions);
+  try{localStorage.setItem(key,JSON.stringify(homeQuickActionsCache))}catch(e){}
+  return homeQuickActionsCache;
+}
+function runHomeQuickAction(key){
+  if(key==='offer')return newOffer();
+  if(key==='event')return newEvent();
+  if(key==='customer')return newCustomer();
+  if(key==='job')return newJob();
+  if(key==='invoice')return newInvoice();
+  if(key==='task')return newTask();
+  if(key==='secretariat')return openEmailAssistant();
+  if(key==='time')return globalThis.openTeam?.()||showScreen('jobs');
+}
+function homeQuickButtonHTML(key,slot,compact=false){
+  const d=HOME_QUICK_DEFS[key]||HOME_QUICK_DEFS.offer;
+  return `<button type="button" class="quick homeQuickAction" data-home-quick-slot="${slot}" data-home-quick-key="${key}" aria-label="${escapeHTML(d.label)}. Tippen zum Öffnen, gedrückt halten zum Ersetzen."><span class="emoji">${d.icon}</span><b>${escapeHTML(compact?d.short:d.label)}</b><small>${escapeHTML(d.hint)}</small></button>`;
+}
+function renderHomeQuickActions(){
+  const actions=getHomeQuickActions();
+  const owner=document.getElementById('ownerHomeQuickGrid');
+  const office=document.getElementById('officeHomeQuickGrid');
+  if(owner)owner.innerHTML=actions.map((k,i)=>homeQuickButtonHTML(k,i,true)).join('');
+  if(office)office.innerHTML=actions.map((k,i)=>homeQuickButtonHTML(k,i,false)).join('');
+  document.querySelectorAll('.homeQuickAction').forEach(bindHomeQuickPress);
+}
+function bindHomeQuickPress(btn){
+  if(btn.dataset.quickBound==='1')return;btn.dataset.quickBound='1';
+  let timer=null,longPressed=false,startX=0,startY=0;
+  const clear=()=>{if(timer){clearTimeout(timer);timer=null}};
+  btn.addEventListener('pointerdown',e=>{
+    if(e.button!==undefined&&e.button!==0)return;
+    longPressed=false;startX=e.clientX||0;startY=e.clientY||0;clear();
+    timer=setTimeout(()=>{
+      longPressed=true;btn.dataset.suppressClick='1';
+      try{if(navigator.vibrate)navigator.vibrate(18)}catch(err){}
+      btn.classList.remove('homeQuickPressReady');void btn.offsetWidth;btn.classList.add('homeQuickPressReady');
+      setTimeout(()=>btn.classList.remove('homeQuickPressReady'),480);
+      setTimeout(()=>openHomeQuickActionSheet(Number(btn.dataset.homeQuickSlot)||0),125);
+    },560);
+  });
+  btn.addEventListener('pointermove',e=>{if(Math.hypot((e.clientX||0)-startX,(e.clientY||0)-startY)>11)clear()});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>btn.addEventListener(ev,clear));
+  btn.addEventListener('contextmenu',e=>e.preventDefault());
+  btn.addEventListener('click',e=>{
+    if(longPressed||btn.dataset.suppressClick==='1'){
+      e.preventDefault();e.stopPropagation();btn.dataset.suppressClick='0';longPressed=false;return;
+    }
+    runHomeQuickAction(btn.dataset.homeQuickKey);
+  });
+}
+function openHomeQuickActionSheet(slot){
+  homeQuickEditSlot=Math.max(0,Math.min(3,Number(slot)||0));
+  const current=getHomeQuickActions()[homeQuickEditSlot];
+  const box=document.getElementById('homeQuickActionChoices');
+  if(box)box.innerHTML=Object.entries(HOME_QUICK_DEFS).map(([key,d])=>`<button type="button" class="homeQuickChoice ${key===current?'active':''}" onclick="chooseHomeQuickAction('${key}')"><span class="homeQuickChoiceIcon">${d.icon}</span><span><b>${escapeHTML(d.label)}</b><small>${escapeHTML(d.hint)}</small></span><strong>${key===current?'✓':'›'}</strong></button>`).join('');
+  document.getElementById('homeQuickActionSheet')?.classList.remove('hidden');
+}
+function closeHomeQuickActionSheet(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('homeQuickActionSheet')?.classList.add('hidden');homeQuickEditSlot=-1}
+async function chooseHomeQuickAction(key){
+  if(!HOME_QUICK_DEFS[key]||homeQuickEditSlot<0)return;
+  const actions=[...getHomeQuickActions()],slot=homeQuickEditSlot,old=actions[slot],other=actions.indexOf(key);
+  if(other>=0&&other!==slot){actions[other]=old;actions[slot]=key}else actions[slot]=key;
+  storeHomeQuickActionsLocal(actions);renderHomeQuickActions();closeHomeQuickActionSheet();
+  toast(`${HOME_QUICK_DEFS[key].label} ist jetzt im Schnellzugriff`);
+  saveHomeQuickActionsCloud(actions).catch(e=>console.warn('Schnellzugriff Cloud-Speicherung fehlgeschlagen',e));
+}
+async function loadHomeQuickActionsFromCloud(){
+  const st=globalThis.getCloudState?.()||{},client=st.client,session=st.session,company=st.company;
+  if(!client||!session?.user||!company?.id)return false;
+  const cloudKey=`${company.id}:${session.user.id}`;
+  if(homeQuickCloudLoadedFor===cloudKey)return true;
+  try{
+    const {data:row,error}=await client.from('user_preferences').select('home_quick_actions').eq('company_id',company.id).eq('user_id',session.user.id).maybeSingle();
+    if(error)throw error;
+    if(row?.home_quick_actions){
+      const {key}=homeQuickIdentity();homeQuickActionsCacheKey=key;
+      homeQuickActionsCache=normalizeHomeQuickActions(row.home_quick_actions);
+      try{localStorage.setItem(key,JSON.stringify(homeQuickActionsCache))}catch(e){}
+      renderHomeQuickActions();
+    }else{
+      await saveHomeQuickActionsCloud(getHomeQuickActions());
+    }
+    homeQuickCloudLoadedFor=cloudKey;return true;
+  }catch(e){console.warn('Schnellzugriff Cloud-Laden fehlgeschlagen',e);return false}
+}
+async function saveHomeQuickActionsCloud(actions){
+  const st=globalThis.getCloudState?.()||{},client=st.client,session=st.session,company=st.company;
+  if(!client||!session?.user||!company?.id)return false;
+  const clean=normalizeHomeQuickActions(actions);
+  const {error}=await client.from('user_preferences').upsert({company_id:company.id,user_id:session.user.id,home_quick_actions:clean},{onConflict:'company_id,user_id'});
+  if(error)throw error;homeQuickCloudLoadedFor=`${company.id}:${session.user.id}`;return true;
+}
+globalThis.loadHomeQuickActionsFromCloud=loadHomeQuickActionsFromCloud;
+
+function renderAll(){renderHomeQuickActions();renderToday();renderOffers();renderInvoices();renderCustomers();renderCalendar();renderTasks();renderJobs();renderCatalog();loadSettingsForm();renderPrivacy();renderCachedWeather();applyRoleUI();if(document.getElementById('customerDetail')?.classList.contains('active'))renderCustomerFolder()}
 function greetingForNow(){
   const h=new Date().getHours();
   return h<11?'Guten Morgen':h<18?'Guten Tag':'Guten Abend';
@@ -2083,10 +2214,10 @@ function exportPrivacyData(){const copy={exportedAt:new Date().toISOString(),pri
 function resetAppPrivacy(){openDeleteDataModal()}
 
 const legalDocs={
-privacyPolicy:`DATENSCHUTZHINWEIS – TECHNISCHER ENTWURF\n\nVerantwortlicher\n[Unternehmensname, vollständige Anschrift, E-Mail, Telefon ergänzen]\n\nLokale Verarbeitung\nDie aktuelle Testversion speichert Firmendaten, Kundendaten, Angebote, Termine, Aufgaben und Baustellen ausschließlich im lokalen Browser-Speicher des verwendeten Geräts. Es besteht derzeit kein zentrales Benutzerkonto und keine automatische Cloud-Sicherung.\n\nWetterdienst\nNur nach Einwilligung wird der eingegebene Ort bzw. eine Baustellenadresse an Open-Meteo übertragen, um Wetterdaten abzurufen. Der Gerätestandort wird nur nach einer separaten Aktion und Browserfreigabe verwendet.\n\nExterne Dienste\nBeim bewussten Öffnen von Google Maps, Google Kalender oder WhatsApp können die ausgewählten Daten an den jeweiligen Anbieter übertragen werden. Vor der ersten Nutzung wird eine Einwilligung eingeholt.\n\nSpeicherdauer und Löschung\nDie Daten bleiben im Browser gespeichert, bis sie durch den Nutzer, den Browser oder die Funktion „Alle App-Daten löschen“ entfernt werden. Eine Datenkopie kann als JSON exportiert werden.\n\nBetroffenenrechte\nBei der späteren Cloud-Version werden Prozesse für Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch vorgesehen.\n\nHinweis\nDieser Text muss vor einem kommerziellen Start an die tatsächlichen Dienste, Rechtsgrundlagen, Auftragsverarbeiter und Kontaktdaten angepasst und rechtlich geprüft werden.`,
-imprint:`IMPRESSUM – ENTWURF\n\nAngaben gemäß § 5 DDG\n${data.settings.companyName||'[Firmenname]'}\n${data.settings.ownerName||'[Vertretungsberechtigte Person]'}\n${data.settings.address||'[Vollständige Anschrift]'}\n\nKontakt\nTelefon: ${data.settings.phone||'[Telefon]'}\nE-Mail: ${data.settings.email||'[E-Mail]'}\n\nWeitere Pflichtangaben\n[Rechtsform, Register, Registernummer, Umsatzsteuer-ID, zuständige Kammer oder Berufsangaben ergänzen, soweit zutreffend.]\n\nVerantwortlich für Inhalte\n[Name und Anschrift ergänzen.]`,
-terms:`NUTZUNGSBEDINGUNGEN – ENTWURF\n\n1. Zweck\nAngebotsPilot unterstützt Betriebe bei der Organisation von Kunden, Angeboten, Terminen, Aufgaben und Baustellen.\n\n2. Eigenverantwortliche Prüfung\nAlle Preise, Berechnungen, Texte, Wetterhinweise und Dokumente müssen vor Nutzung oder Versand durch den Betrieb geprüft werden. Die App ersetzt keine steuerliche, rechtliche, technische oder sicherheitsbezogene Beratung.\n\n3. Datensicherung\nIn der Offline-Testversion ist der Nutzer selbst für regelmäßige Backups verantwortlich. Browserdaten können durch Gerätewechsel, Zurücksetzen oder Browserbereinigung verloren gehen.\n\n4. Wetter\nWetterinformationen sind nur Planungshilfen. Für sicherheitskritische Arbeiten sind amtliche Warnungen und die Bedingungen vor Ort maßgeblich.\n\n5. Verfügbarkeit\nFür die Testversion wird keine ununterbrochene Verfügbarkeit oder Fehlerfreiheit garantiert.`,
-architecture:`DATENSCHUTZ- UND SICHERHEITSARCHITEKTUR\n\nJETZIGE OFFLINE-VERSION\n• Lokale Speicherung im Browser\n• Keine zentrale Nutzerverwaltung\n• Keine KI-Übertragung\n• Wetter nur nach Einwilligung\n• Standort nur auf Nutzeraktion\n• Externe Apps nur nach Hinweis\n• Datenexport und vollständige Löschung\n• Lokales Änderungsprotokoll\n\nSPÄTERE CLOUD-VERSION\n• Getrennte Mandanten pro Betrieb\n• Serverseitig erzwungene Rollen: Inhaber, Büro, Mitarbeiter\n• Datenbankregeln, sodass kein Betrieb fremde Daten lesen kann\n• Verschlüsselte Übertragung per HTTPS\n• Verschlüsselte Backups und Wiederherstellungstests\n• Mehrfaktor-Authentifizierung für Inhaber\n• Protokollierung sicherheitsrelevanter Aktionen\n• Lösch- und Aufbewahrungskonzept\n• Verträge zur Auftragsverarbeitung mit Dienstleistern\n• EU/EWR-Hosting nach dokumentierter Prüfung\n• Geheimnisse nur serverseitig, niemals in App oder GitHub\n• KI nur nach Aktivierung, Datenminimierung und möglichst Pseudonymisierung\n• Regelmäßige Updates, Abhängigkeitsprüfungen und Sicherheits-Tests\n\nAPP-BERECHTIGUNGEN\n• Kamera: erst bei Fotoaufnahme\n• Mikrofon: erst bei Spracheingabe\n• Standort: erst bei Navigation/Wetter auf Nutzeraktion\n• Benachrichtigungen: erst nach verständlicher Erklärung\n• Kontakte: nicht vorgesehen\n\nVor Store-Veröffentlichung sind eine Datenschutz-Folgenprüfung je nach Funktionsumfang, ein Verzeichnis der Verarbeitungstätigkeiten, Löschfristen, Incident-Prozess und rechtliche Prüfung zu klären.`};
+privacyPolicy:`DATENSCHUTZHINWEIS – TECHNISCHER ENTWURF v11.26\n\nWICHTIG\nDieser Text bildet den aktuellen technischen Stand von AngebotsPilot ab, ersetzt aber vor dem kommerziellen Start keine individuelle rechtliche Prüfung und muss mit den tatsächlichen Anbieter-, Vertrags- und Subprozessorangaben vervollständigt werden.\n\nVerantwortlicher Betrieb\nDer jeweilige Betrieb entscheidet über Zweck und Nutzung seiner Kunden-, Auftrags-, Rechnungs- und Mitarbeiterdaten und ist für die Rechtmäßigkeit dieser Verarbeitung verantwortlich. AngebotsPilot ist für die im Auftrag gespeicherten Geschäftsdaten technisch als Auftragsverarbeitung ausgelegt. Vor dem öffentlichen Start ist hierfür ein vollständiger AV-/Auftragsbearbeitungsvertrag bereitzustellen.\n\nCloud & Mandantentrennung\nGeschäftsdaten werden mit dem angemeldeten Betriebskonto synchronisiert. Die Datenbank erzwingt eine Trennung nach Betrieb (company_id) und Rollen wie Inhaber, Büro und Mitarbeiter. Das aktuelle Supabase-Projekt ist in der Region Frankfurt eingerichtet. Übertragungen erfolgen verschlüsselt per HTTPS.\n\nBestandskunden-Import\nCSV- und XLSX-Dateien werden beim Import lokal im Browser ausgewertet. Die ursprüngliche Importdatei wird nicht in die Cloud hochgeladen oder dauerhaft gespeichert. Vor dem Speichern zeigt AngebotsPilot eine Vorschau und mögliche Dubletten. Erst nach ausdrücklicher Bestätigung werden die ausgewählten Kundendaten übernommen. Zur Nachvollziehbarkeit wird ein minimiertes Importprotokoll mit Zeitpunkt, Benutzer, Dateiprüfsumme, Format und Anzahlen gespeichert – nicht die Rohdatei. Ein Import erzeugt keine Einwilligung für Werbung oder Newsletter.\n\nE-Mail-Sekretariat\nBei aktivierter Firmen-Mailbox werden E-Mails des verbundenen Kontos verarbeitet, um geschäftliche Vorgänge wie Angebotsantworten, Terminfragen und Kundenanfragen darzustellen. Antworten werden nicht ohne ausdrückliche Nutzeraktion versendet. Zugangsdaten für IMAP/SMTP werden nicht im Browser gespeichert.\n\nWetter & Standort\nWetterdaten und Gerätestandort werden nur nach den in der App vorgesehenen Freigaben verwendet. Standort- oder Baustellenangaben können für Wetterabfragen an den verwendeten Wetterdienst übertragen werden.\n\nExterne Apps und Dienste\nBeim bewussten Öffnen von Karten, Kalender, WhatsApp oder anderen externen Diensten können die vom Nutzer ausgewählten Daten an den jeweiligen Anbieter übertragen werden.\n\nSpeicherung, Berichtigung, Export und Löschung\nAngebotsPilot hält einen lokalen Offline-Stand und synchronisiert freigegebene Geschäftsdaten mit dem Betriebskonto. Daten können berichtigt und als Datenkopie exportiert werden. Gesetzliche Aufbewahrungspflichten für Rechnungen und unveränderbare Geschäftsdokumente gehen einer vorzeitigen Löschung vor. Für Kunden- und Kontaktdaten ist vor Launch ein konkretes Lösch- und Aufbewahrungskonzept nach Zweck und Land zu dokumentieren.\n\nBetroffenenrechte\nDer Betrieb muss Anfragen betroffener Personen zu Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch bzw. den nach dem anwendbaren Recht vorgesehenen Rechten bearbeiten können. AngebotsPilot ist technisch darauf auszurichten, den Betrieb dabei zu unterstützen.\n\nDeutschland / Österreich\nFür personenbezogene Daten gelten insbesondere die DSGVO-Grundsätze wie Zweckbindung, Datenminimierung, Transparenz und Sicherheit. Der Betrieb muss für seine Kundendaten eine passende Rechtsgrundlage haben. Die bloße Migration bestehender Kundendaten in AngebotsPilot schafft keine neue Werbeeinwilligung.\n\nSchweiz\nFür Schweizer Betriebe wird die Verarbeitung zusätzlich nach den Grundsätzen des Schweizer DSG ausgelegt, insbesondere Transparenz, Datenschutz durch Technik und datenschutzfreundliche Voreinstellungen. Der Betrieb bleibt für die Rechtmäßigkeit seiner Datenbearbeitung verantwortlich.\n\nVor kommerziellem Start\nDatenschutzerklärung, AVV/Auftragsbearbeitungsvertrag, Subprozessorliste, internationale Datenübermittlungen, Löschkonzept, Incident-Prozess und die tatsächlichen Unternehmensdaten müssen final geprüft und veröffentlicht werden.`,
+imprint:`IMPRESSUM – ENTWURF\n\nAngaben gemäß den für den Anbieter geltenden Vorschriften\n${data.settings.companyName||'[Firmenname]'}\n${data.settings.ownerName||'[Vertretungsberechtigte Person]'}\n${data.settings.address||'[Vollständige Anschrift]'}\n\nKontakt\nTelefon: ${data.settings.phone||'[Telefon]'}\nE-Mail: ${data.settings.email||'[E-Mail]'}\n\nWeitere Pflichtangaben\n[Rechtsform, Register, Registernummer, UID/USt-ID/MWST-Nr., zuständige Kammer oder Berufsangaben ergänzen, soweit zutreffend.]\n\nHinweis\nVor Veröffentlichung ist das Impressum nach Sitzland (DE/AT/CH) und Rechtsform des tatsächlichen AngebotsPilot-Betreibers zu finalisieren.`,
+terms:`NUTZUNGSBEDINGUNGEN – TECHNISCHER ENTWURF\n\n1. Zweck\nAngebotsPilot unterstützt Betriebe bei Kundenverwaltung, Angeboten, Terminen, Baustellen, E-Mail-Kommunikation, Rechnungen, Dokumentation und internen Arbeitsabläufen.\n\n2. Verantwortung des Betriebs\nDer Betrieb bleibt für die Rechtmäßigkeit seiner Kundendaten, Inhalte, Preise, Rechnungsangaben, Steuerbehandlung und versendeten Nachrichten verantwortlich. AngebotsPilot ersetzt keine individuelle Rechts-, Steuer- oder Berufsberatung.\n\n3. Bestandskunden-Import\nImportiert werden nur vom Nutzer ausgewählte Daten. Mögliche Dubletten werden vor dem Import gekennzeichnet. Der Import ist kein Nachweis einer Werbeeinwilligung.\n\n4. Automatisierung\nVorbereitete Antworten, Termine, Rechnungsaktionen und ähnliche Vorgänge werden nur entsprechend der in der App ausgewiesenen Freigabelogik ausgeführt. Sicherheits- und Compliance-Prüfungen reduzieren Fehler, stellen aber keine behördliche oder anwaltliche Zertifizierung dar.\n\n5. Sicherheit und Verfügbarkeit\nDer Anbieter setzt technische und organisatorische Schutzmaßnahmen ein. Für den kommerziellen Betrieb sind Backup-, Wiederherstellungs-, Incident- und Verfügbarkeitsregeln vertraglich festzulegen.`,
+architecture:`DATENSCHUTZ- UND SICHERHEITSARCHITEKTUR – AKTUELLER STAND\n\n• Mandantentrennung je Betrieb über company_id und Row Level Security\n• Rollen Inhaber / Büro / Mitarbeiter serverseitig berücksichtigt\n• HTTPS und Supabase Auth\n• Cloud-Projekt in Frankfurt\n• Lokaler Offline-Stand plus Cloud-Synchronisierung\n• Firmen-Mailbox mit serverseitig geschützten Zugangsdaten\n• Keine automatische E-Mail ohne Nutzerfreigabe\n• Bestandskunden-Dateien werden lokal geparst und nicht als Rohdatei gespeichert\n• Import-Vorschau, Dublettenprüfung, ausdrückliche Bestätigung und minimiertes Importprotokoll\n• Strukturierte E-Rechnungen und Compliance-Prüfungen für DE/AT/CH\n• Finalisierte Rechnungen und Abnahmeprotokolle gegen stille Änderung geschützt\n• Export- und Löschfunktionen für personenbezogene Arbeitsdaten; gesetzliche Aufbewahrung bleibt vorbehalten\n• Keine KI-Übertragung im aktuellen Kernworkflow ohne gesonderte Aktivierung\n\nVOR ÖFFENTLICHEM LAUNCH\n• AVV / Auftragsbearbeitungsvertrag für Kunden\n• Verträge und Subprozessorliste für Hosting/Mail/weitere Dienste\n• Vollständige Datenschutzerklärung für DE/AT/CH-Zielmarkt\n• Lösch- und Aufbewahrungskonzept je Datenkategorie\n• Incident-/Data-Breach-Prozess\n• Regelmäßige Backups und Restore-Tests\n• Passkeys / MFA / Geräteverwaltung\n• Sicherheits- und Penetrationstests\n• Prüfung, ob für einzelne risikoreiche Verarbeitungen eine DSFA erforderlich ist\n• Finale rechtliche und steuerliche Prüfung vor Bezahl-Launch`};
 function openLegal(type){document.getElementById('legalTitle').textContent=({privacyPolicy:'Datenschutzhinweis',imprint:'Impressum',terms:'Nutzungsbedingungen',architecture:'Sicherheitsplan'})[type]||'Dokument';document.getElementById('legalContent').textContent=legalDocs[type]||'';showScreen('legal')}
 
 function downloadBlob(content,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
