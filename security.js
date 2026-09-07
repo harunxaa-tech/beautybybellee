@@ -129,8 +129,15 @@
     });
   }
 
+  function passkeyOriginReady(){
+    // Passkeys are RP-ID/origin-bound. Do not invite users to enroll/sign in on the temporary GitHub Pages host.
+    const host=String(location.hostname||'').toLowerCase();
+    return !host.endsWith('github.io');
+  }
+
   function renderSecurity(){
     const supported=webAuthnSupported();
+    const originReady=passkeyOriginReady();
     setText('securityDeviceStatus',supported?'Biometrie/Passkeys unterstützt':'Passkeys auf diesem Gerät nicht verfügbar');
     setText('securityPasskeyCount',passkeys.length?`${passkeys.length} aktiv`:passkeyServerState==='disabled'?'vorbereitet':'0 aktiv');
     setText('securitySessionRole',membership?roleLabel(membership.role):'–');
@@ -138,15 +145,15 @@
 
     const reg=q('securityRegisterPasskey');
     if(reg){
-      reg.disabled=!supported||passkeyServerState==='disabled';
-      reg.textContent=passkeyServerState==='disabled'?'🔐 Aktivierung mit finaler App-Domain':passkeys.length?'＋ Weiteren Passkey hinzufügen':'🔐 Face ID / Fingerabdruck aktivieren';
+      reg.disabled=!supported||!originReady||passkeyServerState==='disabled';
+      reg.textContent=!originReady||passkeyServerState==='disabled'?'🔐 Aktivierung mit finaler App-Domain':passkeys.length?'＋ Weiteren Passkey hinzufügen':'🔐 Face ID / Fingerabdruck aktivieren';
     }
 
     const info=q('securityPasskeyInfo');
     if(info){
       if(!supported){
         info.textContent='Dieses Gerät bzw. dieser Browser unterstützt WebAuthn nicht.';
-      }else if(passkeyServerState==='disabled'){
+      }else if(!originReady||passkeyServerState==='disabled'){
         info.innerHTML='<b>Technik vorbereitet.</b> Die endgültige Passkey-Aktivierung erfolgt erst auf der finalen AngebotsPilot-Domain, damit später keine bereits angelegten Passkeys durch einen Domainwechsel ungültig werden.';
       }else if(passkeys.length){
         info.textContent='Deine Passkeys sind an dein Konto gebunden. Biometrische Daten verlassen dein Gerät nicht.';
@@ -156,8 +163,9 @@
     }
 
     document.querySelectorAll('[data-passkey-login]').forEach(btn=>{
-      btn.classList.toggle('hidden',!supported);
-      btn.hidden=!supported;
+      const show=supported&&originReady&&passkeyServerState!=='disabled';
+      btn.classList.toggle('hidden',!show);
+      btn.hidden=!show;
     });
     renderPasskeyList();
   }

@@ -678,6 +678,10 @@
     showStep('entryRecoverCompany2');
   };
 
+  // v11.28.1 – current authenticated context for first-party UI modules
+  // Returns references only inside this page; nothing is persisted or exposed externally.
+  globalThis.APCloudContext=()=>({client,session,company:cloudCompany,membership:cloudMembership});
+
   globalThis.entryCompleteCompanySetup=async function(){
     error('');
     const p=pendingData()||{};

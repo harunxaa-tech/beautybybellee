@@ -1533,3 +1533,33 @@ body.businessSetupActive{overflow:hidden!important}
 .setupSuccessOrb{width:72px;height:72px;border-radius:24px;display:grid;place-items:center;background:linear-gradient(145deg,#d0ff2e,#59d594);color:#0a0e0c;font-size:34px;font-weight:950;margin:6px 0 18px;box-shadow:0 16px 42px rgba(166,229,62,.16)}.setupSummaryCard{display:grid;gap:0;background:#151b23;border:1px solid #303846;border-radius:20px;overflow:hidden;margin:18px 0}.setupSummaryCard>div{display:grid;grid-template-columns:100px 1fr;gap:12px;padding:13px 15px;border-bottom:1px solid #2c333d}.setupSummaryCard>div:last-child{border-bottom:0}.setupSummaryCard span{font-size:12px;color:#8f99a7}.setupSummaryCard b{font-size:13px;text-align:right}.setupOptionalActions{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.setupOptionalActions>span{grid-column:1/-1;font-size:11px;color:#818c9a;text-transform:uppercase;letter-spacing:.09em;font-weight:850}.setupOptionalActions button{min-height:58px;border-radius:15px;border:1px solid #303846;background:#171d26;color:#dbe1e8;font:inherit;font-size:12px;font-weight:800;padding:8px}
 .setupSettingsCard{display:flex;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(145deg,rgba(207,255,43,.07),rgba(82,167,113,.06))!important;border-color:rgba(145,201,75,.24)!important}.setupSettingsCard h3{margin:7px 0 4px}.setupSettingsCard p{max-width:520px;margin:0}.setupSettingsCard .btn{flex:0 0 auto}
 @media(max-width:620px){.businessSetupShell{border-radius:26px 26px 0 0;padding:16px 14px calc(22px + env(safe-area-inset-bottom));max-height:94dvh}.businessSetupTop{top:-16px;margin:-16px -14px 0;padding:14px}.setupStep>h2{font-size:29px}.setupStep>p{font-size:15px}.setupModeGrid{grid-template-columns:1fr}.setupModeGrid button{min-height:88px}.setupOptionalActions{grid-template-columns:1fr 1fr}.setupOptionalActions button:last-child{grid-column:1/-1}.setupSettingsCard{align-items:flex-start;flex-direction:column}.setupSettingsCard .btn{width:100%}}
+
+
+/* v11.28.1 – polished sign-in + setup interaction */
+.entryBrand{margin:2px 6px 20px;gap:13px}
+.entryBrand .entryLogo{width:48px;height:48px;border-radius:16px;font-size:22px;box-shadow:inset 0 0 0 1px rgba(216,255,62,.05)}
+.entryBrandCopy{min-width:0}.entryBrandCopy small{color:#8f9aaa;font-size:8.5px;letter-spacing:.18em}
+.entryBrandCopy h2{font-size:24px;line-height:1.05;margin:4px 0 0;color:#f7f8fa;letter-spacing:-.025em}
+.entryBrandCopy p{margin:5px 0 0;color:#7f8996;font-size:11px;font-weight:700}
+.entryLoginPanel{padding:18px 20px 18px;border-radius:27px;background:linear-gradient(155deg,#171c25 0%,#13171e 64%,#11151b 100%);border-color:rgba(255,255,255,.075);box-shadow:0 26px 70px rgba(0,0,0,.34)}
+.entryLoginPanel .entryBack{padding:2px 0 10px;color:#87919f;font-size:11px}
+.entryLoginHead{text-align:center;padding:0 6px 8px}.entryLoginHead .entryHeroIcon{margin:0 auto 11px}
+.entryLoginIcon{width:52px;height:52px;border-radius:18px;font-size:23px;background:linear-gradient(145deg,rgba(216,255,62,.13),rgba(216,255,62,.055));border:1px solid rgba(216,255,62,.12)}
+.entryLoginHead .eyebrow{font-size:9px;letter-spacing:.18em;color:#7f9d79;font-weight:950}
+.entryLoginHead h2{font-size:25px;letter-spacing:-.025em;margin:7px 0 4px}.entryLoginHead p{margin:0;color:#8d97a4;font-size:12px}
+.entryLoginFields{margin-top:13px}.entryLoginPanel .field{margin-bottom:12px}.entryLoginPanel .field label{font-size:11px;color:#dce1e6;margin-bottom:7px;font-weight:850}
+.entryLoginPanel .input{min-height:52px;border-radius:15px!important;padding:0 14px!important;background:#0f1318!important;border:1px solid rgba(255,255,255,.085)!important;font-size:15px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.015)}
+.entryLoginPanel .input:focus{border-color:rgba(216,255,62,.42)!important;box-shadow:0 0 0 3px rgba(216,255,62,.07)!important}
+.entryFieldTop{display:flex;align-items:center;justify-content:space-between;gap:10px}.entryFieldTop label{margin-bottom:7px!important}
+.entryInlineAction{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:#aeb7c2;font:inherit;font-size:10px;font-weight:850;padding:3px 0 8px;cursor:pointer}
+.entryInlineAction:active{color:#d8ff3e}
+.entryLoginPrimary{min-height:54px;border-radius:16px!important;font-size:15px!important;margin-top:2px;display:flex;align-items:center;justify-content:center;gap:8px}.entryLoginPrimary span{font-size:17px}
+.entryLoginPanel .entrySecondary{min-height:48px;border-radius:15px!important;border:1px solid rgba(255,255,255,.085)!important;color:#e9edf1!important}
+.entryTextAction{appearance:none;-webkit-appearance:none;border:0!important;background:transparent!important;color:#aeb7c2!important;padding:10px 4px 2px!important;margin:0 auto!important;display:block!important;font:inherit!important;font-size:11px!important;font-weight:850!important;text-decoration:none!important;border-radius:0!important;box-shadow:none!important}
+.entrySecureNote{display:flex;align-items:flex-start;justify-content:center;gap:7px;margin:12px 4px 0;color:#717b88;text-align:left}.entrySecureNote span{font-size:11px;line-height:1.35}.entrySecureNote small{font-size:8.5px;line-height:1.4;max-width:310px}
+.setupSettingsCard [data-open-business-setup]{touch-action:manipulation;cursor:pointer}
+@media(max-width:390px){
+  .entryGate{padding-left:14px;padding-right:14px;align-items:start;place-items:start center;padding-top:max(14px,env(safe-area-inset-top))}
+  .entryShell{padding-top:2px}.entryBrand{margin-bottom:14px}.entryBrandCopy h2{font-size:22px}.entryBrandCopy p{font-size:10px}
+  .entryLoginPanel{padding:16px 17px 16px;border-radius:23px}.entryLoginHead h2{font-size:23px}.entryLoginIcon{width:48px;height:48px}
+}

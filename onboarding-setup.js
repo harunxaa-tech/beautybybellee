@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.28 – geführte Betriebseinrichtung */
+/* AngebotsPilot v11.28.1 – geführte Betriebseinrichtung */
 (function(){
   'use strict';
 
@@ -119,8 +119,26 @@
     if(!error)company.onboarding_started_at=started;
   }
 
+  function hydrateContext(){
+    try{
+      const ctx=globalThis.APCloudContext?.();
+      if(ctx?.client)client=ctx.client;
+      if(ctx?.session)session=ctx.session;
+      if(ctx?.company)company=ctx.company;
+      if(ctx?.membership)membership=ctx.membership;
+    }catch(e){console.warn('BusinessSetup context refresh failed',e)}
+  }
+
   function open(isManual=false){
-    if(!company||membership?.role!=='owner')return;
+    hydrateContext();
+    if(!company){
+      globalThis.toast?.('Betrieb wird noch geladen · bitte kurz erneut versuchen');
+      return;
+    }
+    if(membership?.role!=='owner'){
+      globalThis.toast?.('Nur der Inhaber kann die Betriebseinrichtung ändern');
+      return;
+    }
     manualOpen=!!isManual;
     state=initialState();
     if(state.businessMode==='team'){state.modules.team=true;state.modules.time_tracking=true;}
@@ -277,6 +295,16 @@
     }
   }
   function detach(){client=session=company=membership=null;close()}
+
+  function bindOpenButtons(){
+    document.querySelectorAll('[data-open-business-setup]').forEach(btn=>{
+      if(btn.dataset.setupBound==='1')return;
+      btn.dataset.setupBound='1';
+      btn.addEventListener('click',e=>{e.preventDefault();open(true)});
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindOpenButtons,{once:true});
+  else bindOpenButtons();
 
   globalThis.BusinessSetup={attach,detach,open,close,applyFeatureProfile,version:VERSION};
   globalThis.openBusinessSetup=()=>open(true);

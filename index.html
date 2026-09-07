@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.28">
+<link rel="stylesheet" href="style.css?v=11.28.1">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -191,7 +191,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.28</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.28.1</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -203,7 +203,7 @@
 <section class="screen" id="emailAssistant">
   <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETARIAT · FREIGABEMODUS</div><h2>Sekretariat</h2><p class="mini">Deine digitale Sekretärin bündelt Kundenmails, Rückmeldungen und Freigaben an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
   <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.28 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.28.1 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
   </div>
 
   <div class="card mailConnectCard">
@@ -456,7 +456,7 @@
 
 <section class="screen" id="tasks"><div class="sectionTitle"><h2>Aufgaben</h2><button class="btn primary small owner-office-only" onclick="newTask()">＋ Neu</button></div><div class="tabs" id="taskTabs"><button class="tab active" data-filter="open">Offen</button><button class="tab" data-filter="done">Erledigt</button><button class="tab" data-filter="all">Alle</button></div><div id="taskList" class="list" style="margin-top:10px"></div></section>
 <section class="screen" id="catalog"><div class="sectionTitle"><div><h2>Material & Leistungen</h2><p class="mini">Dein Betriebskatalog</p></div><button class="btn primary small" onclick="addCatalogItem()">＋ Position</button></div><div class="notice">Standardpositionen sind Startvorlagen. Preise und fachliche Eignung bitte selbst prüfen.</div><div class="card catalogTools"><input id="catalogSearch" class="input" placeholder="🔎 Material oder Leistung suchen …" oninput="renderCatalog()"><div class="filterPills"><button class="pill active" data-catfilter="all" onclick="setCatalogFilter('all',this)">Alle</button><button class="pill" data-catfilter="material" onclick="setCatalogFilter('material',this)">Material</button><button class="pill" data-catfilter="service" onclick="setCatalogFilter('service',this)">Leistungen</button></div></div><div id="catalogList" class="list" style="margin-top:12px"></div></section>
-<section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Cloud synchronisiert</span></div><div class="card setupSettingsCard owner-only"><div><span class="securityBadge">✨ EINFACH EINSTELLEN</span><h3>Einrichtung & sichtbare Funktionen</h3><p class="mini">Solo oder Team, Baustellen, Sekretariat und Rechnungsgrundlagen in einem kurzen Assistenten ändern.</p></div><button class="btn" type="button" onclick="openBusinessSetup()">Einrichtung anpassen →</button></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div>
+<section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Cloud synchronisiert</span></div><div class="card setupSettingsCard owner-only"><div><span class="securityBadge">✨ EINFACH EINSTELLEN</span><h3>Einrichtung & sichtbare Funktionen</h3><p class="mini">Solo oder Team, Baustellen, Sekretariat und Rechnungsgrundlagen in einem kurzen Assistenten ändern.</p></div><button class="btn" type="button" data-open-business-setup>Einrichtung anpassen →</button></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div>
 <div class="brandSetupCard">
   <div class="brandSetupHead"><div><span class="securityBadge">✨ AUTOMATISCHES DOKUMENTDESIGN</span><h3>Dein Logo. Fertige Dokumente.</h3><p>Logo hochladen – AngebotsPilot schneidet unnötige Ränder weg, optimiert Größe und Darstellung und wählt automatisch eine passende Akzentfarbe.</p></div><div id="brandQualityBadge" class="brandQualityBadge">Noch kein Logo</div></div>
   <div class="brandSetupGrid">
@@ -964,7 +964,7 @@
   <div class="entryShell">
     <div class="entryBrand">
       <div class="entryLogo">🔨</div>
-      <div><small>ANGEBOTSPILOT</small><h2 id="entryBrandTitle">Dein Betrieb. Einfach organisiert.</h2></div>
+      <div class="entryBrandCopy"><small>DEIN DIGITALES BÜRO</small><h2 id="entryBrandTitle">AngebotsPilot</h2><p>Einfach organisiert.</p></div>
     </div>
 
     <section id="entryLoading" class="entryPanel entryStep" hidden>
@@ -983,17 +983,21 @@
       <button class="btn entrySecondary" onclick="entryStartRegister()">Neues Konto erstellen</button>
     </section>
 
-    <section id="entryLogin" class="entryPanel entryStep" hidden>
+    <section id="entryLogin" class="entryPanel entryStep entryLoginPanel" hidden>
       <button class="entryBack" onclick="entryGoChoice()">← Zurück</button>
-      <div class="entryHeroIcon">👋</div>
-      <div class="eyebrow">Anmelden</div>
-      <h2>Willkommen zurück</h2>
-      <p>Mit deinem Betriebskonto anmelden.</p>
-      <div class="field"><label>E-Mail</label><input class="input" id="entryLoginEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
-      <div class="field"><label>Passwort</label><input class="input" id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="Dein Passwort"></div>
-      <button class="btn primary entryPrimary" onclick="entryCloudSignIn()">Anmelden</button>
+      <div class="entryLoginHead">
+        <div class="entryHeroIcon entryLoginIcon">🔐</div>
+        <div class="eyebrow">SICHER ANMELDEN</div>
+        <h2>Willkommen zurück</h2>
+        <p>Öffne dein digitales Büro.</p>
+      </div>
+      <div class="entryLoginFields">
+        <div class="field"><label>E-Mail</label><input class="input" id="entryLoginEmail" type="email" autocomplete="email" inputmode="email" placeholder="name@firma.de"></div>
+        <div class="field"><div class="entryFieldTop"><label>Passwort</label><button type="button" class="entryInlineAction" onclick="securityRequestPasswordReset('entryLoginEmail')">Vergessen?</button></div><input class="input" id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="Dein Passwort"></div>
+      </div>
+      <button class="btn primary entryPrimary entryLoginPrimary" onclick="entryCloudSignIn()">Anmelden <span>→</span></button>
       <button class="btn entrySecondary securityPasskeyLogin hidden" hidden data-passkey-login onclick="securitySignInWithPasskey()">🔐 Mit Face ID / Passkey anmelden</button>
-      <button class="entryTextAction" onclick="securityRequestPasswordReset('entryLoginEmail')">Passwort vergessen?</button>
+      <div class="entrySecureNote"><span>🛡️</span><small>Geschützte Verbindung · deine Betriebsdaten bleiben deinem Konto zugeordnet.</small></div>
     </section>
 
     <section id="entryRegister1" class="entryPanel entryStep" hidden>
@@ -1295,25 +1299,25 @@
 
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.28" defer></script>
-<script src="country-config.js?v=11.28" defer></script>
-<script src="data-repository.js?v=11.28" defer></script>
-<script src="einvoice.js?v=11.28" defer></script>
-<script src="script.js?v=11.28" defer></script>
-<script src="customer-import.js?v=11.28" defer></script>
-<script src="cloud-files.js?v=11.28" defer></script>
-<script src="cloud-sync.js?v=11.28" defer></script>
-<script src="team.js?v=11.28" defer></script>
-<script src="assignments.js?v=11.28" defer></script>
-<script src="time-tracking.js?v=11.28" defer></script>
-<script src="notifications.js?v=11.28" defer></script>
-<script src="mail-hub.js?v=11.28" defer></script>
-<script src="email-assistant.js?v=11.28" defer></script>
-<script src="acceptance.js?v=11.28" defer></script>
-<script src="custom-selects.js?v=11.28" defer></script>
-<script src="security.js?v=11.28" defer></script>
-<script src="onboarding-setup.js?v=11.28" defer></script>
-<script src="cloud-auth.js?v=11.28" defer></script>
+<script src="cloud-config.js?v=11.28.1" defer></script>
+<script src="country-config.js?v=11.28.1" defer></script>
+<script src="data-repository.js?v=11.28.1" defer></script>
+<script src="einvoice.js?v=11.28.1" defer></script>
+<script src="script.js?v=11.28.1" defer></script>
+<script src="customer-import.js?v=11.28.1" defer></script>
+<script src="cloud-files.js?v=11.28.1" defer></script>
+<script src="cloud-sync.js?v=11.28.1" defer></script>
+<script src="team.js?v=11.28.1" defer></script>
+<script src="assignments.js?v=11.28.1" defer></script>
+<script src="time-tracking.js?v=11.28.1" defer></script>
+<script src="notifications.js?v=11.28.1" defer></script>
+<script src="mail-hub.js?v=11.28.1" defer></script>
+<script src="email-assistant.js?v=11.28.1" defer></script>
+<script src="acceptance.js?v=11.28.1" defer></script>
+<script src="custom-selects.js?v=11.28.1" defer></script>
+<script src="security.js?v=11.28.1" defer></script>
+<script src="onboarding-setup.js?v=11.28.1" defer></script>
+<script src="cloud-auth.js?v=11.28.1" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
