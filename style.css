@@ -1598,3 +1598,93 @@ body.businessSetupActive{overflow:hidden!important}
   .setupIconBtn{width:36px;min-height:38px}.setupLater{min-height:38px;padding:0 8px;font-size:11px}
   .businessSetupBrand>span{width:31px;height:31px}.businessSetupBrand b{font-size:12px}.businessSetupBrand small{font-size:7px}
 }
+
+
+/* v11.29 – Wetterplanung: kompakter App-Look statt Formularblock */
+#weather .weatherPlannerCard{
+  padding:10px;
+  border-radius:22px;
+  background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,0)),var(--card);
+  box-shadow:0 14px 38px rgba(0,0,0,.22);
+}
+#weather .weatherPlannerField{
+  min-width:0;
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  min-height:66px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--card2);
+  transition:border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+#weather .weatherPlannerField:focus-within{
+  border-color:rgba(216,255,62,.55);
+  box-shadow:0 0 0 3px rgba(216,255,62,.07);
+}
+#weather .weatherPlannerLead{
+  width:38px;height:38px;border-radius:12px;
+  display:grid;place-items:center;
+  color:var(--accent);
+  background:rgba(216,255,62,.075);
+  border:1px solid rgba(216,255,62,.10);
+}
+#weather .weatherPlannerLead svg,
+#weather .weatherPlannerGeo svg{
+  width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
+}
+#weather .weatherPlannerContent{display:block;min-width:0;margin:0;cursor:text}
+#weather .weatherPlannerLabel{
+  display:block;margin:0 0 3px;
+  color:var(--muted);font-size:10px;line-height:1.1;font-weight:850;letter-spacing:.015em;
+}
+#weather .weatherPlannerInput{
+  display:block;width:100%;min-width:0;height:25px;margin:0;padding:0;
+  border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;
+  color:var(--text);-webkit-text-fill-color:var(--text);
+  font-size:16px;line-height:25px;font-weight:760;
+}
+#weather .weatherPlannerInput::placeholder{color:#778190;-webkit-text-fill-color:#778190;font-weight:650}
+#weather .weatherPlannerGeo{
+  width:42px;height:42px;padding:0;border-radius:13px;
+  display:grid;place-items:center;flex:0 0 auto;
+  border:1px solid var(--line);background:#121720;color:#cbd3df;
+}
+#weather .weatherPlannerGeo:active{transform:scale(.97)}
+#weather .weatherPlannerBottom{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(145px,.72fr);gap:8px;margin-top:8px;
+}
+#weather .weatherPlannerBottom .weatherPlannerField{grid-template-columns:40px minmax(0,1fr);}
+#weather #weatherDate{
+  text-align:left!important;
+  color-scheme:dark;
+}
+#weather #weatherDate::-webkit-date-and-time-value{
+  text-align:left!important;
+  min-width:0;
+}
+#weather .weatherPlannerSubmit{
+  min-height:66px;border-radius:16px;padding:0 16px;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:14px;white-space:nowrap;
+}
+#weather .weatherPlannerSubmit span{font-size:20px;line-height:1;margin-top:-1px}
+:root.light #weather .weatherPlannerGeo{background:#f1f4f6;color:#44505d}
+:root.light #weather #weatherDate{color-scheme:light}
+@media(max-width:430px){
+  #weather .weatherPlannerCard{padding:9px;border-radius:20px}
+  #weather .weatherPlannerField{min-height:62px;grid-template-columns:36px minmax(0,1fr) auto;gap:9px;padding:7px 9px;border-radius:15px}
+  #weather .weatherPlannerLead{width:35px;height:35px;border-radius:11px}
+  #weather .weatherPlannerLead svg,#weather .weatherPlannerGeo svg{width:18px;height:18px}
+  #weather .weatherPlannerGeo{width:39px;height:39px;border-radius:12px}
+  #weather .weatherPlannerBottom{grid-template-columns:minmax(0,1fr) 136px;gap:7px;margin-top:7px}
+  #weather .weatherPlannerBottom .weatherPlannerField{grid-template-columns:36px minmax(0,1fr)}
+  #weather .weatherPlannerInput{font-size:15px}
+  #weather .weatherPlannerSubmit{min-height:62px;padding:0 12px;font-size:13px}
+}
+@media(max-width:360px){
+  #weather .weatherPlannerBottom{grid-template-columns:1fr}
+  #weather .weatherPlannerSubmit{min-height:54px}
+}

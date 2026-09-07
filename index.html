@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.28.2">
-<link rel="manifest" href="manifest.json?v=11.28.2">
+<link rel="stylesheet" href="style.css?v=11.29">
+<link rel="manifest" href="manifest.json?v=11.29">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -191,7 +191,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.28.2</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.29</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -450,7 +450,7 @@
   <div id="cloudMessage" class="notice hidden"></div>
 </section>
 
-<section class="screen" id="weather"><div class="sectionTitle"><h2>Wetter</h2><button class="btn small" onclick="refreshWeather(true)">↻ Aktualisieren</button></div><div class="card"><div class="row"><div class="field"><label>Ort oder Baustellenadresse</label><input class="input" id="weatherSearch" placeholder="z. B. Neubiberg oder 85579 Neubiberg"></div><div class="field"><label>Datum prüfen</label><input type="date" class="input" id="weatherDate"></div></div><div class="actions"><button class="btn primary" onclick="loadWeatherFromForm()">Wetter prüfen</button><button class="btn" onclick="useDeviceLocation()">📍 Mein Standort</button></div></div><div class="card weatherHero"><div class="weatherNow"><div><span class="pill" id="weatherPageLocation">Noch kein Ort</span><div class="weatherTemp" id="weatherPageTemp">–°</div><div class="mini" id="weatherPageDescription">Ort eingeben und Wetter prüfen.</div></div><div class="weatherIcon" id="weatherPageIcon">⛅</div></div><div class="weatherMeta" id="weatherPageMeta"></div><div id="weatherPageRisk" class="riskBox" style="margin-top:13px">Noch keine Wetterprüfung.</div></div><div class="sectionTitle"><h2>7-Tage-Vorschau</h2><span>Außenarbeiten planen</span></div><div class="forecastStrip" id="weatherForecast"><div class="empty">Noch keine Daten.</div></div><div class="notice" style="margin-top:14px">Die Wetteranzeige ist eine Planungshilfe. Vor sicherheitskritischen Arbeiten bitte zusätzlich amtliche Warnungen und die Bedingungen vor Ort prüfen.</div></section>
+<section class="screen" id="weather"><div class="sectionTitle"><h2>Wetter</h2><button class="btn small" onclick="refreshWeather(true)">↻ Aktualisieren</button></div><div class="card weatherPlannerCard"><div class="weatherPlannerField weatherPlannerLocation"><span class="weatherPlannerLead" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z"></path><circle cx="12" cy="10" r="2.2"></circle></svg></span><label class="weatherPlannerContent" for="weatherSearch"><span class="weatherPlannerLabel">Ort oder Baustelle</span><input class="weatherPlannerInput" id="weatherSearch" placeholder="z. B. Neubiberg oder Baustellenadresse"></label><button type="button" class="weatherPlannerGeo" onclick="useDeviceLocation()" aria-label="Meinen Standort verwenden" title="Mein Standort"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg></button></div><div class="weatherPlannerBottom"><div class="weatherPlannerField weatherPlannerDate"><span class="weatherPlannerLead" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg></span><label class="weatherPlannerContent" for="weatherDate"><span class="weatherPlannerLabel">Datum</span><input type="date" class="weatherPlannerInput" id="weatherDate"></label></div><button class="btn primary weatherPlannerSubmit" onclick="loadWeatherFromForm()">Wetter prüfen <span aria-hidden="true">→</span></button></div></div><div class="card weatherHero"><div class="weatherNow"><div><span class="pill" id="weatherPageLocation">Noch kein Ort</span><div class="weatherTemp" id="weatherPageTemp">–°</div><div class="mini" id="weatherPageDescription">Ort eingeben und Wetter prüfen.</div></div><div class="weatherIcon" id="weatherPageIcon">⛅</div></div><div class="weatherMeta" id="weatherPageMeta"></div><div id="weatherPageRisk" class="riskBox" style="margin-top:13px">Noch keine Wetterprüfung.</div></div><div class="sectionTitle"><h2>7-Tage-Vorschau</h2><span>Außenarbeiten planen</span></div><div class="forecastStrip" id="weatherForecast"><div class="empty">Noch keine Daten.</div></div><div class="notice" style="margin-top:14px">Die Wetteranzeige ist eine Planungshilfe. Vor sicherheitskritischen Arbeiten bitte zusätzlich amtliche Warnungen und die Bedingungen vor Ort prüfen.</div></section>
 <section class="screen" id="jobs"><div class="sectionTitle"><div><h2 id="jobsScreenTitle">Baustellen</h2><p class="mini worker-only">Nur dir zugewiesene Baustellen</p></div><div class="sectionActions"><button class="btn small worker-only" onclick="refreshMyJobs()">↻ Aktualisieren</button><button class="btn primary small owner-office-only" onclick="newJob()">＋ Neu</button></div></div><div id="jobList" class="list"></div></section>
 <section class="screen" id="invoices"><div class="sectionTitle"><h2>Rechnungen</h2><button class="btn primary small" onclick="newInvoice()">＋ Neu</button></div><div class="notice">Beim Abschluss einer Baustelle erstellt die App automatisch einen Rechnungsentwurf. Vor Versand bitte Mengen, Zusatzarbeiten, Steuern und Pflichtangaben prüfen.</div><div id="invoiceList" class="list" style="margin-top:12px"></div></section>
 
@@ -1310,25 +1310,25 @@
 
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.28.2" defer></script>
-<script src="country-config.js?v=11.28.2" defer></script>
-<script src="data-repository.js?v=11.28.2" defer></script>
-<script src="einvoice.js?v=11.28.2" defer></script>
-<script src="script.js?v=11.28.2" defer></script>
-<script src="customer-import.js?v=11.28.2" defer></script>
-<script src="cloud-files.js?v=11.28.2" defer></script>
-<script src="cloud-sync.js?v=11.28.2" defer></script>
-<script src="team.js?v=11.28.2" defer></script>
-<script src="assignments.js?v=11.28.2" defer></script>
-<script src="time-tracking.js?v=11.28.2" defer></script>
-<script src="notifications.js?v=11.28.2" defer></script>
-<script src="mail-hub.js?v=11.28.2" defer></script>
-<script src="email-assistant.js?v=11.28.2" defer></script>
-<script src="acceptance.js?v=11.28.2" defer></script>
-<script src="custom-selects.js?v=11.28.2" defer></script>
-<script src="security.js?v=11.28.2" defer></script>
-<script src="onboarding-setup.js?v=11.28.2" defer></script>
-<script src="cloud-auth.js?v=11.28.2" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.28.2").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.29" defer></script>
+<script src="country-config.js?v=11.29" defer></script>
+<script src="data-repository.js?v=11.29" defer></script>
+<script src="einvoice.js?v=11.29" defer></script>
+<script src="script.js?v=11.29" defer></script>
+<script src="customer-import.js?v=11.29" defer></script>
+<script src="cloud-files.js?v=11.29" defer></script>
+<script src="cloud-sync.js?v=11.29" defer></script>
+<script src="team.js?v=11.29" defer></script>
+<script src="assignments.js?v=11.29" defer></script>
+<script src="time-tracking.js?v=11.29" defer></script>
+<script src="notifications.js?v=11.29" defer></script>
+<script src="mail-hub.js?v=11.29" defer></script>
+<script src="email-assistant.js?v=11.29" defer></script>
+<script src="acceptance.js?v=11.29" defer></script>
+<script src="custom-selects.js?v=11.29" defer></script>
+<script src="security.js?v=11.29" defer></script>
+<script src="onboarding-setup.js?v=11.29" defer></script>
+<script src="cloud-auth.js?v=11.29" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29").catch(()=>{}));}</script>
 </body>
 </html>
