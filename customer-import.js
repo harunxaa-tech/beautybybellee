@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.26 – datensparsamer Bestandskunden-Import
+/* AngebotsPilot v11.26.1 – datensparsamer Bestandskunden-Import
    CSV/XLSX werden ausschließlich im Browser gelesen. Die Quelldatei wird nicht hochgeladen. */
 (function(){
   'use strict';
