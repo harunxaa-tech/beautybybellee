@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.26.1">
+<link rel="stylesheet" href="style.css?v=11.27">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
@@ -203,7 +203,7 @@
 <section class="screen" id="emailAssistant">
   <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETARIAT · FREIGABEMODUS</div><h2>Sekretariat</h2><p class="mini">Deine digitale Sekretärin bündelt Kundenmails, Rückmeldungen und Freigaben an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
   <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.26.1 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.27 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
   </div>
 
   <div class="card mailConnectCard">
@@ -340,15 +340,17 @@
 
     <div class="card" id="cloudLoginPanel">
       <div class="field"><label>E-Mail</label><input class="input" id="cloudLoginEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
-      <div class="field"><label>Passwort</label><input class="input" id="cloudLoginPassword" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen"></div>
+      <div class="field"><label>Passwort</label><input class="input" id="cloudLoginPassword" type="password" autocomplete="current-password" placeholder="Mindestens 10 Zeichen"></div>
       <button class="btn primary cloudMainBtn" onclick="cloudSignIn()">Anmelden</button>
+      <button class="btn securityPasskeyLogin hidden" hidden data-passkey-login onclick="securitySignInWithPasskey()">🔐 Mit Face ID / Passkey anmelden</button>
+      <button class="btn ghost cloudSecondaryBtn" onclick="securityRequestPasswordReset('cloudLoginEmail')">Passwort vergessen?</button>
       <button class="btn ghost cloudSecondaryBtn" onclick="cloudRefresh()">Status aktualisieren</button>
     </div>
 
     <div class="card hidden" id="cloudRegisterPanel">
       <div class="field"><label>Dein Name</label><input class="input" id="cloudRegisterName" autocomplete="name" placeholder="z. B. Max Mustermann"></div>
       <div class="field"><label>E-Mail</label><input class="input" id="cloudRegisterEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
-      <div class="field"><label>Passwort</label><input class="input" id="cloudRegisterPassword" type="password" autocomplete="new-password" placeholder="Mindestens 6 Zeichen"></div>
+      <div class="field"><label>Passwort</label><input class="input" id="cloudRegisterPassword" type="password" autocomplete="new-password" placeholder="Mindestens 10 Zeichen"></div>
       <div class="field"><label>Firmenname</label><input class="input" id="cloudRegisterCompany" placeholder="z. B. Muster Gartenbau"></div>
       <div class="field"><label>Hauptgewerk</label><select id="cloudRegisterTrade">
         <option value="garden">Garten & Landschaft</option><option value="caretaker">Hausmeisterservice</option><option value="cleaning">Gebäudereinigung</option><option value="painter">Maler & Lackierer</option><option value="tiler">Fliesenleger</option><option value="drywall">Trockenbau</option><option value="electrical">Elektro</option><option value="plumbing">Sanitär & Heizung</option><option value="roofing">Dachdecker</option>
@@ -373,6 +375,37 @@
         <div><span>Region</span><strong>Frankfurt</strong></div>
         <div><span>Sicherheit</span><strong>RLS aktiv</strong></div>
       </div>
+    </div>
+
+    <div class="card securityCenterCard" id="securityCenterCard">
+      <div class="securityCenterHead">
+        <div class="securityShield">🛡️</div>
+        <div><span class="securityBadge">SICHERHEITSCENTER</span><h3>Dein Konto schützen</h3><p class="mini">Passkeys, App-Sperre und Sitzungen an einem Ort.</p></div>
+      </div>
+      <div class="securitySummaryGrid">
+        <div><span>Gerät</span><strong id="securityDeviceStatus">wird geprüft …</strong></div>
+        <div><span>Passkeys</span><strong id="securityPasskeyCount">–</strong></div>
+        <div><span>Auto-Sperre</span><strong id="securityAutoLockStatus">15 Min.</strong></div>
+        <div><span>Rolle</span><strong id="securitySessionRole">–</strong></div>
+      </div>
+
+      <div class="securityFeatureBlock">
+        <div class="securityFeatureTitle"><span>🔐</span><div><b>Face ID / Fingerabdruck</b><small>über Passkeys · WebAuthn</small></div></div>
+        <p class="mini" id="securityPasskeyInfo">Passkey-Unterstützung wird geprüft …</p>
+        <button class="btn primary" id="securityRegisterPasskey" onclick="securityRegisterPasskey()">🔐 Face ID / Fingerabdruck aktivieren</button>
+        <div id="securityPasskeyList" class="securityPasskeyList"></div>
+      </div>
+
+      <div class="securityFeatureBlock">
+        <div class="securityFeatureTitle"><span>⏱️</span><div><b>Automatische App-Sperre</b><small>schützt Kundendaten bei Inaktivität</small></div></div>
+        <div class="field securitySelectField"><label>Nach Inaktivität sperren</label><select id="securityAutoLock" onchange="securitySaveAutoLock()"><option value="5">5 Minuten</option><option value="15" selected>15 Minuten</option><option value="30">30 Minuten</option><option value="60">60 Minuten</option><option value="0">Aus</option></select></div>
+      </div>
+
+      <div class="securityActionGrid">
+        <button class="btn" onclick="securityOpenPasswordChange()">🔑 Passwort ändern</button>
+        <button class="btn" onclick="securitySignOutOthers()">📱 Andere Geräte abmelden</button>
+      </div>
+      <p class="mini securityPrivacyNote">Biometrische Merkmale wie Gesicht oder Fingerabdruck werden nicht an AngebotsPilot übertragen. Die Prüfung erfolgt durch das Betriebssystem bzw. den Passkey-Anbieter auf deinem Gerät.</p>
     </div>
 
     <div class="card hidden" id="cloudCompanySetupCard">
@@ -959,6 +992,8 @@
       <div class="field"><label>E-Mail</label><input class="input" id="entryLoginEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
       <div class="field"><label>Passwort</label><input class="input" id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="Dein Passwort"></div>
       <button class="btn primary entryPrimary" onclick="entryCloudSignIn()">Anmelden</button>
+      <button class="btn entrySecondary securityPasskeyLogin hidden" hidden data-passkey-login onclick="securitySignInWithPasskey()">🔐 Mit Face ID / Passkey anmelden</button>
+      <button class="entryTextAction" onclick="securityRequestPasswordReset('entryLoginEmail')">Passwort vergessen?</button>
     </section>
 
     <section id="entryRegister1" class="entryPanel entryStep" hidden>
@@ -970,7 +1005,7 @@
       <p id="entryRegisterText">Damit dein persönliches Betriebskonto erstellt werden kann.</p>
       <div class="field" id="entryRegisterNameField"><label>Dein Name</label><input class="input" id="entryRegisterName" autocomplete="name" placeholder="z. B. Max Mustermann"></div>
       <div class="field"><label>E-Mail</label><input class="input" id="entryRegisterEmail" type="email" autocomplete="email" placeholder="name@firma.de"></div>
-      <div class="field"><label>Passwort</label><input class="input" id="entryRegisterPassword" type="password" autocomplete="new-password" placeholder="Mindestens 6 Zeichen"></div>
+      <div class="field"><label>Passwort</label><input class="input" id="entryRegisterPassword" type="password" autocomplete="new-password" placeholder="Mindestens 10 Zeichen"></div>
       <button class="btn primary entryPrimary" onclick="entryRegisterNext1()">Weiter →</button>
     </section>
 
@@ -1139,25 +1174,55 @@
     <button type="button" class="btn primary acceptanceFinalize" id="acceptanceFinalize" onclick="finalizeAcceptance()">✓ Abnahme & Auftrag abschließen</button>
   </div>
 </div>
+<div id="securityLockOverlay" class="securityLockOverlay hidden" hidden>
+  <div class="securityLockCard">
+    <div class="securityLockIcon">🛡️</div>
+    <span class="securityBadge">AUTOMATISCH GESPERRT</span>
+    <h2>AngebotsPilot ist geschützt</h2>
+    <p>Zum Schutz deiner Kunden- und Betriebsdaten wurde die App nach Inaktivität gesperrt.</p>
+    <small id="securityLockEmail" class="securityLockEmail"></small>
+    <button class="btn primary securityPasskeyLogin hidden" hidden data-passkey-login onclick="securityUnlockWithPasskey()">🔐 Mit Face ID / Passkey entsperren</button>
+    <div class="securityLockDivider"><span>oder mit Passwort</span></div>
+    <div class="field"><label>Passwort</label><input class="input" id="securityUnlockPassword" type="password" autocomplete="current-password" placeholder="Dein Passwort" onkeydown="if(event.key==='Enter')securityUnlockWithPassword()"></div>
+    <button class="btn" onclick="securityUnlockWithPassword()">Entsperren</button>
+    <div id="securityLockError" class="securityInlineError"></div>
+  </div>
+</div>
+
+<div id="securityPasswordModal" class="securityModal hidden" hidden>
+  <div class="securityModalBackdrop" onclick="securityClosePasswordChange()"></div>
+  <div class="securityModalSheet">
+    <div class="securityModalHandle"></div>
+    <div class="sectionTitle"><div><span class="securityBadge">KONTOSICHERHEIT</span><h2 id="securityPasswordTitle">Passwort ändern</h2></div><button class="btn small" onclick="securityClosePasswordChange()">Schließen</button></div>
+    <div id="securityCurrentPasswordWrap" class="field"><label>Aktuelles Passwort</label><input class="input" id="securityCurrentPassword" type="password" autocomplete="current-password"></div>
+    <div class="field"><label>Neues Passwort</label><input class="input" id="securityNewPassword" type="password" autocomplete="new-password" placeholder="Mindestens 10 Zeichen"></div>
+    <div class="field"><label>Neues Passwort wiederholen</label><input class="input" id="securityNewPassword2" type="password" autocomplete="new-password"></div>
+    <p class="mini">Verwende ein einzigartiges Passwort, das du nicht bei anderen Diensten nutzt.</p>
+    <button class="btn primary" onclick="securitySubmitPasswordChange()">Passwort sicher speichern</button>
+    <div id="securityPasswordError" class="securityInlineError"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div><div id="printArea"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="cloud-config.js?v=11.26.1" defer></script>
-<script src="country-config.js?v=11.26.1" defer></script>
-<script src="data-repository.js?v=11.26.1" defer></script>
-<script src="einvoice.js?v=11.26.1" defer></script>
-<script src="script.js?v=11.26.1" defer></script>
-<script src="customer-import.js?v=11.26.1" defer></script>
-<script src="cloud-files.js?v=11.26.1" defer></script>
-<script src="cloud-sync.js?v=11.26.1" defer></script>
-<script src="team.js?v=11.26.1" defer></script>
-<script src="assignments.js?v=11.26.1" defer></script>
-<script src="time-tracking.js?v=11.26.1" defer></script>
-<script src="notifications.js?v=11.26.1" defer></script>
-<script src="mail-hub.js?v=11.26.1" defer></script>
-<script src="email-assistant.js?v=11.26.1" defer></script>
-<script src="acceptance.js?v=11.26.1" defer></script>
-<script src="custom-selects.js?v=11.26.1" defer></script>
-<script src="cloud-auth.js?v=11.26.1" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+<script src="cloud-config.js?v=11.27" defer></script>
+<script src="country-config.js?v=11.27" defer></script>
+<script src="data-repository.js?v=11.27" defer></script>
+<script src="einvoice.js?v=11.27" defer></script>
+<script src="script.js?v=11.27" defer></script>
+<script src="customer-import.js?v=11.27" defer></script>
+<script src="cloud-files.js?v=11.27" defer></script>
+<script src="cloud-sync.js?v=11.27" defer></script>
+<script src="team.js?v=11.27" defer></script>
+<script src="assignments.js?v=11.27" defer></script>
+<script src="time-tracking.js?v=11.27" defer></script>
+<script src="notifications.js?v=11.27" defer></script>
+<script src="mail-hub.js?v=11.27" defer></script>
+<script src="email-assistant.js?v=11.27" defer></script>
+<script src="acceptance.js?v=11.27" defer></script>
+<script src="custom-selects.js?v=11.27" defer></script>
+<script src="security.js?v=11.27" defer></script>
+<script src="cloud-auth.js?v=11.27" defer></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>

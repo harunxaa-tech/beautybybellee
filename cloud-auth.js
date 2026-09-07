@@ -325,6 +325,7 @@
     if(!session){
       globalThis.CloudSync?.detach?.();
       globalThis.Notifications?.detach?.();
+      globalThis.SecurityCenter?.detach?.();
       renderAccount();
       requireEntry();
       return;
@@ -396,6 +397,7 @@
       // WICHTIG: Erst Zugang freigeben, dann Cloud-Sync im Hintergrund.
       renderAccount();
       requireEntry();
+      Promise.resolve(globalThis.SecurityCenter?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('SecurityCenter attach failed',e));
       Promise.resolve(globalThis.loadHomeQuickActionsFromCloud?.()).catch(e=>console.warn('Schnellzugriff laden fehlgeschlagen',e));
       Promise.resolve(globalThis.Notifications?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('Notifications attach failed',e));
 
@@ -419,6 +421,7 @@
 
     renderAccount();
     requireEntry();
+    Promise.resolve(globalThis.SecurityCenter?.attach?.(client,session,cloudCompany,cloudMembership)).catch(e=>console.warn('SecurityCenter attach failed',e));
   }
 
   async function refresh(){
@@ -560,7 +563,7 @@
     const password=q('entryRegisterPassword')?.value||'';
     if(!invited&&!name)return error('Bitte deinen Namen eingeben.');
     if(!validEmail(email))return error('Bitte eine gültige E-Mail-Adresse eingeben.');
-    if(password.length<6)return error('Das Passwort muss mindestens 6 Zeichen haben.');
+    if(password.length<10)return error('Das Passwort muss mindestens 10 Zeichen haben.');
     signupDraft={...signupDraft,name,email,password};
     if(invited){
       savePending({name,email});
@@ -718,7 +721,7 @@
   };
 
   globalThis.inviteSignOutAndRetry=async function(){
-    await client.auth.signOut();
+    await client.auth.signOut({scope:'local'});
     session=cloudCompany=cloudMembership=null;
     blockingInviteError='';
     inviteConflictInfo=null;
@@ -776,10 +779,11 @@
 
   globalThis.cloudSignOut=async function(){
     clearCloudMsg();
-    await client.auth.signOut();
+    await client.auth.signOut({scope:'local'});
     session=cloudCompany=cloudMembership=null;
     globalThis.CloudSync?.detach?.();
     globalThis.Notifications?.detach?.();
+    globalThis.SecurityCenter?.detach?.();
     renderAccount();
     requireEntry();
   };
@@ -790,10 +794,19 @@
     captureInviteFromUrl();
     if(!globalThis.supabase?.createClient)return;
     client=globalThis.supabase.createClient(cfg().url,cfg().publishableKey,{
-      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true,
+        detectSessionInUrl:true,
+        experimental:{passkey:true}
+      }
     });
+    globalThis.SecurityCenter?.setClient?.(client);
 
-    client.auth.onAuthStateChange(()=>setTimeout(()=>refresh(),0));
+    client.auth.onAuthStateChange((event,newSession)=>{
+      if(event==='PASSWORD_RECOVERY')setTimeout(()=>globalThis.securityOpenPasswordRecovery?.(),120);
+      setTimeout(()=>refresh(),0);
+    });
 
     loadInvitePreview().then(()=>updateInviteUI());
 
