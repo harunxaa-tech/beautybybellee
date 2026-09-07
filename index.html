@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.28.1">
-<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css?v=11.28.2">
+<link rel="manifest" href="manifest.json?v=11.28.2">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -191,7 +191,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.28.1</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.28.2</div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -203,7 +203,7 @@
 <section class="screen" id="emailAssistant">
   <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETARIAT · FREIGABEMODUS</div><h2>Sekretariat</h2><p class="mini">Deine digitale Sekretärin bündelt Kundenmails, Rückmeldungen und Freigaben an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
   <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.28.1 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.28.2 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
   </div>
 
   <div class="card mailConnectCard">
@@ -1204,7 +1204,7 @@
       <div class="setupGroup">
         <label>Wie arbeitest du?</label>
         <div class="setupModeGrid">
-          <button type="button" data-setup-mode="solo" onclick="setupSelectMode('solo')"><span>👤</span><div><b>Allein / kleiner Betrieb</b><small>Schlanke Oberfläche ohne Team-Verwaltung.</small></div></button>
+          <button type="button" data-setup-mode="solo" onclick="setupSelectMode('solo')"><span>👤</span><div><b>Allein / kleiner Betrieb</b><small>Schlanke Grundansicht. Teamfunktionen kannst du optional trotzdem einschalten.</small></div></button>
           <button type="button" data-setup-mode="team" onclick="setupSelectMode('team')"><span>👥</span><div><b>Mit Team</b><small>Mitarbeiter, Zuweisungen und Zeiten werden eingeblendet.</small></div></button>
         </div>
       </div>
@@ -1215,12 +1215,13 @@
       <span class="setupEyebrow">SCHRITT 2 VON 4</span>
       <h2>Was soll im Alltag sichtbar sein?</h2>
       <p>Angebote, Kunden, Kalender und Rechnungen sind immer dabei. Zusatzbereiche kannst du jederzeit später ändern.</p>
-      <div class="setupCorePill"><span>✓</span><div><b>Kunden · Angebote · Rechnungen</b><small>Immer aktiv – das ist der Kern von AngebotsPilot.</small></div></div>
+      <div class="setupCorePill"><span>✓</span><div><b>Kunden · Angebote · Kalender · Rechnungen</b><small>Immer aktiv – das ist der Kern von AngebotsPilot.</small></div></div>
       <div class="setupModuleList">
         <button type="button" data-setup-module="jobs" onclick="setupToggleModule('jobs')"><span class="setupModuleIcon">🏗️</span><div><b>Baustellen & Abnahme</b><small>Planung, Wetter, Fotos und Abnahmeprotokoll.</small></div><i>✓</i></button>
         <button type="button" data-setup-module="secretariat" onclick="setupToggleModule('secretariat')"><span class="setupModuleIcon">✦</span><div><b>Sekretariat</b><small>Kundenmails erkennen und Antworten vorbereiten.</small></div><i>✓</i></button>
         <button type="button" data-setup-module="team" onclick="setupToggleModule('team')"><span class="setupModuleIcon">👥</span><div><b>Team & Zeiterfassung</b><small>Mitarbeiter einladen, Baustellen zuweisen und Zeiten erfassen.</small></div><i>✓</i></button>
       </div>
+      <div id="setupTeamModeNote" class="setupModeNote hidden" hidden></div>
       <button class="btn primary setupPrimary" type="button" onclick="setupNext()">Weiter →</button>
     </section>
 
@@ -1248,21 +1249,31 @@
     </section>
 
     <section class="setupStep hidden" data-step="3">
-      <span class="setupEyebrow">FERTIG</span>
-      <div class="setupSuccessOrb">✓</div>
-      <h2>Dein AngebotsPilot ist startklar.</h2>
-      <p>Die Oberfläche wird jetzt auf deinen Betrieb zugeschnitten. Alles kann später unter <b>Betrieb → Einrichtung anpassen</b> geändert werden.</p>
+      <span class="setupEyebrow">SCHRITT 4 VON 4</span>
+      <h2>Alles bereit. Passt das so?</h2>
+      <p>Prüfe kurz deine Auswahl. Erst mit „Einrichtung speichern“ werden die Einstellungen übernommen.</p>
       <div class="setupSummaryCard">
         <div><span>Land</span><b id="setupCountrySummaryFinal">automatisch</b></div>
         <div><span>Arbeitsweise</span><b id="setupModeSummary">Solo</b></div>
-        <div><span>Aktiv</span><b id="setupModuleSummary">Angebote & Rechnungen</b></div>
+        <div><span>Aktiv</span><b id="setupModuleSummary">Kunden · Angebote · Kalender · Rechnungen</b></div>
+        <div><span>Rechnungen</span><b id="setupInvoiceSummary">automatisch</b></div>
       </div>
-      <button class="btn primary setupPrimary" id="businessSetupFinish" type="button" onclick="setupFinish('today')">✓ Einrichtung speichern</button>
+      <button class="btn primary setupPrimary" id="businessSetupFinish" type="button" onclick="setupFinish()">✓ Einrichtung speichern</button>
+      <div id="businessSetupError" class="setupInlineError hidden" hidden role="alert"></div>
+      <p class="setupSaveHint">Du kannst alles später unter <b>Betrieb → Einrichtung anpassen</b> ändern.</p>
+    </section>
+
+    <section class="setupStep hidden setupDoneStep" data-step="4">
+      <span class="setupEyebrow">FERTIG</span>
+      <div class="setupSuccessOrb">✓</div>
+      <h2>Dein AngebotsPilot ist startklar.</h2>
+      <p>Die Einstellungen wurden gespeichert und die Oberfläche auf deinen Betrieb zugeschnitten.</p>
+      <button class="btn primary setupPrimary" type="button" onclick="setupGo('today')">Zur Startseite →</button>
       <div class="setupOptionalActions">
-        <span>Danach optional:</span>
-        <button type="button" onclick="setupFinish('import')">👥 Bestandskunden</button>
-        <button type="button" onclick="setupFinish('brand')">🖼️ Logo & Design</button>
-        <button type="button" id="setupFinishMail" onclick="setupFinish('mail')">✦ E-Mail verbinden</button>
+        <span>Optional direkt weitermachen:</span>
+        <button type="button" onclick="setupGo('import')">👥 Bestandskunden</button>
+        <button type="button" onclick="setupGo('brand')">🖼️ Logo & Design</button>
+        <button type="button" id="setupFinishMail" onclick="setupGo('mail')">✦ E-Mail verbinden</button>
       </div>
     </section>
   </div>
@@ -1299,25 +1310,25 @@
 
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.28.1" defer></script>
-<script src="country-config.js?v=11.28.1" defer></script>
-<script src="data-repository.js?v=11.28.1" defer></script>
-<script src="einvoice.js?v=11.28.1" defer></script>
-<script src="script.js?v=11.28.1" defer></script>
-<script src="customer-import.js?v=11.28.1" defer></script>
-<script src="cloud-files.js?v=11.28.1" defer></script>
-<script src="cloud-sync.js?v=11.28.1" defer></script>
-<script src="team.js?v=11.28.1" defer></script>
-<script src="assignments.js?v=11.28.1" defer></script>
-<script src="time-tracking.js?v=11.28.1" defer></script>
-<script src="notifications.js?v=11.28.1" defer></script>
-<script src="mail-hub.js?v=11.28.1" defer></script>
-<script src="email-assistant.js?v=11.28.1" defer></script>
-<script src="acceptance.js?v=11.28.1" defer></script>
-<script src="custom-selects.js?v=11.28.1" defer></script>
-<script src="security.js?v=11.28.1" defer></script>
-<script src="onboarding-setup.js?v=11.28.1" defer></script>
-<script src="cloud-auth.js?v=11.28.1" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.28.2" defer></script>
+<script src="country-config.js?v=11.28.2" defer></script>
+<script src="data-repository.js?v=11.28.2" defer></script>
+<script src="einvoice.js?v=11.28.2" defer></script>
+<script src="script.js?v=11.28.2" defer></script>
+<script src="customer-import.js?v=11.28.2" defer></script>
+<script src="cloud-files.js?v=11.28.2" defer></script>
+<script src="cloud-sync.js?v=11.28.2" defer></script>
+<script src="team.js?v=11.28.2" defer></script>
+<script src="assignments.js?v=11.28.2" defer></script>
+<script src="time-tracking.js?v=11.28.2" defer></script>
+<script src="notifications.js?v=11.28.2" defer></script>
+<script src="mail-hub.js?v=11.28.2" defer></script>
+<script src="email-assistant.js?v=11.28.2" defer></script>
+<script src="acceptance.js?v=11.28.2" defer></script>
+<script src="custom-selects.js?v=11.28.2" defer></script>
+<script src="security.js?v=11.28.2" defer></script>
+<script src="onboarding-setup.js?v=11.28.2" defer></script>
+<script src="cloud-auth.js?v=11.28.2" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.28.2").catch(()=>{}));}</script>
 </body>
 </html>

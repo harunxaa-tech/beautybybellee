@@ -1,10 +1,10 @@
-/* AngebotsPilot v11.28.1 – geführte Betriebseinrichtung */
+/* AngebotsPilot v11.28.2 – geführte Betriebseinrichtung + Stabilitäts-QA */
 (function(){
   'use strict';
 
   const VERSION=1128;
   let client=null,session=null,company=null,membership=null;
-  let step=0,manualOpen=false,saving=false;
+  let step=0,manualOpen=false,saving=false,saved=false;
   let state={};
   const q=id=>document.getElementById(id);
   const now=()=>new Date().toISOString();
@@ -26,17 +26,21 @@
     const country=(c.country_code||globalThis.data?.settings?.countryCode||'DE').toUpperCase();
     const profile=globalThis.APCountry?.country?.(country)||{};
     const treatment=c.tax_treatment||globalThis.data?.settings?.taxTreatment||((Number(c.tax_rate)||0)===0?(country==='CH'?'non_registered':'small_business'):'standard');
+    const businessMode=c.business_mode==='team'?'team':'solo';
+    if(modules.team)modules.time_tracking=true; // UI führt Team + Zeiterfassung bewusst als ein Modul.
+    if(businessMode==='team'){modules.team=true;modules.time_tracking=true;}
+    const local=globalThis.data?.settings||{};
     return {
       countryCode:['DE','AT','CH'].includes(country)?country:'DE',
-      businessMode:c.business_mode||'solo',
+      businessMode,
       modules,
       taxTreatment:treatment,
-      taxRate:Number(c.tax_rate??globalThis.data?.settings?.tax??profile.standardRate??0)||0,
+      taxRate:Number(c.tax_rate??local.tax??profile.standardRate??0)||0,
       paymentDays:Math.max(0,Number(c.payment_days??7)||7),
-      taxNumber:c.tax_number||'',
-      vatId:c.vat_id||'',
-      iban:c.iban||'',
-      bankName:c.bank_name||''
+      taxNumber:c.tax_number??local.taxNumber??'',
+      vatId:c.vat_id??local.vatId??'',
+      iban:c.iban??local.iban??'',
+      bankName:c.bank_name??local.bankName??''
     };
   }
 
@@ -47,12 +51,19 @@
     if(hidden)el.setAttribute('aria-hidden','true');else el.removeAttribute('aria-hidden');
   }
 
+  function treatmentLabel(code=state.taxTreatment,country=state.countryCode){
+    const labels=globalThis.APCountry?.TREATMENTS||{};
+    if(code==='small_business'&&country==='DE')return 'Kleinunternehmer (§ 19 UStG)';
+    if(code==='small_business'&&country==='AT')return 'Kleinunternehmerregelung';
+    if(code==='non_registered'&&country==='CH')return 'Nicht MWST-pflichtig / nicht registriert';
+    return labels[code]?.label||code;
+  }
+
   function treatmentOptions(){
     const country=state.countryCode||'DE';
     const profile=globalThis.APCountry?.country?.(country);
     const list=profile?.treatments||['standard'];
-    const labels=globalThis.APCountry?.TREATMENTS||{};
-    return list.map(code=>`<option value="${code}" ${code===state.taxTreatment?'selected':''}>${escapeHtml(labels[code]?.label||code)}</option>`).join('');
+    return list.map(code=>`<option value="${code}" ${code===state.taxTreatment?'selected':''}>${escapeHtml(treatmentLabel(code,country))}</option>`).join('');
   }
 
   function escapeHtml(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -70,9 +81,13 @@
 
   function render(){
     document.querySelectorAll('#businessSetupWizard .setupStep').forEach(el=>setHidden(el,Number(el.dataset.step)!==step));
-    const progress=q('businessSetupProgress');if(progress)progress.style.width=`${((step+1)/4)*100}%`;
-    const back=q('businessSetupBack');if(back)setHidden(back,step===0);
-    const skip=q('businessSetupLater');if(skip)setHidden(skip,step===3&&!manualOpen);
+    const progress=q('businessSetupProgress');if(progress)progress.style.width=`${Math.min(100,((Math.min(step,3)+1)/4)*100)}%`;
+    const back=q('businessSetupBack');if(back)setHidden(back,step===0||step>=4);
+    const skip=q('businessSetupLater');
+    if(skip){
+      skip.textContent=manualOpen?'Schließen':'Später';
+      setHidden(skip,step>=4||(step===3&&!manualOpen));
+    }
 
     document.querySelectorAll('[data-setup-country]').forEach(btn=>btn.classList.toggle('active',btn.dataset.setupCountry===state.countryCode));
     document.querySelectorAll('[data-setup-mode]').forEach(btn=>btn.classList.toggle('active',btn.dataset.setupMode===state.businessMode));
@@ -82,6 +97,16 @@
       btn.setAttribute('aria-pressed',String(!!state.modules[key]));
       if(key==='team')btn.classList.toggle('suggested',state.businessMode==='team');
     });
+    const teamNote=q('setupTeamModeNote');
+    if(teamNote){
+      const active=!!state.modules.team;
+      setHidden(teamNote,!active);
+      if(active){
+        teamNote.textContent=state.businessMode==='team'
+          ?'👥 Bei „Mit Team“ ist Team & Zeiterfassung automatisch aktiv.'
+          :'👥 Teamfunktionen sind aktiv. Deine Arbeitsweise bleibt „Allein / kleiner Betrieb“.';
+      }
+    }
 
     const treatment=q('setupTaxTreatment');
     if(treatment){treatment.innerHTML=treatmentOptions();treatment.value=state.taxTreatment;}
@@ -104,11 +129,16 @@
     if(q('setupModeSummary'))q('setupModeSummary').textContent=state.businessMode==='team'?'👥 Betrieb mit Team':'👤 Solo / kleiner Betrieb';
     if(q('setupFinishMail'))setHidden(q('setupFinishMail'),!state.modules.secretariat);
     if(q('setupModuleSummary')){
-      const labels=['Angebote & Rechnungen'];
-      if(state.modules.jobs)labels.push('Baustellen');
+      const labels=['Kunden','Angebote','Kalender','Rechnungen'];
+      if(state.modules.jobs)labels.push('Baustellen & Abnahme');
       if(state.modules.secretariat)labels.push('Sekretariat');
       if(state.modules.team)labels.push('Team & Zeiten');
       q('setupModuleSummary').textContent=labels.join(' · ');
+    }
+    if(q('setupInvoiceSummary')){
+      const profile=globalThis.APCountry?.country?.(state.countryCode)||{};
+      const taxText=state.taxTreatment==='standard'?`${treatmentLabel()} · ${Number(state.taxRate)||0} %`:treatmentLabel();
+      q('setupInvoiceSummary').textContent=`${profile.currency||'EUR'} · ${taxText} · ${state.paymentDays||7} Tage`;
     }
   }
 
@@ -140,9 +170,11 @@
       return;
     }
     manualOpen=!!isManual;
+    saved=false;
     state=initialState();
-    if(state.businessMode==='team'){state.modules.team=true;state.modules.time_tracking=true;}
     syncTaxForCountry();
+    ['setupTaxNumber','setupVatId','setupIban','setupBankName'].forEach(id=>{const el=q(id);if(el)el.dataset.setupTouched='0'});
+    setSaveError('');
     step=0;
     setHidden(q('businessSetupWizard'),false);
     document.body.classList.add('businessSetupActive');
@@ -155,28 +187,40 @@
     document.body.classList.remove('businessSetupActive');
   }
 
+  function setSaveError(message=''){
+    const el=q('businessSetupError');if(!el)return;
+    el.textContent=message;
+    setHidden(el,!message);
+  }
+
+  function readOptional(id,key){
+    const el=q(id);if(!el)return;
+    const value=el.value.trim();
+    // Leere, unberührte optionale Felder überschreiben vorhandene Firmendaten nicht versehentlich.
+    if(value||el.dataset.setupTouched==='1'||!state[key])state[key]=value;
+  }
+
   function readFields(){
     if(q('setupTaxTreatment'))state.taxTreatment=q('setupTaxTreatment').value||state.taxTreatment;
     if(q('setupTaxRate')&&!q('setupTaxRate').disabled)state.taxRate=Number(q('setupTaxRate').value)||0;
     if(forcesZero(state.taxTreatment))state.taxRate=0;
-    state.paymentDays=Math.min(365,Math.max(0,Number(q('setupPaymentDays')?.value)||7));
-    state.taxNumber=q('setupTaxNumber')?.value.trim()||'';
-    state.vatId=q('setupVatId')?.value.trim()||'';
-    state.iban=q('setupIban')?.value.trim()||'';
-    state.bankName=q('setupBankName')?.value.trim()||'';
+    const days=Number(q('setupPaymentDays')?.value);
+    state.paymentDays=Math.min(365,Math.max(0,Number.isFinite(days)?days:7));
+    readOptional('setupTaxNumber','taxNumber');
+    readOptional('setupVatId','vatId');
+    readOptional('setupIban','iban');
+    readOptional('setupBankName','bankName');
   }
 
   function next(){
     readFields();
-    if(step===0){
-      if(state.businessMode==='team'){
-        state.modules.team=true;
-        state.modules.time_tracking=true;
-      }
+    if(step===0&&state.businessMode==='team'){
+      state.modules.team=true;
+      state.modules.time_tracking=true;
     }
     step=Math.min(3,step+1);render();
   }
-  function back(){step=Math.max(0,step-1);render()}
+  function back(){readFields();step=Math.max(0,step-1);render()}
 
   function selectCountry(code){
     if(!['DE','AT','CH'].includes(code))return;
@@ -185,25 +229,34 @@
   function selectMode(mode){
     if(!['solo','team'].includes(mode))return;
     state.businessMode=mode;
+    // „Mit Team“ braucht die Teamfunktionen. Solo darf Teamfunktionen optional trotzdem nutzen.
     if(mode==='team'){state.modules.team=true;state.modules.time_tracking=true}
-    else {state.modules.team=false;state.modules.time_tracking=false}
     render();
   }
   function toggleModule(key){
     if(!['jobs','secretariat','team'].includes(key))return;
+    if(key==='team'){
+      const nextValue=!state.modules.team;
+      if(!nextValue&&state.businessMode==='team'){
+        globalThis.toast?.('Bei „Mit Team“ bleibt Team & Zeiterfassung aktiv. In Schritt 1 kannst du auf Solo wechseln.');
+        render();
+        return;
+      }
+      state.modules.team=nextValue;
+      state.modules.time_tracking=nextValue;
+      render();
+      return;
+    }
     state.modules[key]=!state.modules[key];
     if(key==='jobs'){
       state.modules.weather=state.modules.jobs;
       state.modules.acceptance=state.modules.jobs;
     }
-    if(key==='team'){
-      state.modules.time_tracking=state.modules.team;
-      state.businessMode=state.modules.team?'team':'solo';
-    }
     render();
   }
 
   function onTaxTreatmentChange(){
+    readFields();
     state.taxTreatment=q('setupTaxTreatment')?.value||state.taxTreatment;
     if(forcesZero(state.taxTreatment))state.taxRate=0;
     else syncTaxForCountry();
@@ -222,11 +275,16 @@
     try{globalThis.saveData?.()}catch(e){}
   }
 
-  async function finish(destination='today'){
-    if(saving)return;
+  async function finish(){
+    if(saving||saved)return;
     readFields();syncTaxForCountry();
+    if(!client||!company?.id){
+      setSaveError('Die Cloud-Verbindung ist gerade nicht bereit. Bitte Verbindung prüfen und erneut versuchen.');
+      return;
+    }
     const profile=globalThis.APCountry?.country?.(state.countryCode)||{};
     const modules=normalizeModules(state.modules);
+    if(modules.team)modules.time_tracking=true;
     const patch={
       country_code:state.countryCode,
       currency_code:profile.currency||'EUR',
@@ -245,7 +303,9 @@
       onboarding_started_at:company.onboarding_started_at||now()
     };
     saving=true;
-    q('businessSetupFinish')?.setAttribute('disabled','');
+    setSaveError('');
+    const finishBtn=q('businessSetupFinish');
+    if(finishBtn){finishBtn.disabled=true;finishBtn.textContent='Speichert …'}
     try{
       const {data,error}=await client.from('companies').update(patch).eq('id',company.id).select('*').single();
       if(error)throw error;
@@ -253,25 +313,39 @@
       localApply(patch);
       applyFeatureProfile(modules,state.businessMode);
       globalThis.reconcileHomeQuickActionsForFeatures?.(true);
-      close();
-      globalThis.toast?.('✓ Betrieb eingerichtet');
-      if(destination==='import'){
-        globalThis.showScreen?.('customers');
-        setTimeout(()=>globalThis.openCustomerImport?.(),80);
-      }else if(destination==='mail'){
-        globalThis.openEmailAssistant?.();
-      }else if(destination==='brand'){
-        globalThis.showScreen?.('settings');
-        setTimeout(()=>document.getElementById('brandLogoInput')?.scrollIntoView?.({behavior:'smooth',block:'center'}),120);
-      }else globalThis.showScreen?.('today');
+      saved=true;
+      step=4;
+      render();
+      globalThis.toast?.('✓ Einrichtung gespeichert');
+      q('businessSetupWizard')?.querySelector?.('.businessSetupShell')?.scrollTo?.({top:0,behavior:'smooth'});
       setTimeout(()=>globalThis.renderAll?.(),80);
     }catch(e){
       console.error('Onboarding speichern fehlgeschlagen',e);
-      globalThis.toast?.('Einrichtung konnte nicht gespeichert werden');
+      const offline=globalThis.navigator&&navigator.onLine===false;
+      const message=offline
+        ?'Keine Internetverbindung. Deine Auswahl bleibt erhalten – bitte online erneut speichern.'
+        :'Einrichtung konnte nicht in der Cloud gespeichert werden. Deine Auswahl bleibt erhalten – bitte erneut versuchen.';
+      setSaveError(message);
+      globalThis.toast?.('Speichern fehlgeschlagen · bitte erneut versuchen');
     }finally{
       saving=false;
-      q('businessSetupFinish')?.removeAttribute('disabled');
+      if(finishBtn&&!saved){finishBtn.disabled=false;finishBtn.textContent='✓ Einrichtung speichern'}
     }
+  }
+
+  function go(destination='today'){
+    if(!saved)return;
+    close();
+    if(destination==='import'){
+      globalThis.showScreen?.('customers');
+      setTimeout(()=>globalThis.openCustomerImport?.(),80);
+    }else if(destination==='mail'){
+      globalThis.openEmailAssistant?.();
+    }else if(destination==='brand'){
+      globalThis.showScreen?.('settings');
+      setTimeout(()=>document.getElementById('brandLogoInput')?.scrollIntoView?.({behavior:'smooth',block:'center'}),120);
+    }else globalThis.showScreen?.('today');
+    setTimeout(()=>globalThis.renderAll?.(),80);
   }
 
   function applyFeatureProfile(modulesArg,businessModeArg){
@@ -302,6 +376,11 @@
       btn.dataset.setupBound='1';
       btn.addEventListener('click',e=>{e.preventDefault();open(true)});
     });
+    ['setupTaxNumber','setupVatId','setupIban','setupBankName'].forEach(id=>{
+      const el=q(id);if(!el||el.dataset.setupTouchBound==='1')return;
+      el.dataset.setupTouchBound='1';
+      el.addEventListener('input',()=>{el.dataset.setupTouched='1'});
+    });
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindOpenButtons,{once:true});
   else bindOpenButtons();
@@ -315,5 +394,6 @@
   globalThis.setupToggleModule=toggleModule;
   globalThis.setupTaxTreatmentChanged=onTaxTreatmentChange;
   globalThis.setupFinish=finish;
+  globalThis.setupGo=go;
   globalThis.setupClose=close;
 })();
