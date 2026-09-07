@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.4 – serverseitige Baustellen-Zeiterfassung */
+/* AngebotsPilot v11.29.4 – einfache, serverseitige Baustellen-Zeiterfassung */
 (function(){
   'use strict';
 
@@ -16,15 +16,19 @@
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 
+  function pauseSeconds(entry,now=Date.now()){
+    let pause=Math.max(0,Number(entry?.break_seconds||0));
+    if(entry?.pause_started_at&&!entry?.ended_at){
+      pause+=Math.max(0,Math.floor((now-new Date(entry.pause_started_at).getTime())/1000));
+    }
+    return pause;
+  }
+
   function seconds(entry,now=Date.now()){
     if(!entry?.started_at)return 0;
     const start=new Date(entry.started_at).getTime();
     const end=entry.ended_at?new Date(entry.ended_at).getTime():now;
-    let pause=Number(entry.break_seconds||0)*1000;
-    if(entry.pause_started_at&&!entry.ended_at){
-      pause+=Math.max(0,now-new Date(entry.pause_started_at).getTime());
-    }
-    return Math.max(0,Math.floor((end-start-pause)/1000));
+    return Math.max(0,Math.floor((end-start)/1000)-pauseSeconds(entry,now));
   }
 
   function hms(sec){
@@ -34,8 +38,20 @@
   }
 
   function hoursLabel(sec){
+    sec=Math.max(0,Math.floor(sec||0));
     const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);
     return `${h}:${String(m).padStart(2,'0')} Std.`;
+  }
+
+  function breakLabel(sec){
+    const min=Math.floor(Math.max(0,sec||0)/60);
+    if(min<60)return `${min} Min.`;
+    return `${Math.floor(min/60)}:${String(min%60).padStart(2,'0')} Std.`;
+  }
+
+  function clockTime(value){
+    if(!value)return '–';
+    return new Date(value).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
   }
 
   function currentJob(){
@@ -60,8 +76,7 @@
     if(['owner','office'].includes(membership.role)){
       const {data,error}=await client.from('company_members')
         .select('user_id,display_name,email,role,status')
-        .eq('company_id',company.id)
-        .eq('status','active');
+        .eq('company_id',company.id);
       if(error)throw error;
       (data||[]).forEach(x=>members.set(x.user_id,x.display_name||x.email||'Teammitglied'));
     }else if(membership.role==='worker'){
@@ -111,6 +126,7 @@
     const {membership}=cloud();
     if(membership?.role!=='worker')return;
     const display=q('jobClockDisplay'),state=q('jobClockState'),other=q('jobClockOtherJob');
+    const started=q('jobClockStartedAt'),breakTotal=q('jobClockBreakTotal');
     const start=q('jobClockStart'),pause=q('jobClockPause'),resume=q('jobClockResume'),stop=q('jobClockStop');
 
     const same=ownOpenEntry&&ownOpenEntry.job_id===cloudJobId;
@@ -119,12 +135,16 @@
 
     [start,pause,resume,stop].forEach(b=>{if(b){b.hidden=true;b.classList.add('hidden')}});
     if(other){other.hidden=true;other.classList.add('hidden')}
+    if(started)started.textContent='–';
+    if(breakTotal)breakTotal.textContent='0 Min.';
 
     if(otherRunning){
       if(display)display.textContent='--:--:--';
-      if(state)state.textContent='Timer läuft auf einer anderen Baustelle';
+      if(state)state.textContent='Zeit läuft auf einer anderen Baustelle';
+      if(started)started.textContent=clockTime(ownOpenEntry.started_at);
+      if(breakTotal)breakTotal.textContent=breakLabel(pauseSeconds(ownOpenEntry));
       if(other){
-        other.textContent='Beende zuerst die laufende Zeit auf der anderen Baustelle.';
+        other.textContent='Auf einer anderen Baustelle läuft bereits Arbeitszeit. Öffne sie dort zum Pausieren oder Beenden.';
         other.hidden=false;other.classList.remove('hidden');
       }
       return;
@@ -139,6 +159,8 @@
 
     if(display)display.textContent=hms(seconds(ownOpenEntry));
     if(state)state.textContent=paused?'Pause läuft':'Arbeitszeit läuft';
+    if(started)started.textContent=clockTime(ownOpenEntry.started_at);
+    if(breakTotal)breakTotal.textContent=breakLabel(pauseSeconds(ownOpenEntry));
     if(paused){
       if(resume){resume.hidden=false;resume.classList.remove('hidden')}
     }else{
@@ -149,10 +171,16 @@
 
   function renderSummary(){
     const box=q('jobTimeSummary');if(!box)return;
-    const {membership,session}=cloud();
+    const {membership}=cloud();
     const now=Date.now();
     const total=entries.reduce((sum,e)=>sum+seconds(e,now),0);
     if(q('jobTimeTotal'))q('jobTimeTotal').textContent=hoursLabel(total);
+    if(q('jobTimeSubtitle'))q('jobTimeSubtitle').textContent=membership?.role==='worker'?'Deine Zeit auf dieser Baustelle':'Teamzeit auf dieser Baustelle';
+
+    const details=q('jobTimeHistoryDetails');
+    if(details&&membership?.role!=='worker')details.open=true;
+    const meta=q('jobTimeHistoryMeta');
+    if(meta)meta.textContent=entries.length?`${entries.length} ${entries.length===1?'Eintrag':'Einträge'}`:'Noch keine Einträge';
 
     if(!entries.length){
       box.innerHTML='<div class="empty compactEmpty">Noch keine Arbeitszeit erfasst.</div>';
@@ -160,13 +188,13 @@
     }
 
     if(membership?.role==='worker'){
-      box.innerHTML=entries.slice(0,8).map(e=>{
+      box.innerHTML=entries.slice(0,5).map(e=>{
         const running=!e.ended_at;
         const paused=running&&e.pause_started_at;
-        const date=new Date(e.started_at).toLocaleDateString('de-DE');
+        const date=new Date(e.started_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
         const start=new Date(e.started_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
         const end=e.ended_at?new Date(e.ended_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):(paused?'Pause':'läuft');
-        return `<div class="timeRow"><div><b>${esc(date)}</b><small>${esc(start)} – ${esc(end)}</small></div><strong>${esc(hoursLabel(seconds(e,now)))}</strong></div>`;
+        return `<div class="timeRow"><div><b>${esc(date)}</b><small>${esc(start)} – ${esc(end)} · Pause ${esc(breakLabel(pauseSeconds(e,now)))}</small></div><strong>${esc(hoursLabel(seconds(e,now)))}</strong></div>`;
       }).join('');
       return;
     }
@@ -178,7 +206,7 @@
       grouped.set(e.user_id,g);
     });
     box.innerHTML=[...grouped.entries()].map(([userId,g])=>
-      `<div class="timeRow"><div><b>${esc(members.get(userId)||'Teammitglied')}</b><small>${g.running?'● Timer läuft':'Gesamt auf dieser Baustelle'}</small></div><strong>${esc(hoursLabel(g.seconds))}</strong></div>`
+      `<div class="timeRow"><div><b>${esc(members.get(userId)||'Teammitglied')}</b><small>${g.running?'<span class="teamTimeRunning">● arbeitet gerade</span>':'Gesamt auf dieser Baustelle'}</small></div><strong>${esc(hoursLabel(g.seconds))}</strong></div>`
     ).join('');
   }
 
@@ -204,7 +232,7 @@
       globalThis.toast?.(
         action==='start'?'▶ Arbeitszeit gestartet':
         action==='pause'?'⏸ Pause gestartet':
-        action==='resume'?'▶ Weiter geht’s':
+        action==='resume'?'▶ Arbeitszeit läuft weiter':
         '✓ Arbeitszeit gespeichert'
       );
       if(action==='start'||action==='stop'){
@@ -222,7 +250,7 @@
     }catch(e){
       console.error(e);
       const msg=String(e.message||e);
-      globalThis.toast?.(msg.includes('another timer')?'Auf einer anderen Baustelle läuft bereits ein Timer.':'Zeiterfassung konnte nicht gespeichert werden');
+      globalThis.toast?.(msg.includes('another timer')?'Auf einer anderen Baustelle läuft bereits Arbeitszeit.':'Zeiterfassung konnte nicht gespeichert werden');
     }finally{
       buttons.forEach(b=>b.disabled=false);
     }
@@ -252,23 +280,34 @@
     dashboardLoadedAt=Date.now();
     try{
       const start=new Date();start.setHours(0,0,0,0);
-      const {data,error}=await client.from('time_entries')
+      const todayQuery=client.from('time_entries')
         .select('id,job_id,started_at,pause_started_at,break_seconds,ended_at')
         .eq('user_id',session.user.id)
         .gte('started_at',start.toISOString())
         .order('started_at',{ascending:false});
-      if(error)throw error;
-      const rows=data||[],now=Date.now(),total=rows.reduce((sum,e)=>sum+seconds(e,now),0),open=rows.find(e=>!e.ended_at)||null;
+      const openQuery=client.from('time_entries')
+        .select('id,job_id,started_at,pause_started_at,break_seconds,ended_at')
+        .eq('user_id',session.user.id)
+        .is('ended_at',null)
+        .maybeSingle();
+      const [{data,error},{data:open,error:openError}]=await Promise.all([todayQuery,openQuery]);
+      if(error)throw error;if(openError)throw openError;
+      const rows=data||[],now=Date.now(),total=rows.reduce((sum,e)=>sum+seconds(e,now),0);
       const stat=q('workerStatTime');if(stat)stat.textContent=hoursLabel(total).replace(' Std.','');
-      const title=q('workerClockHomeTitle'),text=q('workerClockHomeText'),box=q('workerClockHome');
+      const title=q('workerClockHomeTitle'),text=q('workerClockHomeText'),box=q('workerClockHome'),actionBtn=q('workerClockHomeAction');
       if(open){
         const paused=!!open.pause_started_at;
+        const startedBeforeToday=new Date(open.started_at).getTime()<start.getTime();
         if(title)title.textContent=paused?'Pause läuft':'Arbeitszeit läuft';
-        if(text)text.textContent=`Heute ${hoursLabel(total)} erfasst · ${paused?'Timer pausiert':'Timer aktiv'}`;
+        if(text)text.textContent=startedBeforeToday
+          ?`Gestartet ${new Date(open.started_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · bitte prüfen`
+          :`Heute ${hoursLabel(total)} erfasst · ${paused?'Pause aktiv':'Timer aktiv'}`;
+        if(actionBtn)actionBtn.textContent='Zur Baustelle';
         box?.classList.add('running');
       }else{
         if(title)title.textContent=total>0?'Arbeitszeit für heute gespeichert':'Zeiterfassung bereit';
-        if(text)text.textContent=total>0?`Heute bisher ${hoursLabel(total)} erfasst.`:'Öffne eine Baustelle, um deine Arbeitszeit zu starten.';
+        if(text)text.textContent=total>0?`Heute bisher ${hoursLabel(total)} erfasst.`:'Baustelle öffnen und mit einem Tipp starten.';
+        if(actionBtn)actionBtn.textContent='Zeit starten';
         box?.classList.remove('running');
       }
       if(dashboardTicker)clearInterval(dashboardTicker);

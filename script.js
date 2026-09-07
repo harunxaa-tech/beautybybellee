@@ -1,4 +1,5 @@
 const KEY='digitaler_handwerker_v3';
+const APP_BUILD_VERSION='11.29.5';
 const PRIVACY_VERSION='1.1';
 const WEATHER_CACHE_KEY='dh_weather_cache_v1';
 const defaultData={settings:{companyName:'',ownerName:'',phone:'',email:'',address:'',weatherLocation:'',tax:0,paymentTerm:'7 Tage',taxNumber:'',vatId:'',iban:'',bankName:'',brandLogoPath:'',brandLogoLocalDataUrl:'',brandAccent:'',brandAccentAuto:'',documentStyle:'auto',logoPosition:'left',brandLogoMeta:{},brandLogoPendingCloud:false,brandReferencePath:'',brandReferencePreviewPath:'',brandReferenceName:'',brandReferenceMeta:{},brandReferenceLocalPreview:'',brandReferencePendingCloud:false,countryCode:'DE',currency:'EUR',appLanguage:'de',taxTreatment:'small_business',taxNote:'',businessMode:'solo',enabledModules:{offers:true,invoices:true,jobs:true,calendar:true,secretariat:true,team:false,time_tracking:false,weather:true,tasks:true,acceptance:true}},privacy:{version:PRIVACY_VERSION,consents:{weather:false,location:false,external:false,analytics:false},role:'owner',acceptedAt:null},audit:[],customers:[],offers:[],events:[],tasks:[],jobs:[],invoices:[],catalog:[{id:uid(),name:'Gartenarbeit / Fachkraft',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Anfahrt',unit:'Pauschale',price:50,type:'service',trade:'garden'},{id:uid(),name:'Rasen mähen und Pflege',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Hecken- und Strauchschnitt',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Rollrasen verlegen',unit:'m²',price:18,type:'service',trade:'garden'},{id:uid(),name:'Humus / Mutterboden',unit:'m³',price:65,type:'material',trade:'garden'},{id:uid(),name:'Entsorgung Grünabfall',unit:'Pauschale',price:120,type:'service',trade:'garden'}]};
@@ -573,7 +574,8 @@ const HOME_QUICK_DEFS={
   invoice:{icon:'🧾',label:'Rechnung',short:'Rechnung',hint:'Neue Rechnung erstellen'},
   task:{icon:'✅',label:'Aufgabe',short:'Aufgabe',hint:'Neue Aufgabe anlegen'},
   secretariat:{icon:'✦',label:'Sekretariat',short:'Sekretariat',hint:'Postfach und Freigaben öffnen'},
-  time:{icon:'⏱️',label:'Zeiterfassung',short:'Zeiten',hint:'Teamzeiten und Zeiterfassung öffnen'}
+  time:{icon:'⏱️',label:'Zeiterfassung',short:'Zeiten',hint:'Arbeitszeiten öffnen'},
+  staff:{icon:'👥',label:'Mitarbeiter',short:'Mitarbeiter',hint:'Team und Mitarbeiter öffnen'}
 };
 let homeQuickActionsCache=null,homeQuickActionsCacheKey='',homeQuickEditSlot=-1,homeQuickCloudLoadedFor='';
 function homeQuickIdentity(){
@@ -611,6 +613,7 @@ function runHomeQuickAction(key){
   if(key==='task')return newTask();
   if(key==='secretariat')return openEmailAssistant();
   if(key==='time')return globalThis.openTeam?.()||showScreen('jobs');
+  if(key==='staff')return globalThis.openTeam?.()||showScreen('more');
 }
 function homeQuickButtonHTML(key,slot,compact=false){
   const d=HOME_QUICK_DEFS[key]||HOME_QUICK_DEFS.offer;
@@ -621,10 +624,11 @@ function homeQuickActionAllowed(key){
   if(key==='job')return m.jobs!==false;
   if(key==='secretariat')return m.secretariat!==false;
   if(key==='time')return m.team!==false&&m.time_tracking!==false;
+  if(key==='staff')return m.team!==false;
   return true;
 }
 function reconcileHomeQuickActionsForFeatures(saveCloud=true){
-  const current=getHomeQuickActions().filter(homeQuickActionAllowed),fallback=['offer','event','customer',data?.settings?.enabledModules?.jobs===false?'invoice':'job','invoice','task','secretariat','time'];
+  const current=getHomeQuickActions().filter(homeQuickActionAllowed),fallback=['offer','event','customer',data?.settings?.enabledModules?.jobs===false?'invoice':'job','invoice','task','secretariat','time','staff'];
   for(const key of fallback){if(current.length>=4)break;if(HOME_QUICK_DEFS[key]&&homeQuickActionAllowed(key)&&!current.includes(key))current.push(key)}
   const next=storeHomeQuickActionsLocal(current.slice(0,4));
   renderHomeQuickActions();
@@ -709,7 +713,8 @@ async function saveHomeQuickActionsCloud(actions){
 }
 globalThis.loadHomeQuickActionsFromCloud=loadHomeQuickActionsFromCloud;
 
-function renderAll(){renderHomeQuickActions();renderToday();renderOffers();renderInvoices();renderCustomers();renderCalendar();renderTasks();renderJobs();renderCatalog();loadSettingsForm();renderPrivacy();renderCachedWeather();applyRoleUI();if(document.getElementById('customerDetail')?.classList.contains('active'))renderCustomerFolder()}
+function syncVisibleBuildVersion(){document.querySelectorAll('[data-app-build]').forEach(el=>{el.textContent=APP_BUILD_VERSION})}
+function renderAll(){syncVisibleBuildVersion();renderHomeQuickActions();renderToday();renderOffers();renderInvoices();renderCustomers();renderCalendar();renderTasks();renderJobs();renderCatalog();loadSettingsForm();renderPrivacy();renderCachedWeather();applyRoleUI();if(document.getElementById('customerDetail')?.classList.contains('active'))renderCustomerFolder()}
 function greetingForNow(){
   const h=new Date().getHours();
   return h<11?'Guten Morgen':h<18?'Guten Tag':'Guten Abend';
@@ -1111,6 +1116,24 @@ function updateLaborLine(index,field,value){
   ensureLaborMeta(line);
   renderOfferLines();
 }
+function offerLineNumber(value,{fallback=0}={}){
+  const n=Number(String(value??'').replace(',','.'));
+  return Number.isFinite(n)?n:fallback;
+}
+function updateBasicOfferLine(index,field,value){
+  const line=draftLines[index];if(!line)return;
+  if(field==='qty'||field==='price')line[field]=offerLineNumber(value);
+  else line[field]=String(value??'');
+  const total=(Number(line.qty)||0)*(Number(line.price)||0);
+  const totalEl=document.getElementById(`offerLineTotalValue-${index}`);
+  const formulaEl=document.getElementById(`offerLineFormula-${index}`);
+  if(totalEl)totalEl.textContent=money(total);
+  if(formulaEl){
+    const qty=(Number(line.qty)||0).toLocaleString('de-DE',{maximumFractionDigits:2});
+    const price=money(Number(line.price)||0);
+    formulaEl.textContent=`${qty} × ${price}`;
+  }
+}
 
 function renderOfferLines(){
   const el=document.getElementById('offerLines');
@@ -1119,21 +1142,25 @@ function renderOfferLines(){
   draftLines.forEach(ensureLaborMeta);
   el.innerHTML=draftLines.length?draftLines.map((l,i)=>{
     const labor=isLaborLine(l);
+    const lineTotal=(Number(l.qty)||0)*(Number(l.price)||0);
     return `<div class="offerLineSimple ${labor?'laborLine':''}">
-      <div class="lineMain">
-        <input class="input" value="${escapeHTML(l.name||'')}" placeholder="Position" oninput="draftLines[${i}].name=this.value" onchange="ensureLaborMeta(draftLines[${i}]);renderOfferLines()">
-        ${labor?`<div class="laborPlanner">
-          <div><label>Mitarbeiter</label><div class="stepperField"><button type="button" onclick="updateLaborLine(${i},'workers',Math.max(1,Number(draftLines[${i}].workers||1)-1))">−</button><input type="number" min="1" step="1" inputmode="numeric" value="${Number(l.workers)||1}" onchange="updateLaborLine(${i},'workers',this.value)"><button type="button" onclick="updateLaborLine(${i},'workers',Number(draftLines[${i}].workers||1)+1)">＋</button></div></div>
-          <div><label>Std. je Mitarbeiter</label><input type="number" class="input laborHoursInput" min=".25" step=".25" inputmode="decimal" value="${Number(l.hoursPerWorker)||1}" onchange="updateLaborLine(${i},'hoursPerWorker',this.value)"></div>
-          <div class="laborTotal"><span>Gesamt</span><strong>${Number(l.qty).toLocaleString('de-DE',{maximumFractionDigits:2})} Std.</strong><small>${Number(l.workers)||1} × ${Number(l.hoursPerWorker)||1} Std.</small></div>
-        </div>`:`<div class="row3" style="margin-top:8px">
-          <input type="number" class="input" value="${Number(l.qty)||1}" step="0.01" oninput="draftLines[${i}].qty=Number(this.value)||0" aria-label="Menge">
-          <input class="input" value="${escapeHTML(l.unit||'Stk.')}" oninput="draftLines[${i}].unit=this.value" aria-label="Einheit">
-          <input type="number" class="input" value="${Number(l.price)||0}" step="0.01" oninput="draftLines[${i}].price=Number(this.value)||0" aria-label="Preis">
-        </div>`}
-        ${labor?`<div class="laborPriceRow"><div><span>Stundensatz</span><b>${euro(Number(l.price)||0)} / Std.</b></div><input type="number" class="input" value="${Number(l.price)||0}" step="0.01" inputmode="decimal" oninput="draftLines[${i}].price=Number(this.value)||0" aria-label="Stundensatz"></div>`:'<div class="mini" style="margin-top:6px">Menge · Einheit · Einzelpreis</div>'}
+      <div class="offerLineNameRow">
+        <div class="offerFieldGroup offerNameField"><label>Bezeichnung</label><input class="input" value="${escapeHTML(l.name||'')}" placeholder="z. B. Humus / Mutterboden" oninput="draftLines[${i}].name=this.value" onchange="ensureLaborMeta(draftLines[${i}]);renderOfferLines()"></div>
+        <button type="button" class="offerLineDelete" onclick="draftLines.splice(${i},1);renderOfferLines()" aria-label="Position löschen">✕</button>
       </div>
-      <button class="btn small danger" onclick="draftLines.splice(${i},1);renderOfferLines()" aria-label="Position löschen">✕</button>
+      ${labor?`<div class="laborPlanner">
+        <div><label>Mitarbeiter</label><div class="stepperField"><button type="button" onclick="updateLaborLine(${i},'workers',Math.max(1,Number(draftLines[${i}].workers||1)-1))">−</button><input type="number" min="1" step="1" inputmode="numeric" value="${Number(l.workers)||1}" onchange="updateLaborLine(${i},'workers',this.value)"><button type="button" onclick="updateLaborLine(${i},'workers',Number(draftLines[${i}].workers||1)+1)">＋</button></div></div>
+        <div><label>Std. je Mitarbeiter</label><input type="number" class="input laborHoursInput" min=".25" step=".25" inputmode="decimal" value="${Number(l.hoursPerWorker)||1}" onchange="updateLaborLine(${i},'hoursPerWorker',this.value)"></div>
+        <div class="laborTotal"><span>Gesamt</span><strong>${Number(l.qty).toLocaleString('de-DE',{maximumFractionDigits:2})} Std.</strong><small>${Number(l.workers)||1} × ${Number(l.hoursPerWorker)||1} Std.</small></div>
+      </div>
+      <div class="laborPriceRow"><div><span>Stundensatz</span><b>${euro(Number(l.price)||0)} / Std.</b></div><input type="number" class="input" value="${Number(l.price)||0}" step="0.01" inputmode="decimal" oninput="draftLines[${i}].price=offerLineNumber(this.value)" aria-label="Stundensatz"></div>`:`<div class="offerBasicFields">
+        <div class="offerFieldGroup"><label>Menge</label><input type="number" class="input" value="${Number(l.qty)||1}" step="0.01" inputmode="decimal" oninput="updateBasicOfferLine(${i},'qty',this.value)" aria-label="Menge"></div>
+        <div class="offerFieldGroup"><label>Einheit</label><input class="input" value="${escapeHTML(l.unit||'Stk.')}" placeholder="z. B. m², Stk., Pauschale" oninput="updateBasicOfferLine(${i},'unit',this.value)" aria-label="Einheit"></div>
+      </div>
+      <div class="offerPriceTotalRow">
+        <div class="offerFieldGroup"><label>Einzelpreis</label><div class="offerPriceInput"><input type="number" class="input" value="${Number(l.price)||0}" step="0.01" inputmode="decimal" oninput="updateBasicOfferLine(${i},'price',this.value)" aria-label="Einzelpreis"><span>${escapeHTML(currencySymbol())}</span></div></div>
+        <div class="offerLineTotal"><span>Gesamt</span><strong id="offerLineTotalValue-${i}">${money(lineTotal)}</strong><small id="offerLineFormula-${i}">${(Number(l.qty)||0).toLocaleString('de-DE',{maximumFractionDigits:2})} × ${money(Number(l.price)||0)}</small></div>
+      </div>`}
     </div>`;
   }).join(''):'<div class="empty">Noch keine Positionen. Tippe auf „＋ Position“.</div>';
 }

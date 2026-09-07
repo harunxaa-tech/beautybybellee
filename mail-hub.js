@@ -63,7 +63,7 @@
     const c=activeConnection(),owner=role()==='owner';
     if(c?.status==='connected'){
       const icon=c.provider==='microsoft'?'M':c.provider==='google'?'G':'@';
-      box.innerHTML=`<div class="mailConnected"><span class="mailProviderIcon">${icon}</span><div><small>${c.provider==='imap'?'VERBUNDEN · LESEN + ANTWORTEN':'VERBUNDEN · NUR LESEN'}</small><b>${esc(c.account_email||c.account_name||connectionLabel(c))}</b><span>${esc(connectionLabel(c))}${c.provider==='imap'?' · IMAP/TLS':''}${c.last_sync_at?` · zuletzt ${esc(dt(c.last_sync_at))}`:''}</span></div><strong>✓</strong></div>${c.last_error?`<div class="mailConnectionError">${esc(c.last_error)}</div>`:''}<div class="mailConnectionActions"><button class="btn primary small" type="button" onclick="MailHub.sync('${c.id}')">↻ Neue Mails abrufen</button>${owner?`<button class="btn small" type="button" onclick="MailHub.disconnect('${c.id}')">Verbindung trennen</button>`:''}</div>`;
+      box.innerHTML=`<div class="mailConnected"><span class="mailProviderIcon">${icon}</span><div><small>VERBUNDEN</small><b>${esc(c.account_email||c.account_name||connectionLabel(c))}</b><span>${esc(connectionLabel(c))}${c.last_sync_at?` · zuletzt ${esc(dt(c.last_sync_at))}`:''}</span></div><strong>✓</strong></div>${c.last_error?`<div class="mailConnectionError">${esc(c.last_error)}</div>`:''}<div class="mailConnectionActions"><button class="btn primary small" type="button" onclick="MailHub.sync('${c.id}')">↻ Aktualisieren</button>${owner?`<button class="btn small" type="button" onclick="MailHub.disconnect('${c.id}')">Trennen</button>`:''}</div>`;
     }else if(c){
       box.innerHTML=`<div class="mailPending"><span>⏳</span><div><b>${esc(connectionLabel(c))}</b><small>${c.status==='error'?'Verbindung nicht abgeschlossen':'Verbindung wird vorbereitet'}${c.last_error?` · ${esc(c.last_error)}`:''}</small></div></div>`;
     }else{
@@ -74,10 +74,13 @@
     const msActive=c?.provider==='microsoft'&&c?.status==='connected',imapActive=c?.provider==='imap'&&c?.status==='connected';
     providers.innerHTML=`
       <button type="button" class="mailProviderCard microsoft ${msActive?'connected':''}" onclick="MailHub.connectMicrosoft()" ${!owner||msActive?'disabled':''}>
-        <span class="mailProviderMark">M</span><div><b>Microsoft 365 / Outlook</b><small>${msActive?'Verbunden':msReady?'Jetzt sicher verbinden':'Technisch vorbereitet · Freigabe fehlt noch'}</small></div><em>${msActive?'✓':'›'}</em>
+        <span class="mailProviderMark">M</span><div><b>Microsoft 365 / Outlook</b><small>${msActive?'Verbunden':msReady?'Jetzt sicher verbinden':'Noch nicht verfügbar'}</small></div><em>${msActive?'✓':'›'}</em>
       </button>
-      <button type="button" class="mailProviderCard" onclick="MailHub.providerInfo('google')" ${!owner?'disabled':''}><span class="mailProviderMark">G</span><div><b>Google / Workspace</b><small>Nächster OAuth-Connector</small></div><em>später</em></button>
-      <button type="button" class="mailProviderCard ${imapActive?'connected':''}" onclick="MailHub.openImapSetup()" ${!owner||imapActive?'disabled':''}><span class="mailProviderMark">@</span><div><b>Andere Firmen-E-Mail</b><small>${imapActive?'Verbunden':otherReady?'GMX, IONOS, STRATO, ALL-INKL & eigene Domain':'Wird vorbereitet'}</small></div><em>${imapActive?'✓':'›'}</em></button>`;
+      <button type="button" class="mailProviderCard" onclick="MailHub.providerInfo('google')" ${!owner?'disabled':''}><span class="mailProviderMark">G</span><div><b>Google / Workspace</b><small>Noch nicht verfügbar</small></div><em>später</em></button>
+      <button type="button" class="mailProviderCard ${imapActive?'connected':''}" onclick="MailHub.openImapSetup()" ${!owner||imapActive?'disabled':''}><span class="mailProviderMark">@</span><div><b>Andere Firmen-E-Mail</b><small>${imapActive?'Verbunden':otherReady?'WEB.DE, GMX, IONOS, STRATO, ALL-INKL & eigene Domain':'Noch nicht verfügbar'}</small></div><em>${imapActive?'✓':'›'}</em></button>`;
+    const disclosure=q('mailConnectionDetails');
+    if(disclosure){const connected=c?.status==='connected';disclosure.classList.toggle('connected',!!connected);if(!connected)disclosure.open=true;else if(!disclosure.dataset.initialized){disclosure.open=false;disclosure.dataset.initialized='1'}}
+    renderAssistantOverview();
   }
 
   const normEmail=v=>String(v||'').trim().toLowerCase();
@@ -139,6 +142,26 @@
     if(!c?.last_sync_at)return'Postfach verbunden';
     try{return`Postfach zuletzt ${new Date(c.last_sync_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} aktualisiert`}catch{return'Postfach verbunden'}
   }
+  function renderAssistantOverview(){
+    const box=q('mailAssistantOverview');if(!box)return;
+    const c=activeConnection();
+    if(!c||c.status!=='connected'){
+      box.innerHTML=`<div class="secretariatOverviewCard"><div class="secretariatOverviewSetup"><span>📭</span><div><b>Firmen-E-Mail noch nicht verbunden</b><small>Verbinde dein Postfach einmal. Danach landen wichtige Kundenmails automatisch hier.</small></div><button type="button" class="btn primary small" onclick="MailHub.openConnectionSettings()">Postfach verbinden</button></div></div>`;
+      return;
+    }
+    const triaged=messages.map(m=>({m,t:triageMessage(m)}));
+    const primary=triaged.filter(x=>x.t.bucket==='primary');
+    const filtered=triaged.filter(x=>x.t.bucket==='filtered');
+    const newImportant=primary.filter(x=>x.m.workflow_status==='new').length;
+    const openItems=assistantItems.filter(i=>!['done','archived'].includes(String(i.workflow_status||'').toLowerCase())).length;
+    const total=newImportant+openItems;
+    const title=total?`${total} ${total===1?'Vorgang braucht':'Vorgänge brauchen'} deine Aufmerksamkeit`:'Alles im Blick';
+    const stateClass=total?' attention':'';
+    const calm=total?'':`<div class="secretariatOverviewCalm"><span>✓</span><div><b>Keine offenen wichtigen Vorgänge</b><small>Du musst gerade nichts freigeben.</small></div></div>`;
+    box.innerHTML=`<div class="secretariatOverviewCard"><div class="secretariatOverviewHead"><div><small>HEUTE IM SEKRETARIAT</small><b>${esc(title)}</b></div><span class="secretariatOverviewState${stateClass}">${total?'!':'✓'}</span></div><div class="secretariatOverviewStats"><div class="secretariatOverviewStat"><span>Neue Mails</span><strong>${newImportant}</strong></div><div class="secretariatOverviewStat"><span>Freigaben</span><strong>${openItems}</strong></div><div class="secretariatOverviewStat"><span>Weitere</span><strong>${filtered.length}</strong></div></div>${calm}<div class="secretariatOverviewActions"><button type="button" class="btn ${total?'primary':''}" onclick="MailHub.jumpInbox()">${total?'Jetzt prüfen':'Posteingang öffnen'}</button><button type="button" class="btn" onclick="MailHub.syncHome()" ${homeSyncing?'disabled':''}>${homeSyncing?'…':'↻'}</button></div></div>`;
+  }
+  function openConnectionSettings(){const d=q('mailConnectionDetails');if(!d)return;d.open=true;setTimeout(()=>d.scrollIntoView({behavior:'smooth',block:'start'}),20)}
+  function jumpInbox(){q('mailInboxCard')?.scrollIntoView({behavior:'smooth',block:'start'})}
   function renderHomeSecretariat(){
     const host=q('secretariatHome');if(!host)return;
     const allowed=['owner','office'].includes(role());host.hidden=!allowed;if(!allowed)return;
@@ -208,24 +231,25 @@
   }
 
   function mailCard(m,triage,filtered=false){
-    return `<div class="mailMessage ${m.workflow_status==='new'?'unreviewed':''} ${filtered?'mailMessageFiltered':''}">${filtered?`<div class="mailFilterBadge">Weitere Mail · ${esc(triage.reason||'Automatisch erkannt')}</div>`:''}<div class="mailMessageTop"><span>${m.workflow_status==='new'?'●':'✓'}</span><div><b>${esc(m.from_name||m.from_email||'Unbekannter Absender')}</b><small>${esc(m.from_email||'')} · ${esc(dt(m.received_at))}</small></div></div><h3>${esc(m.subject||'Ohne Betreff')}</h3><p>${esc(m.body_preview||m.body_text||'').slice(0,260)}</p><div class="mailMessageActions ${filtered?'mailFilteredActions':''}"><button class="btn ${filtered?'':'primary'} small" type="button" onclick="MailHub.review('${m.id}')">Sekretärin prüfen lassen</button>${filtered?`<button class="btn small" type="button" onclick="MailHub.keepSender('${m.id}')">⭐ Künftig oben</button>`:''}</div></div>`;
+    return `<div class="mailMessage ${m.workflow_status==='new'?'unreviewed':''} ${filtered?'mailMessageFiltered':''}">${filtered?`<div class="mailFilterBadge">Weitere Mail · ${esc(triage.reason||'Automatisch erkannt')}</div>`:''}<div class="mailMessageTop"><span>${m.workflow_status==='new'?'●':'✓'}</span><div><b>${esc(m.from_name||m.from_email||'Unbekannter Absender')}</b><small>${esc(m.from_email||'')} · ${esc(dt(m.received_at))}</small></div></div><h3>${esc(m.subject||'Ohne Betreff')}</h3><p>${esc(m.body_preview||m.body_text||'').slice(0,260)}</p><div class="mailMessageActions ${filtered?'mailFilteredActions':''}"><button class="btn ${filtered?'':'primary'} small" type="button" onclick="MailHub.review('${m.id}')">Prüfen & Antwort vorbereiten</button>${filtered?`<button class="btn small" type="button" onclick="MailHub.keepSender('${m.id}')">⭐ Künftig oben</button>`:''}</div></div>`;
   }
   function renderInbox(){
     const box=q('mailInboxList'),meta=q('mailInboxMeta'),sync=q('mailInboxSyncBtn');if(!box)return;
     const c=activeConnection();
     if(sync){sync.hidden=!(c?.status==='connected');sync.disabled=loading;}
-    if(!c?.status==='connected'){if(meta)meta.textContent='Noch kein echtes Postfach verbunden';box.innerHTML='<div class="empty mailInboxEmpty">Sobald ein Postfach verbunden ist, erscheinen neue Kundenmails hier. Bis dahin kannst du Nachrichten darunter weiterhin manuell prüfen.</div>';return}
-    if(!messages.length){if(meta)meta.textContent='Posteingang verbunden';box.innerHTML='<div class="empty mailInboxEmpty">Noch keine Nachrichten geladen. Tippe auf „Neue Mails abrufen“.</div>';return}
+    if(!c?.status==='connected'){if(meta)meta.textContent='Noch kein Firmen-Postfach verbunden';box.innerHTML='<div class="empty mailInboxEmpty">Verbinde dein Firmen-Postfach. Danach erscheinen wichtige Kundenmails automatisch hier.</div>';renderAssistantOverview();return}
+    if(!messages.length){if(meta)meta.textContent='Postfach verbunden';box.innerHTML='<div class="empty mailInboxEmpty">Noch keine Nachrichten geladen. Tippe auf „Aktualisieren“.</div>';renderAssistantOverview();return}
 
     const triaged=messages.map(m=>({m,t:triageMessage(m)}));
     const primary=triaged.filter(x=>x.t.bucket==='primary');
     const filtered=triaged.filter(x=>x.t.bucket==='filtered');
     if(meta)meta.textContent=`${primary.length} im Hauptposteingang${filtered.length?` · ${filtered.length} weitere`:''}`;
 
-    const notice=`<div class="mailTriageNotice"><span>🛡️</span><div><b>Sicherer Filter aktiv</b><small>Bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer hier. Nichts wird gelöscht.</small></div></div>`;
+    const notice=`<div class="mailTriageNotice"><span>🛡️</span><div><b>Im Zweifel bleibt die Mail hier</b><small>Nur eindeutige Newsletter und Automails landen unter „Weitere Mails“. Nichts wird gelöscht.</small></div></div>`;
     const main=primary.length?primary.map(x=>mailCard(x.m,x.t,false)).join(''):'<div class="empty mailInboxEmpty">Keine möglichen Kundenmails unter den zuletzt geladenen Nachrichten.</div>';
-    const extra=filtered.length?`<div class="mailFilteredArea"><button type="button" class="mailFilteredToggle" onclick="MailHub.toggleFiltered()"><span><b>${showFiltered?'Weitere Mails ausblenden':'Weitere Mails anzeigen'} (${filtered.length})</b><small>Nur sehr eindeutig erkannte Newsletter/Automails · jederzeit prüfbar</small></span><em>${showFiltered?'⌃':'⌄'}</em></button>${showFiltered?`<div class="mailFilteredList">${filtered.map(x=>mailCard(x.m,x.t,true)).join('')}</div>`:''}</div>`:'';
+    const extra=filtered.length?`<div class="mailFilteredArea"><button type="button" class="mailFilteredToggle" onclick="MailHub.toggleFiltered()"><span><b>${showFiltered?'Weitere Mails ausblenden':'Weitere Mails anzeigen'} (${filtered.length})</b><small>Eindeutige Newsletter/Automails · nichts gelöscht</small></span><em>${showFiltered?'⌃':'⌄'}</em></button>${showFiltered?`<div class="mailFilteredList">${filtered.map(x=>mailCard(x.m,x.t,true)).join('')}</div>`:''}</div>`:'';
     box.innerHTML=notice+main+extra;
+    renderAssistantOverview();
   }
 
   function showOAuthReturn(){
@@ -264,7 +288,7 @@
     el=document.createElement('div');el.id='mailImapBackdrop';el.className='mailImapBackdrop';el.hidden=true;
     el.innerHTML=`<div class="mailImapSheet" role="dialog" aria-modal="true" aria-labelledby="mailImapTitle">
       <div class="mailImapHandle"></div>
-      <div class="mailImapHead"><div><span class="securityBadge">NUR LESEN · IMAP/TLS</span><h2 id="mailImapTitle">Andere Firmen-E-Mail verbinden</h2><p>Für GMX, IONOS, STRATO, ALL-INKL und eigene Mailserver.</p></div><button type="button" class="btn small" onclick="MailHub.closeImapSetup()">Abbrechen</button></div>
+      <div class="mailImapHead"><div><span class="securityBadge">SICHERES FIRMEN-POSTFACH</span><h2 id="mailImapTitle">Firmen-E-Mail verbinden</h2><p>Für WEB.DE, GMX, IONOS, STRATO, ALL-INKL und eigene Mailserver.</p></div><button type="button" class="btn small" onclick="MailHub.closeImapSetup()">Abbrechen</button></div>
       <div class="mailProviderPicks">
         <button type="button" data-provider="gmx" onclick="MailHub.pickImapProvider('gmx')"><b>GMX</b><small>imap.gmx.net</small></button>
         <button type="button" data-provider="ionos" onclick="MailHub.pickImapProvider('ionos')"><b>IONOS</b><small>imap.ionos.de</small></button>
@@ -329,7 +353,7 @@
   }
 
   function providerInfo(provider){
-    const msg=provider==='google'?'Google / Workspace wird als nächster OAuth-Connector an dieselbe sichere Mailbox angeschlossen.':'Andere Firmen-E-Mail ist jetzt über verschlüsseltes IMAP/TLS verfügbar.';
+    const msg=provider==='google'?'Google / Workspace ist noch nicht verfügbar.':'Andere Firmen-E-Mail kann sicher mit AngebotsPilot verbunden werden.';
     globalThis.appConfirm?.({title:provider==='google'?'Google / Workspace':'Andere Firmen-E-Mail',text:msg,confirmLabel:'Verstanden',icon:provider==='google'?'G':'@'});
   }
 
@@ -348,7 +372,7 @@
     return await invoke('invoice-followup-send',{invoice_id:invoiceId,kind,reply_body:replyBody,request_id:requestId});
   }
 
-  globalThis.MailHub={refresh,refreshHome,syncHome,openAssistantItem,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,toggleFiltered,keepSender,review,sendReply,sendInvoiceMail,_state:()=>({connections,messages,assistantItems,capabilities})};
+  globalThis.MailHub={refresh,refreshHome,syncHome,openAssistantItem,openConnectionSettings,jumpInbox,connectMicrosoft,openImapSetup,closeImapSetup,pickImapProvider,submitImap,sync,disconnect,providerInfo,toggleFiltered,keepSender,review,sendReply,sendInvoiceMail,_state:()=>({connections,messages,assistantItems,capabilities})};
   window.addEventListener('load',()=>{setTimeout(()=>refreshHome(false).catch(()=>{}),1100);setTimeout(()=>refreshHome(false).catch(()=>{}),3600)});
   window.addEventListener('angebotspilot:syncstate',()=>{if(Date.now()-homeLastRefreshAt>5000)setTimeout(()=>refreshHome(false).catch(()=>{}),180)});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&q('today')?.classList.contains('active'))refreshHome(false).catch(()=>{})});

@@ -344,6 +344,7 @@
     q('emailAssistBody').value=message?.body_text||message?.body_preview||'';
     const src=q('emailAssistSource');if(src){src.classList.remove('hidden');src.innerHTML=`<span>📥</span><div><b>Aus verbundenem Firmen-Postfach</b><small>${esc(message?.from_email||'')} · ${message?.received_at?new Date(message.received_at).toLocaleString(correspondenceProfile().locale):''}</small></div>`}
     populateOfferHint();globalThis.APCustomSelect?.sync?.();
+    const disclosure=q('emailManualDisclosure');if(disclosure)disclosure.open=true;
     q('emailManualTestCard')?.scrollIntoView({behavior:'smooth',block:'start'});
     setTimeout(()=>analyze(),180);
   }

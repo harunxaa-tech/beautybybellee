@@ -462,9 +462,8 @@ body.onboarding-active #onboarding{
 
 /* make offer line rows simpler */
 .offerLineSimple,.offerLine{
-  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important;
-  align-items:start!important;background:var(--card2)!important;border:1px solid var(--line)!important;
-  border-radius:16px!important;padding:13px!important
+  display:block!important;background:var(--card2)!important;border:1px solid var(--line)!important;
+  border-radius:18px!important;padding:14px!important
 }
 .offerLineSimple .lineMain,.offerLine .lineMain{min-width:0!important}
 .offerLineSimple input,.offerLine input,.offerLineSimple select,.offerLine select{
@@ -1753,3 +1752,90 @@ body.businessSetupActive{overflow:hidden!important}
   #today .todayStatsCompact .stat.money strong{font-size:9px!important}
   #today .quickGridCompact .quick b{font-size:8.5px!important}
 }
+
+/* v11.29.3 – Sekretariat: handlungsorientiert statt Technik-Wand */
+.secretariatPageTitle{margin-bottom:12px}
+.secretariatControlCard{padding:14px 15px;background:radial-gradient(circle at 100% 0,rgba(216,255,62,.09),transparent 44%),var(--card);border-color:rgba(216,255,62,.14)}
+.secretariatControlTop{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px}
+.secretariatControlTop .emailAssistantIntroIcon{width:42px;height:42px;border-radius:13px;font-size:21px;margin:0}
+.secretariatControlTop h3{font-size:16px;line-height:1.2;margin:5px 0 0}
+.secretariatBuildBadge{align-self:start;white-space:nowrap;border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:6px 8px;color:var(--muted);font-size:9px;font-weight:900}
+.secretariatTrustChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.secretariatTrustChips span{border:1px solid rgba(102,217,154,.14);background:rgba(102,217,154,.055);border-radius:999px;padding:6px 8px;color:var(--muted);font-size:8.5px;font-weight:800;line-height:1.2}
+.secretariatLocaleLine{margin:9px 1px 0!important;font-size:9px!important}
+.secretariatOverview{margin:10px 0 12px}
+.secretariatOverviewLoading{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:14px;color:var(--muted);font-size:10px}
+.secretariatOverviewCard{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:14px 15px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.secretariatOverviewHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.secretariatOverviewHead>div{min-width:0}.secretariatOverviewHead small,.secretariatOverviewHead b{display:block}.secretariatOverviewHead small{color:var(--muted);font-size:8.5px;font-weight:900;letter-spacing:.08em}.secretariatOverviewHead b{font-size:15px;line-height:1.3;margin-top:3px}
+.secretariatOverviewState{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(102,217,154,.08);border:1px solid rgba(102,217,154,.15);font-size:17px;flex:0 0 auto}
+.secretariatOverviewState.attention{background:rgba(216,255,62,.09);border-color:rgba(216,255,62,.22)}
+.secretariatOverviewStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}
+.secretariatOverviewStat{border:1px solid var(--line);background:var(--card2);border-radius:14px;padding:9px 10px;min-width:0}.secretariatOverviewStat span{display:block;color:var(--muted);font-size:8px;line-height:1.25}.secretariatOverviewStat strong{display:block;font-size:17px;line-height:1;margin-top:6px}
+.secretariatOverviewActions{display:flex;gap:8px;margin-top:11px}.secretariatOverviewActions .btn:first-child{flex:1}
+.secretariatOverviewCalm{display:flex;align-items:center;gap:10px;margin-top:11px;padding:10px 11px;border-radius:14px;background:rgba(102,217,154,.05);border:1px solid rgba(102,217,154,.12)}.secretariatOverviewCalm>span{font-size:17px}.secretariatOverviewCalm b,.secretariatOverviewCalm small{display:block}.secretariatOverviewCalm b{font-size:10.5px}.secretariatOverviewCalm small{font-size:8.5px;color:var(--muted);margin-top:2px}
+.secretariatOverviewSetup{display:flex;align-items:center;gap:11px}.secretariatOverviewSetup>span{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--card2);font-size:20px}.secretariatOverviewSetup>div{min-width:0;flex:1}.secretariatOverviewSetup b,.secretariatOverviewSetup small{display:block}.secretariatOverviewSetup b{font-size:13px}.secretariatOverviewSetup small{font-size:9px;line-height:1.4;color:var(--muted);margin-top:3px}.secretariatOverviewSetup .btn{margin-left:auto;white-space:nowrap}
+#emailAssistant .mailInboxCard{margin-top:0}
+#emailAssistant .mailInboxCard .mailCardHead{margin-bottom:11px}
+#emailAssistant .mailInboxCard .mailCardHead h3{font-size:18px}
+#emailAssistant .mailTriageNotice{padding:8px 10px;align-items:center}.mailTriageNotice>span{font-size:15px}.mailTriageNotice b{font-size:9.5px}.mailTriageNotice small{font-size:8px}
+.secretariatToolDisclosure{margin-top:12px}
+.secretariatToolDisclosure>summary,.mailSettingsDisclosure>summary{list-style:none;appearance:none;-webkit-appearance:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);background:var(--card);border-radius:18px;padding:12px 14px;color:var(--text)}
+.secretariatToolDisclosure>summary::-webkit-details-marker,.mailSettingsDisclosure>summary::-webkit-details-marker{display:none}
+.secretariatToolDisclosure>summary span,.secretariatToolDisclosure>summary b,.secretariatToolDisclosure>summary small,.mailSettingsDisclosure>summary span,.mailSettingsDisclosure>summary b,.mailSettingsDisclosure>summary small{display:block;min-width:0}
+.secretariatToolDisclosure>summary b,.mailSettingsDisclosure>summary b{font-size:11px}.secretariatToolDisclosure>summary small,.mailSettingsDisclosure>summary small{font-size:8.5px;line-height:1.4;color:var(--muted);margin-top:3px}.secretariatToolDisclosure>summary em,.mailSettingsDisclosure>summary em{font-style:normal;color:var(--accent);font-size:9px;font-weight:900;white-space:nowrap}
+.secretariatToolDisclosure[open]>summary,.mailSettingsDisclosure[open]>summary{border-color:rgba(216,255,62,.18);border-radius:18px 18px 12px 12px}
+.secretariatToolDisclosure>#emailManualTestCard{margin:8px 0 0}
+.secretariatHistoryTitle{margin-top:23px}
+.mailSettingsDisclosure{margin-top:20px;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.mailSettingsDisclosure>summary{background:var(--card2)}
+.mailSettingsBody{margin-top:8px;border:1px solid var(--line);background:var(--card);border-radius:18px;padding:14px}
+.mailSettingsDisclosure.connected:not([open])>summary{border-color:rgba(102,217,154,.14)}
+@media(max-width:620px){
+  .secretariatPageTitle{align-items:flex-start}.secretariatPageTitle .btn{flex:0 0 auto}
+  .secretariatControlCard{padding:13px}.secretariatControlTop{grid-template-columns:auto minmax(0,1fr)}.secretariatBuildBadge{grid-column:1/-1;justify-self:start;margin-top:-2px}.secretariatTrustChips{gap:5px}.secretariatTrustChips span{font-size:8px;padding:5px 7px}
+  .secretariatOverviewCard{padding:13px}.secretariatOverviewStats{gap:6px}.secretariatOverviewStat{padding:8px}.secretariatOverviewStat strong{font-size:16px}.secretariatOverviewActions{display:grid;grid-template-columns:1fr auto}.secretariatOverviewSetup{align-items:flex-start;flex-wrap:wrap}.secretariatOverviewSetup .btn{width:100%;margin:3px 0 0}
+  .secretariatToolDisclosure>summary,.mailSettingsDisclosure>summary{padding:11px 12px}
+  .mailSettingsBody{padding:13px 12px}
+}
+
+/* v11.29.4 – Zeiterfassung: einfacher im Alltag, sauber für Monatsprüfung */
+.jobTimeCard{overflow:hidden;background:radial-gradient(circle at 100% 0,rgba(216,255,62,.07),transparent 34%),var(--card)}
+.timeCardHead{align-items:flex-start}
+.timeCardHead>div{min-width:0}.timeCardEyebrow{display:block;font-size:8px;font-weight:950;letter-spacing:.16em;color:var(--accent);margin-bottom:5px}.timeCardHead b{font-size:17px}.timeCardHead p{margin-top:3px!important}
+.workerClockArea{padding:18px 0 4px;text-align:left}.workerClockArea .clockState{text-align:center;font-size:9px;letter-spacing:.14em}.workerClockArea .clockDisplay{text-align:center;font-size:46px;line-height:1;font-variant-numeric:tabular-nums;margin:10px 0 16px}
+.clockFacts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}.clockFacts>div{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:14px;padding:10px 11px}.clockFacts span,.clockFacts strong{display:block}.clockFacts span{font-size:8px;color:var(--muted);font-weight:850}.clockFacts strong{font-size:13px;margin-top:3px;font-variant-numeric:tabular-nums}
+.clockButtons{gap:8px}.clockButtons .btn{min-height:52px;border-radius:15px}.clockButtons .clockStartBtn{font-size:14px}.clockButtons .clockStopBtn{background:rgba(255,112,112,.08);border-color:rgba(255,112,112,.25);color:#ffaaa7}
+.clockOtherJob{font-size:9px;line-height:1.45!important;margin-top:10px!important}
+.timeHistoryDetails{margin-top:14px;border-top:1px solid var(--line);padding-top:2px}.timeHistoryDetails>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:13px 1px 8px}.timeHistoryDetails>summary::-webkit-details-marker{display:none}.timeHistoryDetails>summary span{min-width:0}.timeHistoryDetails>summary b,.timeHistoryDetails>summary small{display:block}.timeHistoryDetails>summary b{font-size:11px}.timeHistoryDetails>summary small{font-size:8px;color:var(--muted);margin-top:2px}.timeHistoryDetails>summary i{font-style:normal;color:var(--muted);font-size:17px;transition:transform .16s ease}.timeHistoryDetails[open]>summary i{transform:rotate(180deg)}.timeHistoryDetails .timeSummaryList{margin-top:4px}.timeRefreshBtn{width:100%;margin-top:2px}
+.timeSummaryList .timeRow{padding:10px 11px}.timeSummaryList .timeRow small{line-height:1.4}
+
+.teamTimeCard{background:radial-gradient(circle at 100% 0,rgba(216,255,62,.055),transparent 34%),var(--card)}
+.teamTimeTotalsFour{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.teamTimeTotalsFour>div{padding:11px 12px}.teamTimeTotalsFour span{font-size:8px}.teamTimeTotalsFour strong{font-size:17px}
+.timeReviewHint{display:flex;gap:10px;align-items:flex-start;margin:10px 0 12px;padding:11px 12px;border:1px solid rgba(216,255,62,.14);background:rgba(216,255,62,.045);border-radius:14px}.timeReviewHint>span{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;background:rgba(216,255,62,.12);color:var(--accent);font-weight:950;flex:0 0 auto}.timeReviewHint b,.timeReviewHint small{display:block}.timeReviewHint b{font-size:9px}.timeReviewHint small{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.4}
+.teamTimeRowReview{grid-template-columns:minmax(0,1fr) auto auto auto}.teamTimeReview{display:flex;align-items:center;justify-content:flex-end;min-width:70px}.timeReviewBtn{appearance:none;-webkit-appearance:none;border:1px solid rgba(216,255,62,.34);background:rgba(216,255,62,.08);color:var(--accent);border-radius:999px;padding:8px 10px;font:inherit;font-size:8px;font-weight:950;white-space:nowrap}.timeReviewBtn:active{transform:scale(.98)}.timeReviewStatus{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:7px 9px;font-size:8px;font-weight:900;white-space:nowrap}.timeReviewStatus.reviewed{background:rgba(102,217,154,.1);color:var(--ok);border:1px solid rgba(102,217,154,.2)}.timeReviewStatus.none{background:var(--card);color:var(--muted);border:1px solid var(--line)}
+.workerClockHome #workerClockHomeAction{white-space:nowrap}
+
+@media(max-width:520px){
+  .workerClockArea .clockDisplay{font-size:42px}
+  .teamTimeRowReview{grid-template-columns:minmax(0,1fr) auto;gap:9px}.teamTimeRowReview .teamTimeMetric{grid-row:2}.teamTimeRowReview .teamTimeMetric.weekMetric{grid-column:2;grid-row:2}.teamTimeRowReview .teamTimeReview{grid-column:2;grid-row:1}.teamTimeReview{min-width:0}
+  .teamTimeTotalsFour strong{font-size:15px}
+}
+@media(max-width:390px){
+  .workerClockArea .clockDisplay{font-size:39px}.clockButtons{grid-template-columns:1fr}.clockButtons .clockStartBtn{grid-column:auto}.clockButtons .btn{width:100%}.clockFacts{gap:7px}
+}
+
+
+/* v11.29.5 – Angebotspositionen: klare Feldbeschriftung und mobile Positionssumme */
+.offerLineNameRow{display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:10px;align-items:end}
+.offerFieldGroup{min-width:0}.offerFieldGroup>label{display:block;color:var(--muted);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px 4px}
+.offerFieldGroup>.input,.offerPriceInput>.input{width:100%;min-height:52px!important;border-radius:15px!important;background:var(--card)!important}
+.offerNameField>.input{font-size:16px!important;font-weight:720!important}
+.offerLineDelete{width:42px;height:52px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.015);color:rgba(255,112,112,.82);font-size:15px;font-weight:900;display:grid;place-items:center;padding:0;transition:background .15s ease,border-color .15s ease,transform .1s ease}
+.offerLineDelete:active{transform:scale(.96);background:rgba(255,112,112,.08);border-color:rgba(255,112,112,.24)}
+.offerBasicFields{display:grid;grid-template-columns:.72fr 1.28fr;gap:10px;margin-top:12px}
+.offerPriceTotalRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;margin-top:10px}
+.offerPriceInput{position:relative}.offerPriceInput>.input{padding-right:54px!important;text-align:right;font-variant-numeric:tabular-nums}.offerPriceInput>span{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;font-weight:900;pointer-events:none}
+.offerLineTotal{min-height:52px;border:1px solid rgba(216,255,62,.20);border-radius:15px;background:rgba(216,255,62,.055);padding:8px 11px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.offerLineTotal>span{font-size:8px;letter-spacing:.09em;color:var(--muted);font-weight:900;text-transform:uppercase}.offerLineTotal>strong{font-size:15px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.offerLineTotal>small{font-size:8px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:420px){.offerLineSimple,.offerLine{padding:12px!important}.offerLineNameRow{grid-template-columns:minmax(0,1fr) 40px;gap:8px}.offerLineDelete{width:40px;height:50px}.offerBasicFields,.offerPriceTotalRow{gap:8px}.offerFieldGroup>.input,.offerPriceInput>.input{min-height:50px!important}.offerPriceInput>.input{padding-right:46px!important}.offerPriceInput>span{right:12px}.offerLineTotal{min-height:50px}}

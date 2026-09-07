@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.29.1">
-<link rel="manifest" href="manifest.json?v=11.29.1">
+<link rel="stylesheet" href="style.css?v=11.29.5">
+<link rel="manifest" href="manifest.json?v=11.29.5">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -70,7 +70,7 @@
   <div class="workerClockHome" id="workerClockHome">
     <div class="workerClockIcon">⏱️</div>
     <div class="workerClockText"><b id="workerClockHomeTitle">Zeiterfassung bereit</b><small id="workerClockHomeText">Öffne eine Baustelle, um deine Arbeitszeit zu starten.</small></div>
-    <button type="button" class="btn small" onclick="showScreen('jobs')">Baustellen</button>
+    <button type="button" class="btn small" id="workerClockHomeAction" onclick="showScreen('jobs')">Zeit starten</button>
   </div>
 
   <div class="sectionTitle workerSectionTitle"><div><h2>Meine Baustellen</h2><span id="workerHomeJobMeta">Deine nächsten Einsätze</span></div><button type="button" class="btn small" onclick="refreshMyJobs()">↻</button></div>
@@ -191,7 +191,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version 11.29.1</div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.29.5</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -201,42 +201,54 @@
 
 
 <section class="screen" id="emailAssistant">
-  <div class="sectionTitle"><div><div class="eyebrow appEyebrow">SEKRETARIAT · FREIGABEMODUS</div><h2>Sekretariat</h2><p class="mini">Deine digitale Sekretärin bündelt Kundenmails, Rückmeldungen und Freigaben an einem Ort.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
-  <div class="card emailAssistantIntro">
-    <div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">v11.28.2 · SICHERER POSTEINGANG · VERSAND NUR NACH FREIGABE</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3><p>AngebotsPilot kann Microsoft- und klassische IMAP-Postfächer in eine einheitliche Mailbox übernehmen und anschließend im Sekretariat prüfen. Ein konservativer Filter sortiert nur sehr eindeutig erkannte Newsletter und Automails nach unten; <b>bekannte Kunden, mögliche Auftragsmails und alles Unklare bleiben immer im Hauptposteingang und nichts wird gelöscht.</b> Antwortvorschläge passen sich automatisch an Deutschland, Österreich oder Schweiz an und werden nur nach deiner ausdrücklichen Bestätigung versendet.</p><p class="mini" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Standarddeutsch (Deutschland) · automatisch nach Firmenland</p></div>
+  <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
+
+  <div class="card secretariatControlCard">
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.29.5</span></span></div>
+    <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
+    <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
 
-  <div class="card mailConnectCard">
-    <div class="mailCardHead"><div><span class="securityBadge">FIRMEN-E-MAIL</span><h3>Postfach verbinden</h3><p class="mini">Einmal verbinden. Danach arbeitet die Sekretärin unabhängig vom E-Mail-Anbieter mit derselben sicheren Mailbox.</p></div><span class="mailReadOnlyBadge">LESEN · FREIGABE-VERSAND</span></div>
-    <div id="mailConnectionState" class="mailConnectionState"><div class="empty">Verbindungsstatus wird geladen …</div></div>
-    <div id="mailProviderGrid" class="mailProviderGrid"></div>
-  </div>
+  <div id="mailAssistantOverview" class="secretariatOverview"><div class="secretariatOverviewLoading">Sekretariat wird aktualisiert …</div></div>
 
-  <div class="card mailInboxCard">
-    <div class="mailCardHead"><div><span class="securityBadge">POSTEINGANG</span><h3>Neue Kundenmails</h3><p class="mini" id="mailInboxMeta">Posteingang wird geprüft …</p></div><button class="btn small" type="button" id="mailInboxSyncBtn" onclick="MailHub.sync(MailHub._state().connections.find(x=>x.status==='connected')?.id||'')" hidden>↻ Neue Mails abrufen</button></div>
+  <div class="card mailInboxCard" id="mailInboxCard">
+    <div class="mailCardHead"><div><span class="securityBadge">POSTEINGANG</span><h3>Was jetzt wichtig ist</h3><p class="mini" id="mailInboxMeta">Posteingang wird geprüft …</p></div><button class="btn small" type="button" id="mailInboxSyncBtn" onclick="MailHub.sync(MailHub._state().connections.find(x=>x.status==='connected')?.id||'')" hidden>↻ Aktualisieren</button></div>
     <div id="mailInboxList" class="mailInboxList"><div class="empty">Posteingang wird geladen …</div></div>
   </div>
 
-  <div class="sectionTitle emailManualTitle"><div><h2>Nachricht prüfen</h2><p class="mini">Aus dem Posteingang übernehmen oder weiterhin manuell testen.</p></div><span>Sekretärin</span></div>
-  <div class="card" id="emailManualTestCard">
-    <div id="emailAssistSource" class="mailSourceBanner hidden"></div>
-    <div class="flowStep"><span>1</span><div><b>Kundenmail prüfen</b><small>Absender, Kunde und passendes Angebot werden automatisch gesucht.</small></div></div>
-    <div class="row"><div class="field"><label>Absender E-Mail</label><input id="emailAssistSender" class="input" type="email" placeholder="kunde@email.de"></div><div class="field"><label>Name (optional)</label><input id="emailAssistSenderName" class="input" placeholder="Max Mustermann"></div></div>
-    <div class="field"><label>Betreff</label><input id="emailAssistSubject" class="input" placeholder="z. B. Angebot AP-2026-0004"></div>
-    <div class="field"><label>Nachricht</label><textarea id="emailAssistBody" class="cleanTextarea emailAssistBody" placeholder="Kundenmail hier einfügen …"></textarea></div>
-    <div class="field"><label>Angebot manuell zuordnen <span class="mini">optional</span></label><select id="emailAssistOfferHint"><option value="">Automatisch zuordnen</option></select><small>Nur verwenden, wenn die automatische Zuordnung nicht eindeutig ist.</small></div>
-    <div class="actions"><button class="btn" type="button" onclick="EmailAssistant.clearForm()">Leeren</button><button class="btn primary" id="emailAssistAnalyze" type="button" onclick="EmailAssistant.analyze()">Nachricht prüfen</button></div>
-  </div>
+  <details class="secretariatToolDisclosure" id="emailManualDisclosure">
+    <summary><span><b>Mail manuell prüfen</b><small>Für Nachrichten, die nicht aus dem verbundenen Postfach kommen.</small></span><em>Öffnen</em></summary>
+    <div class="card" id="emailManualTestCard">
+      <div id="emailAssistSource" class="mailSourceBanner hidden"></div>
+      <div class="flowStep"><span>1</span><div><b>Nachricht prüfen</b><small>Kunde und passendes Angebot werden automatisch gesucht.</small></div></div>
+      <div class="row"><div class="field"><label>Absender E-Mail</label><input id="emailAssistSender" class="input" type="email" placeholder="kunde@email.de"></div><div class="field"><label>Name <span class="mini">optional</span></label><input id="emailAssistSenderName" class="input" placeholder="Max Mustermann"></div></div>
+      <div class="field"><label>Betreff</label><input id="emailAssistSubject" class="input" placeholder="z. B. Angebot AP-2026-0004"></div>
+      <div class="field"><label>Nachricht</label><textarea id="emailAssistBody" class="cleanTextarea emailAssistBody" placeholder="Kundenmail hier einfügen …"></textarea></div>
+      <div class="field"><label>Angebot zuordnen <span class="mini">optional</span></label><select id="emailAssistOfferHint"><option value="">Automatisch zuordnen</option></select><small>Nur auswählen, wenn die automatische Zuordnung nicht eindeutig ist.</small></div>
+      <div class="actions"><button class="btn" type="button" onclick="EmailAssistant.clearForm()">Leeren</button><button class="btn primary" id="emailAssistAnalyze" type="button" onclick="EmailAssistant.analyze()">Prüfen & Antwort vorbereiten</button></div>
+    </div>
+  </details>
+
   <div class="card emailAssistResult hidden" id="emailAssistResult">
-    <div class="flowStep"><span>2</span><div><b>Prüfergebnis</b><small>Regelbasiert und nachvollziehbar – immer vor Aktion kontrollieren.</small></div></div>
+    <div class="flowStep"><span>2</span><div><b>Vorschlag prüfen</b><small>Du kontrollierst alles, bevor etwas passiert.</small></div></div>
     <div class="emailAssistIntent" id="emailAssistIntent"></div>
     <div class="emailAssistMatches" id="emailAssistMatches"></div>
     <div class="calendarBlockHint hidden" id="emailAssistSchedule"></div>
     <div class="field"><label>Antwortvorschlag</label><textarea id="emailAssistReply" class="cleanTextarea emailAssistReply"></textarea><small id="emailAssistSafety">Kein automatischer Versand. Erst deine Bestätigung sendet die Antwort.</small></div>
     <div class="actions"><button class="btn" type="button" onclick="EmailAssistant.copyReply()">📋 Antwort kopieren</button><button class="btn primary" id="emailAssistSendReply" type="button" onclick="EmailAssistant.sendReply()" hidden>✉️ Antwort senden</button><button class="btn primary" id="emailAssistPrimaryAction" type="button" onclick="EmailAssistant.prepare()" hidden></button></div>
   </div>
-  <div class="sectionTitle"><h2>Geprüfte Nachrichten</h2><span>Cloud-Verlauf</span></div>
+
+  <div class="sectionTitle secretariatHistoryTitle"><div><h2>Zuletzt geprüft</h2><p class="mini">Bereits vorbereitete oder bearbeitete Kundenmails.</p></div><span>Verlauf</span></div>
   <div id="emailAssistHistory" class="list"><div class="empty">Verlauf wird geladen …</div></div>
+
+  <details class="card mailConnectCard mailSettingsDisclosure" id="mailConnectionDetails">
+    <summary><span><span class="securityBadge">POSTFACH</span><b>Firmen-E-Mail & Verbindung</b><small>Nur öffnen, wenn du dein Postfach verbinden oder wechseln möchtest.</small></span><em>Verwalten</em></summary>
+    <div class="mailSettingsBody">
+      <div class="mailCardHead"><div><h3>Postfach verwalten</h3><p class="mini">Einmal verbinden – danach erscheinen Kundenmails automatisch im Sekretariat.</p></div><span class="mailReadOnlyBadge">VERSAND NUR NACH FREIGABE</span></div>
+      <div id="mailConnectionState" class="mailConnectionState"><div class="empty">Verbindungsstatus wird geladen …</div></div>
+      <div id="mailProviderGrid" class="mailProviderGrid"></div>
+    </div>
+  </details>
 </section>
 
 <section class="screen" id="notifications">
@@ -301,10 +313,11 @@
   <div id="teamMemberList" class="list"><div class="empty">Team wird geladen …</div></div>
 
   <div id="teamTimeSection" class="owner-office-only">
-    <div class="sectionTitle"><h2>Arbeitszeiten</h2><span>Heute · diese Woche</span></div>
+    <div class="sectionTitle"><h2>Arbeitszeiten</h2><span id="teamTimeMonthLabel">Aktueller Monat</span></div>
     <div class="card teamTimeCard">
-      <div class="teamTimeHead"><div><span class="securityBadge">⏱ TEAMZEIT</span><h3>Erfasste Arbeitszeit</h3><p class="mini">Zeiten kommen direkt aus der Cloud-Zeiterfassung der Mitarbeiter.</p></div><button class="btn small" onclick="openTeam()">↻ Aktualisieren</button></div>
-      <div id="teamTimeTotals" class="teamTimeTotals"><div><span>Heute</span><strong>–</strong></div><div><span>Diese Woche</span><strong>–</strong></div></div>
+      <div class="teamTimeHead"><div><span class="securityBadge">⏱ ZEITEN</span><h3>Monatsübersicht</h3><p class="mini">Nur erfasste Arbeitszeiten. Keine Gehalts- oder Lohndaten.</p></div><button class="btn small" onclick="openTeam()">↻</button></div>
+      <div id="teamTimeTotals" class="teamTimeTotals teamTimeTotalsFour"><div><span>Heute</span><strong>–</strong></div><div><span>Woche</span><strong>–</strong></div><div><span>Monat</span><strong>–</strong></div><div><span>Offen</span><strong>–</strong></div></div>
+      <div class="timeReviewHint"><span>✓</span><div><b>Für die spätere Abrechnung vorbereitet</b><small>Chef oder Büro kann die bisher erfassten Monatszeiten als geprüft markieren. Neue oder geänderte Zeiten werden automatisch wieder als offen erkannt.</small></div></div>
       <div id="teamTimeList" class="teamTimeList"><div class="empty">Arbeitszeiten werden geladen …</div></div>
     </div>
   </div>
@@ -729,25 +742,32 @@
   </div>
 
   <div class="card jobTimeCard hidden" id="jobTimeCard" hidden>
-    <div class="jobDocHead">
-      <div><b>⏱️ Zeiterfassung</b><p id="jobTimeSubtitle">Arbeitszeit dieser Baustelle</p></div>
+    <div class="jobDocHead timeCardHead">
+      <div><span class="timeCardEyebrow">ARBEITSZEIT</span><b>Zeiterfassung</b><p id="jobTimeSubtitle">Zeit auf dieser Baustelle</p></div>
       <span class="countPill" id="jobTimeTotal">0:00 Std.</span>
     </div>
 
     <div class="worker-only workerClockArea">
-      <div class="clockState" id="jobClockState">Noch nicht gestartet</div>
+      <div class="clockState" id="jobClockState">Bereit zum Start</div>
       <div class="clockDisplay" id="jobClockDisplay">00:00:00</div>
+      <div class="clockFacts">
+        <div><span>Beginn</span><strong id="jobClockStartedAt">–</strong></div>
+        <div><span>Pause</span><strong id="jobClockBreakTotal">0 Min.</strong></div>
+      </div>
       <div class="clockButtons">
         <button type="button" class="btn primary clockStartBtn" id="jobClockStart" onclick="TimeTracking.action('start')">▶ Arbeit starten</button>
-        <button type="button" class="btn clockPauseBtn hidden" id="jobClockPause" hidden onclick="TimeTracking.action('pause')">⏸ Pause</button>
-        <button type="button" class="btn primary clockResumeBtn hidden" id="jobClockResume" hidden onclick="TimeTracking.action('resume')">▶ Weiter</button>
-        <button type="button" class="btn danger clockStopBtn hidden" id="jobClockStop" hidden onclick="TimeTracking.action('stop')">■ Beenden</button>
+        <button type="button" class="btn clockPauseBtn hidden" id="jobClockPause" hidden onclick="TimeTracking.action('pause')">⏸ Pause starten</button>
+        <button type="button" class="btn primary clockResumeBtn hidden" id="jobClockResume" hidden onclick="TimeTracking.action('resume')">▶ Weiterarbeiten</button>
+        <button type="button" class="btn danger clockStopBtn hidden" id="jobClockStop" hidden onclick="TimeTracking.action('stop')">■ Arbeit beenden</button>
       </div>
       <p class="mini clockOtherJob hidden" id="jobClockOtherJob" hidden></p>
     </div>
 
-    <div id="jobTimeSummary" class="timeSummaryList"><div class="empty">Zeiten werden geladen …</div></div>
-    <button type="button" class="btn small" onclick="TimeTracking.refresh()">↻ Zeiten aktualisieren</button>
+    <details class="timeHistoryDetails" id="jobTimeHistoryDetails">
+      <summary><span><b>Erfasste Zeiten</b><small id="jobTimeHistoryMeta">Letzte Einträge</small></span><i>⌄</i></summary>
+      <div id="jobTimeSummary" class="timeSummaryList"><div class="empty">Zeiten werden geladen …</div></div>
+      <button type="button" class="btn small timeRefreshBtn" onclick="TimeTracking.refresh()">↻ Aktualisieren</button>
+    </details>
   </div>
 
   <div class="card">
@@ -1310,25 +1330,25 @@
 
 <div class="toast" id="toast"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.29.1" defer></script>
-<script src="country-config.js?v=11.29.1" defer></script>
-<script src="data-repository.js?v=11.29.1" defer></script>
-<script src="einvoice.js?v=11.29.1" defer></script>
-<script src="script.js?v=11.29.1" defer></script>
-<script src="customer-import.js?v=11.29.1" defer></script>
-<script src="cloud-files.js?v=11.29.1" defer></script>
-<script src="cloud-sync.js?v=11.29.1" defer></script>
-<script src="team.js?v=11.29.1" defer></script>
-<script src="assignments.js?v=11.29.1" defer></script>
-<script src="time-tracking.js?v=11.29.1" defer></script>
-<script src="notifications.js?v=11.29.1" defer></script>
-<script src="mail-hub.js?v=11.29.1" defer></script>
-<script src="email-assistant.js?v=11.29.1" defer></script>
-<script src="acceptance.js?v=11.29.1" defer></script>
-<script src="custom-selects.js?v=11.29.1" defer></script>
-<script src="security.js?v=11.29.1" defer></script>
-<script src="onboarding-setup.js?v=11.29.1" defer></script>
-<script src="cloud-auth.js?v=11.29.1" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.1").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.29.5" defer></script>
+<script src="country-config.js?v=11.29.5" defer></script>
+<script src="data-repository.js?v=11.29.5" defer></script>
+<script src="einvoice.js?v=11.29.5" defer></script>
+<script src="script.js?v=11.29.5" defer></script>
+<script src="customer-import.js?v=11.29.5" defer></script>
+<script src="cloud-files.js?v=11.29.5" defer></script>
+<script src="cloud-sync.js?v=11.29.5" defer></script>
+<script src="team.js?v=11.29.5" defer></script>
+<script src="assignments.js?v=11.29.5" defer></script>
+<script src="time-tracking.js?v=11.29.5" defer></script>
+<script src="notifications.js?v=11.29.5" defer></script>
+<script src="mail-hub.js?v=11.29.5" defer></script>
+<script src="email-assistant.js?v=11.29.5" defer></script>
+<script src="acceptance.js?v=11.29.5" defer></script>
+<script src="custom-selects.js?v=11.29.5" defer></script>
+<script src="security.js?v=11.29.5" defer></script>
+<script src="onboarding-setup.js?v=11.29.5" defer></script>
+<script src="cloud-auth.js?v=11.29.5" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.5").catch(()=>{}));}</script>
 </body>
 </html>

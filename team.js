@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.5.1 – Team, sichere Einladungen & Arbeitszeiten */
+/* AngebotsPilot v11.29.4 – Team, sichere Einladungen & einfache Monatszeiten */
 (function(){
   'use strict';
   const q=id=>document.getElementById(id);
@@ -36,6 +36,21 @@
     const day=(d.getDay()+6)%7;
     d.setDate(d.getDate()-day);
     return d.toISOString();
+  }
+
+  function localDateKey(d){
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function monthPeriod(){
+    const now=new Date();
+    const start=new Date(now.getFullYear(),now.getMonth(),1);start.setHours(0,0,0,0);
+    const end=new Date(now.getFullYear(),now.getMonth()+1,1);end.setHours(0,0,0,0);
+    return {
+      start,end,startISO:start.toISOString(),endISO:end.toISOString(),
+      startDate:localDateKey(start),endDate:localDateKey(end),
+      label:start.toLocaleDateString('de-DE',{month:'long',year:'numeric'})
+    };
   }
 
   globalThis.selectInviteRole=function(role){
@@ -125,36 +140,103 @@
     const list=q('teamTimeList'),totals=q('teamTimeTotals');
     if(!client||!company||!list)return;
     list.innerHTML='<div class="empty">Arbeitszeiten werden geladen …</div>';
-    const weekStart=startOfWeekISO(),todayStart=new Date(startOfTodayISO()).getTime(),now=Date.now();
-    const {data,error}=await client.from('time_entries')
-      .select('id,user_id,started_at,pause_started_at,break_seconds,ended_at,job_id')
-      .eq('company_id',company.id)
-      .gte('started_at',weekStart)
-      .order('started_at',{ascending:false});
-    if(error)throw error;
-    const entries=data||[];
-    const workers=currentMembers.filter(m=>m.role==='worker'&&m.status==='active');
-    const stats=new Map(workers.map(w=>[w.user_id,{today:0,week:0,running:false,lastJobId:''}]));
+
+    const period=monthPeriod(),weekStart=startOfWeekISO(),todayStart=new Date(startOfTodayISO()).getTime(),now=Date.now();
+    const weekStartMs=new Date(weekStart).getTime(),monthStartMs=period.start.getTime(),monthEndMs=period.end.getTime();
+    const queryStart=new Date(Math.min(weekStartMs,monthStartMs)).toISOString();
+    const monthLabel=q('teamTimeMonthLabel');if(monthLabel)monthLabel.textContent=period.label;
+
+    const [{data,error},{data:reviews,error:reviewError}]=await Promise.all([
+      client.from('time_entries')
+        .select('id,user_id,started_at,pause_started_at,break_seconds,ended_at,job_id,updated_at')
+        .eq('company_id',company.id)
+        .gte('started_at',queryStart)
+        .lt('started_at',period.endISO)
+        .order('started_at',{ascending:false}),
+      client.from('time_period_reviews')
+        .select('user_id,period_start,period_end,reviewed_at,reviewed_by,updated_at')
+        .eq('company_id',company.id)
+        .eq('period_start',period.startDate)
+        .eq('period_end',period.endDate)
+    ]);
+    if(error)throw error;if(reviewError)throw reviewError;
+
+    const entries=data||[],reviewMap=new Map((reviews||[]).map(r=>[r.user_id,r]));
+    const relevantIds=new Set(currentMembers.filter(m=>m.role==='worker').map(m=>m.user_id));
+    entries.forEach(e=>relevantIds.add(e.user_id));
+    const people=currentMembers.filter(m=>relevantIds.has(m.user_id));
+    const stats=new Map(people.map(w=>[w.user_id,{today:0,week:0,month:0,running:false,monthEntries:0,endedMonth:0,latestMonthUpdate:0}]));
+
     entries.forEach(e=>{
       if(!stats.has(e.user_id))return;
-      const st=stats.get(e.user_id),sec=seconds(e,now),start=new Date(e.started_at).getTime();
-      st.week+=sec;
-      if(start>=todayStart)st.today+=sec;
-      if(!e.ended_at){st.running=true;st.lastJobId=e.job_id||''}
+      const st=stats.get(e.user_id),sec=seconds(e,now),startMs=new Date(e.started_at).getTime();
+      if(startMs>=weekStartMs)st.week+=sec;
+      if(startMs>=todayStart)st.today+=sec;
+      if(startMs>=monthStartMs&&startMs<monthEndMs){
+        st.month+=sec;st.monthEntries+=1;
+        if(e.ended_at)st.endedMonth+=1;else st.running=true;
+        st.latestMonthUpdate=Math.max(st.latestMonthUpdate,new Date(e.updated_at||e.started_at).getTime());
+      }
     });
-    const totalToday=[...stats.values()].reduce((s,x)=>s+x.today,0);
-    const totalWeek=[...stats.values()].reduce((s,x)=>s+x.week,0);
-    if(totals)totals.innerHTML=`<div><span>Heute gesamt</span><strong>${esc(hoursLabel(totalToday))}</strong></div><div><span>Diese Woche</span><strong>${esc(hoursLabel(totalWeek))}</strong></div>`;
-    if(!workers.length){list.innerHTML='<div class="empty">Noch keine aktiven Mitarbeiter.</div>';return}
-    list.innerHTML=workers.map(w=>{
-      const st=stats.get(w.user_id)||{today:0,week:0,running:false};
-      return `<div class="teamTimeRow">
-        <div class="teamTimePerson"><b>${esc(w.name||w.email||'Mitarbeiter')}</b><small>${st.running?'<span class="teamTimeRunning">● arbeitet gerade</span>':'Heute erfasst'}</small></div>
+
+    const totalToday=[...stats.values()].reduce((sum,x)=>sum+x.today,0);
+    const totalWeek=[...stats.values()].reduce((sum,x)=>sum+x.week,0);
+    const totalMonth=[...stats.values()].reduce((sum,x)=>sum+x.month,0);
+    let openPeople=0;
+    people.forEach(w=>{
+      const st=stats.get(w.user_id),review=reviewMap.get(w.user_id),reviewedAt=review?new Date(review.reviewed_at).getTime():0;
+      st.reviewed=st.monthEntries>0&&st.endedMonth>0&&!st.running&&reviewedAt>=st.latestMonthUpdate;
+      if(st.monthEntries>0&&!st.reviewed)openPeople+=1;
+    });
+
+    if(totals)totals.innerHTML=`
+      <div><span>Heute</span><strong>${esc(hoursLabel(totalToday))}</strong></div>
+      <div><span>Woche</span><strong>${esc(hoursLabel(totalWeek))}</strong></div>
+      <div><span>Monat</span><strong>${esc(hoursLabel(totalMonth))}</strong></div>
+      <div><span>Noch offen</span><strong>${openPeople}</strong></div>`;
+
+    const visiblePeople=people.filter(w=>w.status==='active'||(stats.get(w.user_id)?.monthEntries||0)>0);
+    if(!visiblePeople.length){list.innerHTML='<div class="empty">Noch keine Arbeitszeiten in diesem Monat.</div>';return}
+
+    list.innerHTML=visiblePeople.map(w=>{
+      const st=stats.get(w.user_id)||{today:0,week:0,month:0,running:false,monthEntries:0,reviewed:false};
+      const name=w.name||w.email||'Mitarbeiter';
+      const state=st.running?'<span class="teamTimeRunning">● arbeitet gerade</span>':w.status==='disabled'?'Deaktiviert':'Heute erfasst';
+      const reviewControl=!st.monthEntries
+        ?'<span class="timeReviewStatus none">Keine Zeit</span>'
+        :st.reviewed
+          ?'<span class="timeReviewStatus reviewed">✓ Geprüft</span>'
+          :`<button type="button" class="timeReviewBtn" onclick="markTeamTimeReviewed('${w.user_id}')">${st.running?'Bis jetzt prüfen':'Prüfen'}</button>`;
+      return `<div class="teamTimeRow teamTimeRowReview">
+        <div class="teamTimePerson"><b>${esc(name)}</b><small>${state}</small></div>
         <div class="teamTimeMetric"><span>Heute</span><strong>${esc(hoursLabel(st.today))}</strong></div>
-        <div class="teamTimeMetric weekMetric"><span>Woche</span><strong>${esc(hoursLabel(st.week))}</strong></div>
+        <div class="teamTimeMetric weekMetric"><span>Monat</span><strong>${esc(hoursLabel(st.month))}</strong></div>
+        <div class="teamTimeReview">${reviewControl}</div>
       </div>`;
     }).join('');
   }
+
+  globalThis.markTeamTimeReviewed=async function(userId){
+    const {client,company,session,membership}=cloud();
+    if(!client||!company||!session||!['owner','office'].includes(membership?.role||''))return;
+    const period=monthPeriod();
+    const member=currentMembers.find(m=>m.user_id===userId);
+    const name=member?.name||member?.email||'Mitarbeiter';
+    const ok=await globalThis.appConfirm?.({
+      title:`Zeiten von ${name} prüfen?`,
+      text:`Alle bisher erfassten Zeiten für ${period.label} werden als geprüft markiert. Neue oder später geänderte Zeiten erscheinen wieder als offen.`,
+      confirmLabel:'Als geprüft markieren',icon:'✓'
+    });
+    if(!ok)return;
+    const now=new Date().toISOString();
+    const {error}=await client.from('time_period_reviews').upsert({
+      company_id:company.id,user_id:userId,period_start:period.startDate,period_end:period.endDate,
+      reviewed_at:now,reviewed_by:session.user.id,updated_at:now
+    },{onConflict:'company_id,user_id,period_start,period_end'});
+    if(error){console.error(error);return globalThis.toast?.('Prüfstatus konnte nicht gespeichert werden')}
+    globalThis.toast?.('✓ Zeiten als geprüft markiert');
+    await loadTeamTimes();
+  };
 
   function invitationStatus(i,now=Date.now()){
     const expired=!i.used_at&&!i.revoked_at&&new Date(i.expires_at).getTime()<=now;
