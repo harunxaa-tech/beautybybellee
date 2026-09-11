@@ -1,0 +1,43 @@
+workflows:
+  angebotspilot-ios-smoke:
+    name: AngebotsPilot iOS – Smoke Build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Unpack native iOS source
+        script: |
+          cd "$CM_BUILD_DIR"
+          rm -rf native
+          unzip -q AngebotsPilot-Native-Source-v0.1.0.zip -d .
+      - name: Install Capacitor dependencies
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          npm install --no-audit --no-fund
+      - name: Prepare AngebotsPilot web bundle
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          npm run prepare:web
+      - name: Generate iOS project
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          rm -rf ios
+          npx cap add ios
+          npx cap sync ios
+          npm run prepare:ios
+      - name: Build unsigned iOS simulator app
+        script: |
+          cd "$CM_BUILD_DIR/native/ios/App"
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+    artifacts:
+      - native/ios/App/build/Build/Products/Debug-iphonesimulator/App.app/**

@@ -1,0 +1,27 @@
+{
+  "appId": "com.harunxaa.angebotspilot",
+  "appName": "AngebotsPilot",
+  "webDir": "www",
+  "ios": {
+    "backgroundColor": "#0a0c10",
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "scrollEnabled": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 900,
+      "launchAutoHide": true,
+      "backgroundColor": "#0a0c10",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "overlaysWebView": true
+    },
+    "Keyboard": {
+      "resize": "native",
+      "style": "dark"
+    }
+  }
+}
