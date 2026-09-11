@@ -1873,3 +1873,20 @@ body.businessSetupActive{overflow:hidden!important}
 .numberingTrust{display:flex;align-items:flex-start;gap:8px;margin-top:11px;padding:9px 10px;border-radius:13px;background:rgba(102,217,154,.04);border:1px solid rgba(102,217,154,.12)}.numberingTrust>span{color:var(--ok);font-weight:950}.numberingTrust p{margin:0;font-size:8px;line-height:1.45;color:var(--muted)}
 .documentNumberField .input{font-variant-numeric:tabular-nums;font-weight:780;letter-spacing:.01em}.documentNumberField .input:disabled{opacity:.66}.documentNumberField>small{line-height:1.4}
 @media(max-width:520px){.numberingGrid{grid-template-columns:1fr}.numberingSettings>summary{padding:13px}.numberingSettingsBody{padding:0 12px 12px}.numberingIntro{margin-top:11px}}
+
+
+/* v11.29.9 – final UX consistency */
+.btn,.quick,.navBtn,.iconBtn,.sheetClose,.modalClose{touch-action:manipulation}
+.btn:disabled,.quick:disabled,.iconBtn:disabled{opacity:.46;cursor:not-allowed;transform:none!important}
+.btn:focus-visible,.quick:focus-visible,.navBtn:focus-visible,.iconBtn:focus-visible,.tab:focus-visible,.sheetClose:focus-visible,.modalClose:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.emptyState{min-height:178px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:25px 18px;border:1px dashed var(--line);border-radius:20px;background:linear-gradient(160deg,var(--card),var(--card2));color:var(--text)}
+.emptyStateIcon{width:52px;height:52px;border-radius:17px;display:grid;place-items:center;margin-bottom:12px;background:rgba(216,255,62,.08);border:1px solid rgba(216,255,62,.16);font-size:23px}
+.emptyState>b{font-size:15px}.emptyState>small{display:block;max-width:360px;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.5}.emptyStateAction{margin-top:14px;min-width:150px}
+.toast{display:flex;align-items:center;gap:10px;bottom:calc(86px + env(safe-area-inset-bottom));width:min(390px,calc(100% - 24px));padding:11px 13px;border-radius:16px;background:rgba(22,26,32,.96);color:var(--text);border:1px solid var(--line);box-shadow:0 16px 45px rgba(0,0,0,.38);font-weight:750;text-align:left;line-height:1.3;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.toastIcon{flex:0 0 28px;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:15px;font-weight:950;background:var(--card2);border:1px solid var(--line)}.toastText{font-size:12px;min-width:0}
+.toast.success{border-color:rgba(102,217,154,.3)}.toast.success .toastIcon{background:rgba(102,217,154,.13);color:var(--ok);border-color:rgba(102,217,154,.24)}
+.toast.warning{border-color:rgba(255,204,102,.32)}.toast.warning .toastIcon{background:rgba(255,204,102,.13);color:var(--warn);border-color:rgba(255,204,102,.26)}
+.toast.error{border-color:rgba(255,112,112,.34)}.toast.error .toastIcon{background:rgba(255,112,112,.13);color:var(--danger);border-color:rgba(255,112,112,.26)}
+.toast.info .toastIcon{background:rgba(106,184,255,.12);color:var(--info);border-color:rgba(106,184,255,.22)}
+#appConfirmModal .appModal{position:relative;padding-top:18px}#appConfirmModal .appModal:before{content:"";display:block;width:42px;height:5px;border-radius:999px;background:var(--line);margin:-7px auto 15px}#appConfirmModal .appConfirmText{font-size:13px}#appConfirmModal[data-tone="danger"] .confirmIcon{background:rgba(255,112,112,.12)}#appConfirmModal .btn.danger,#deleteDataModal .btn.danger{background:var(--danger);border-color:var(--danger);color:#190707}
+@media(max-width:430px){.emptyState{min-height:160px;padding:22px 14px}.toast{bottom:calc(79px + env(safe-area-inset-bottom))}.modalActions{gap:8px}.modalActions .btn{padding-left:10px;padding-right:10px}}

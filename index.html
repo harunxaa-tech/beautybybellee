@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.29.8">
-<link rel="manifest" href="manifest.json?v=11.29.8">
+<link rel="stylesheet" href="style.css?v=11.29.9">
+<link rel="manifest" href="manifest.json?v=11.29.9">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -192,7 +192,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.29.8</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.29.9</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -205,7 +205,7 @@
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.29.8</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.29.9</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -387,7 +387,7 @@
       <div class="cloudAccountStats">
         <div><span>Rolle</span><strong id="cloudRole">–</strong></div>
         <div><span>Region</span><strong>Frankfurt</strong></div>
-        <div><span>Sicherheit</span><strong>RLS aktiv</strong></div>
+        <div><span>Sicherheit</span><strong>Zugriff geschützt</strong></div>
       </div>
     </div>
 
@@ -544,8 +544,8 @@
   <div class="roleDemoTop"><div><span class="securityBadge">👥 ECHTE ROLLE</span><h3 id="realRoleTitle">Rolle wird geladen …</h3><p class="mini" id="realRoleDescription">Die Berechtigungen kommen direkt aus deinem Betriebskonto und können nicht lokal umgeschaltet werden.</p></div></div>
   <div id="rolePermissionText" class="rolePermissionText"></div>
 </div>
-<div class="card"><div class="itemTop"><div><span class="securityBadge">🔒 Cloud vorbereitet</span><h3>Lokale Geschäftsdaten + echtes Benutzerkonto</h3><p>Login, Betrieb und Rollen können jetzt im sicheren Backend liegen. Kunden, Angebote, Baustellen, Kalender, Aufgaben, Rechnungen und die Preisliste werden mit deinem Betrieb synchronisiert. Fotos und hochgeladene Dateien folgen im nächsten Cloud-Schritt.</p></div></div></div>
-<div class="privacyGrid"><div class="privacyTile"><strong>Geschäftsdaten</strong><span class="mini">Cloud + lokaler Offline-Stand</span></div><div class="privacyTile"><strong>Verbindung</strong><span class="mini">HTTPS + Supabase Auth</span></div><div class="privacyTile"><strong>Cloud-Konto</strong><span class="mini" id="privacyCloudStatus">Optional aktivierbar</span></div><div class="privacyTile"><strong>KI-Übertragung</strong><span class="mini">Deaktiviert</span></div></div>
+<div class="card"><div class="itemTop"><div><span class="securityBadge">🔒 SICHER SYNCHRONISIERT</span><h3>Deine Daten auf deinen Geräten</h3><p>Kunden, Angebote, Baustellen, Kalender, Aufgaben, Rechnungen und die Preisliste werden mit deinem Betriebskonto synchronisiert und bleiben nach Rollen getrennt.</p></div></div></div>
+<div class="privacyGrid"><div class="privacyTile"><strong>Geschäftsdaten</strong><span class="mini">Synchronisiert + offline verfügbar</span></div><div class="privacyTile"><strong>Verbindung</strong><span class="mini">Verschlüsselt</span></div><div class="privacyTile"><strong>Betriebskonto</strong><span class="mini" id="privacyCloudStatus">Optional aktivierbar</span></div><div class="privacyTile"><strong>KI-Übertragung</strong><span class="mini">Deaktiviert</span></div></div>
 <div class="sectionTitle"><h2>Einwilligungen</h2><span>Jederzeit änderbar</span></div>
 <div class="card">
 <div class="switchRow"><div><b>Wetterdienst verwenden</b><div class="mini">Ort oder Baustellenadresse wird zur Wetterabfrage an Open-Meteo übertragen.</div></div><label class="switch"><input id="consentWeather" type="checkbox" onchange="updateConsent('weather',this.checked)"><span class="slider"></span></label></div>
@@ -553,7 +553,7 @@
 <div class="switchRow"><div><b>Externe Apps öffnen</b><div class="mini">Für Google Maps, Google Kalender und WhatsApp können Kundendaten an den gewählten Dienst übergeben werden.</div></div><label class="switch"><input id="consentExternal" type="checkbox" onchange="updateConsent('external',this.checked)"><span class="slider"></span></label></div>
 <div class="switchRow"><div><b>Fehleranalyse</b><div class="mini">Derzeit technisch nicht eingebaut und standardmäßig ausgeschaltet.</div></div><label class="switch"><input id="consentAnalytics" type="checkbox" disabled><span class="slider"></span></label></div>
 </div>
-<div class="sectionTitle"><h2>Rolle & Zugriff</h2><span>Serverseitig</span></div>
+<div class="sectionTitle"><h2>Rolle & Zugriff</h2><span>Durch Betriebskonto geschützt</span></div>
 <div class="card"><div class="itemTop"><div><b id="privacyRoleName">Rolle wird geladen …</b><p class="mini" id="roleDescription">Die Rolle wird vom Betriebskonto vorgegeben und kann auf diesem Gerät nicht selbst geändert werden.</p></div><span class="securityBadge">GESCHÜTZT</span></div></div>
 <div class="sectionTitle"><h2>Deine Daten</h2><span>Auskunft & Löschung</span></div>
 <div class="card"><div class="actions"><button class="btn" onclick="exportPrivacyData()">Datenkopie exportieren</button><button class="btn" onclick="exportBackup()">Vollständiges Backup</button></div><button class="btn danger" style="width:100%;margin-top:10px" onclick="resetAppPrivacy()">Alle App-Daten dauerhaft löschen</button></div>
@@ -1367,27 +1367,27 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div><div id="printArea"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.29.8" defer></script>
-<script src="country-config.js?v=11.29.8" defer></script>
-<script src="data-repository.js?v=11.29.8" defer></script>
-<script src="einvoice.js?v=11.29.8" defer></script>
-<script src="script.js?v=11.29.8" defer></script>
-<script src="customer-import.js?v=11.29.8" defer></script>
-<script src="cloud-files.js?v=11.29.8" defer></script>
-<script src="cloud-sync.js?v=11.29.8" defer></script>
-<script src="team.js?v=11.29.8" defer></script>
-<script src="assignments.js?v=11.29.8" defer></script>
-<script src="time-tracking.js?v=11.29.8" defer></script>
-<script src="notifications.js?v=11.29.8" defer></script>
-<script src="mail-hub.js?v=11.29.8" defer></script>
-<script src="email-assistant.js?v=11.29.8" defer></script>
-<script src="acceptance.js?v=11.29.8" defer></script>
-<script src="custom-selects.js?v=11.29.8" defer></script>
-<script src="security.js?v=11.29.8" defer></script>
-<script src="onboarding-setup.js?v=11.29.8" defer></script>
-<script src="cloud-auth.js?v=11.29.8" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.8").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.29.9" defer></script>
+<script src="country-config.js?v=11.29.9" defer></script>
+<script src="data-repository.js?v=11.29.9" defer></script>
+<script src="einvoice.js?v=11.29.9" defer></script>
+<script src="script.js?v=11.29.9" defer></script>
+<script src="customer-import.js?v=11.29.9" defer></script>
+<script src="cloud-files.js?v=11.29.9" defer></script>
+<script src="cloud-sync.js?v=11.29.9" defer></script>
+<script src="team.js?v=11.29.9" defer></script>
+<script src="assignments.js?v=11.29.9" defer></script>
+<script src="time-tracking.js?v=11.29.9" defer></script>
+<script src="notifications.js?v=11.29.9" defer></script>
+<script src="mail-hub.js?v=11.29.9" defer></script>
+<script src="email-assistant.js?v=11.29.9" defer></script>
+<script src="acceptance.js?v=11.29.9" defer></script>
+<script src="custom-selects.js?v=11.29.9" defer></script>
+<script src="security.js?v=11.29.9" defer></script>
+<script src="onboarding-setup.js?v=11.29.9" defer></script>
+<script src="cloud-auth.js?v=11.29.9" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.9").catch(()=>{}));}</script>
 </body>
 </html>
