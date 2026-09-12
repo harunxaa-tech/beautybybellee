@@ -1,6 +1,6 @@
 workflows:
   angebotspilot-ios-smoke:
-    name: AngebotsPilot iOS – Smoke Build
+    name: AngebotsPilot iOS – Native v0.2 Smoke Build
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
@@ -11,11 +11,15 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           rm -rf native
-          unzip -q AngebotsPilot-Native-Source-v0.1.0.zip -d .
+          unzip -q AngebotsPilot-Native-Source-v0.2.0.zip -d .
       - name: Install Capacitor dependencies
         script: |
           cd "$CM_BUILD_DIR/native"
           npm install --no-audit --no-fund
+      - name: Validate native source
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          npm run validate
       - name: Prepare AngebotsPilot web bundle
         script: |
           cd "$CM_BUILD_DIR/native"
@@ -27,6 +31,7 @@ workflows:
           npx cap add ios
           npx cap sync ios
           npm run prepare:ios
+          npx cap ls ios
       - name: Build unsigned iOS simulator app
         script: |
           cd "$CM_BUILD_DIR/native/ios/App"
