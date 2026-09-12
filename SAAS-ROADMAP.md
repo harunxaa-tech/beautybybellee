@@ -1,6 +1,6 @@
 # AngebotsPilot – SaaS / Launch Roadmap
 
-Stand: 12.09.2026 · ab v11.30
+Stand: 12.09.2026 · ab v11.30.1
 
 Dieses Dokument ist die verbindliche Checkliste für die Punkte, die vor einer bezahlten öffentlichen Veröffentlichung noch umgesetzt oder final geprüft werden müssen. Fertige Funktionen werden nicht doppelt gebaut.
 
@@ -26,6 +26,24 @@ Zu entscheiden:
 - Kündigung zum Periodenende und Reaktivierung.
 
 ## 3. Stripe / echtes Billing
+
+Technisch seit v11.30.1 umgesetzt:
+- Serverseitiger Stripe Checkout-Endpunkt in Supabase Edge Functions.
+- Serverseitiges Stripe Customer Portal für Zahlungsmethode, Rechnungen und Kündigung.
+- Webhook-Endpunkt mit Stripe-Signaturprüfung und 5-Minuten-Toleranz.
+- Idempotenz über eigene Event-Tabelle; doppelte Stripe-Events werden nicht doppelt verarbeitet.
+- Synchronisation von Subscription-Status, Tarif, Periode, Kündigung zum Periodenende und Provider-IDs.
+- `invoice.paid`, `invoice.payment_failed`, `invoice.marked_uncollectible` und weitere Invoice-Events aktualisieren Abo-Status und Belegarchiv.
+- Erste fehlgeschlagene Zahlung → `past_due` + 7 Tage Kulanz; wiederholter Fehlschlag → `grace_period`; nach Ablauf greift die bestehende serverseitige Restricted-Logik automatisch.
+- Erfolgreiche Zahlung → automatische Reaktivierung auf `active`.
+- Stripe Secret Key und Webhook Secret liegen ausschließlich als Server-Umgebungsvariablen, nie im Frontend/GitHub.
+
+Noch vor echtem Stripe-Test erforderlich:
+- Kostenloses Stripe-Konto/Testmodus verbinden.
+- Test-Produkte + Price IDs für Solo/Team/Pro anlegen.
+- Edge-Function-Secrets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SOLO`, `STRIPE_PRICE_TEAM`, `STRIPE_PRICE_PRO` setzen.
+- Stripe Customer Portal im Dashboard aktivieren/konfigurieren.
+- Gewünschte Test-Zahlungsmethoden (zunächst Karte + SEPA, soweit im Stripe-Konto verfügbar) aktivieren.
 
 Vor Live-Zahlungen:
 - Stripe-Konto für AngebotsPilot/Firma erstellen und Geschäftskonto für Auszahlungen verifizieren.

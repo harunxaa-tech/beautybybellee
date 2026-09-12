@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.30.0 – Handwerker-Workflow für Angebote, Kunden, Baustellen, Rechnungen, Sekretariat und Abnahmen mit DE/AT/CH-Grundlage. Neu: sichere SaaS-/Abo-Basis mit Tarifstatus, Rechnungsdaten, Abo-Belegarchiv und professionellem Lesemodus bei Zahlungsverzug; echte Zahlungen folgen separat über den Zahlungsanbieter.",
+  "description": "AngebotsPilot v11.30.1 – Handwerker-Workflow für Angebote, Kunden, Baustellen, Rechnungen, Sekretariat und Abnahmen mit DE/AT/CH-Grundlage. Neu: Stripe-Testbilling technisch vorbereitet mit Checkout, Kundenportal, signierten Webhooks, Zahlungsfehler-/Kulanzlogik und automatischem Abo-Belegabgleich; Live-Zahlungen bleiben deaktiviert, bis das Stripe-Konto bewusst verbunden wird.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

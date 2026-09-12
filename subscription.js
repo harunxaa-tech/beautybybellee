@@ -1,12 +1,12 @@
-/* AngebotsPilot v11.30.0 – SaaS/Abo foundation
-   Shared by Web, iOS and later Android. No live payment collection is enabled yet. */
+/* AngebotsPilot v11.30.1 – Stripe test-billing foundation
+   Shared by Web, iOS and later Android. Stripe secrets stay server-side in Supabase Edge Functions. */
 (function(){
   'use strict';
 
-  const BUILD='11.30.0';
+  const BUILD='11.30.1';
   const q=id=>document.getElementById(id);
   const esc=value=>String(value??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
-  const state={access:null,invoices:[],loading:false,lastCompanyId:'',refreshTimer:null};
+  const state={access:null,invoices:[],gateway:{configured:false,webhook_configured:false,plans:{solo:false,team:false,pro:false},has_customer:false,has_subscription:false},loading:false,lastCompanyId:'',refreshTimer:null};
 
   const PLANS={
     solo:{name:'Solo',icon:'👤',summary:'Für Selbstständige und Ein-Personen-Betriebe',details:'Kunden, Angebote, Rechnungen, Baustellen und Kalender.'},
@@ -58,6 +58,41 @@
   }
 
   function isOwner(){return ctx()?.membership?.role==='owner'}
+
+  function gatewayReady(plan=''){
+    const g=state.gateway||{};
+    return !!(g.configured&&g.webhook_configured&&(!plan||g.plans?.[plan]));
+  }
+
+  async function openExternal(url){
+    if(!url)return;
+    try{
+      const browser=globalThis.Capacitor?.Plugins?.Browser;
+      if(globalThis.__ANGEBOTSPILOT_NATIVE__&&browser?.open){await browser.open({url});return}
+    }catch(e){console.warn('Native Browser konnte nicht geöffnet werden',e)}
+    location.assign(url);
+  }
+
+  async function invokeBilling(action,extra={}){
+    const context=ctx();
+    if(!context?.client||!context?.company?.id)throw new Error('Betriebskonto fehlt.');
+    const {data,error}=await context.client.functions.invoke('stripe-billing',{body:{action,company_id:context.company.id,return_url:location.origin+location.pathname,...extra}});
+    if(error){
+      const message=data?.message||data?.error||error?.context?.message||error?.message||'Stripe-Anfrage fehlgeschlagen.';
+      const err=new Error(String(message));err.code=data?.error||'';throw err;
+    }
+    if(data?.error){const err=new Error(String(data.message||data.error));err.code=data.error;throw err}
+    return data||{};
+  }
+
+  async function refreshGateway(){
+    if(!isOwner()){state.gateway={configured:false,webhook_configured:false,plans:{solo:false,team:false,pro:false},has_customer:false,has_subscription:false};return state.gateway}
+    try{
+      const data=await invokeBilling('status');
+      state.gateway={configured:!!data.configured,webhook_configured:!!data.webhook_configured,plans:{solo:!!data.plans?.solo,team:!!data.plans?.team,pro:!!data.plans?.pro},has_customer:!!data.has_customer,has_subscription:!!data.has_subscription,livemode:!!data.livemode};
+    }catch(e){console.warn('Stripe-Status nicht verfügbar',e);state.gateway={configured:false,webhook_configured:false,plans:{solo:false,team:false,pro:false},has_customer:!!state.access?.has_provider_customer,has_subscription:!!state.access?.has_provider_subscription}}
+    return state.gateway;
+  }
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{el.textContent=BUILD});
@@ -128,25 +163,33 @@
     const host=q('subscriptionPlanGrid');
     if(!host)return;
     const current=state.access?.plan||'solo';
-    host.innerHTML=Object.entries(PLANS).map(([code,p])=>`
-      <article class="subscriptionPlanCard ${code===current?'current':''}">
-        <div class="subscriptionPlanTop"><span>${p.icon}</span>${code===current?'<em>Aktuell</em>':''}</div>
+    const stripeSub=state.access?.billing_provider==='stripe'&&state.access?.has_provider_subscription;
+    host.innerHTML=Object.entries(PLANS).map(([code,p])=>{
+      const ready=gatewayReady(code),same=code===current;
+      let action='';
+      if(isOwner()&&stripeSub)action=`<button class="btn small subscriptionPlanAction" type="button" onclick="SubscriptionBilling.openPortal()">${same?'Abo verwalten':'Tarif im Portal ändern'}</button>`;
+      else if(isOwner())action=`<button class="btn small subscriptionPlanAction" type="button" ${ready?'': 'disabled'} onclick="SubscriptionBilling.startCheckout('${code}')">${ready?'Im Test-Checkout wählen':'Stripe-Testkonto fehlt'}</button>`;
+      return `<article class="subscriptionPlanCard ${same?'current':''}">
+        <div class="subscriptionPlanTop"><span>${p.icon}</span>${same?'<em>Aktuell</em>':''}</div>
         <h3>${esc(p.name)}</h3><p>${esc(p.summary)}</p><small>${esc(p.details)}</small>
-        <div class="subscriptionPricePending">Preis wird vor der Beta festgelegt</div>
-      </article>`).join('');
+        <div class="subscriptionPricePending">Preis wird vor der Beta festgelegt</div>${action}
+      </article>`;
+    }).join('');
   }
 
   function renderInvoices(){
     const host=q('subscriptionInvoiceList');
     if(!host)return;
     if(!state.invoices.length){
-      host.innerHTML='<div class="subscriptionEmpty"><span>🧾</span><b>Noch keine Abo-Rechnungen</b><p>Nach einer späteren echten Abo-Zahlung erscheint der Beleg hier automatisch für die Buchhaltung.</p></div>';
+      host.innerHTML='<div class="subscriptionEmpty"><span>🧾</span><b>Noch keine Abo-Rechnungen</b><p>Nach einer Stripe-Testzahlung erscheint der Beleg hier automatisch. Vor dem Livegang archivieren wir zusätzlich eine eigene unveränderbare Belegkopie.</p></div>';
       return;
     }
     host.innerHTML=state.invoices.map(inv=>{
       const title=inv.invoice_number||'Abo-Rechnung';
       const status=inv.status==='paid'?'Bezahlt':inv.status==='open'?'Offen':inv.status==='void'?'Storniert':inv.status==='uncollectible'?'Nicht einziehbar':'Entwurf';
-      return `<div class="subscriptionInvoiceRow"><div><b>${esc(title)}</b><small>${formatDate(inv.invoice_date||inv.created_at)} · ${esc(status)}</small></div><strong>${formatMoney(inv.total_cents,inv.currency_code)}</strong></div>`;
+      const url=inv.provider_pdf_url||inv.hosted_invoice_url||'';
+      const action=url?`<button class="btn small" type="button" onclick="SubscriptionBilling.openInvoice(decodeURIComponent('${encodeURIComponent(url)}'))">Beleg öffnen</button>`:'';
+      return `<div class="subscriptionInvoiceRow"><div><b>${esc(title)}</b><small>${formatDate(inv.invoice_date||inv.created_at)} · ${esc(status)}</small></div><strong>${formatMoney(inv.total_cents,inv.currency_code)}</strong>${action}</div>`;
     }).join('');
   }
 
@@ -190,7 +233,17 @@
       <div class="subscriptionTrustRow"><span>✓ Daten bleiben Eigentum des Betriebs</span><span>✓ Bei Sperre kein Datenverlust</span><span>✓ Abrechnung serverseitig geprüft</span></div>`;
 
     const provider=q('subscriptionPaymentProvider');
-    if(provider)provider.textContent=a.billing_provider==='test'?'Noch keine echte Zahlungsmethode · Testmodus':a.billing_provider==='stripe'?'Sicher über Stripe verwaltet':a.billing_provider||'Noch nicht verbunden';
+    if(provider)provider.textContent=a.billing_provider==='stripe'?(a.provider_livemode?'Stripe · Live':'Stripe · Testmodus'):state.gateway?.configured?'Stripe-Testkonto bereit · noch kein Abo':'Stripe technisch vorbereitet · noch nicht verbunden';
+    const gateway=q('subscriptionGatewayStatus');
+    if(gateway){
+      const g=state.gateway||{};
+      let text='Stripe-Testkonto noch nicht verbunden.';
+      if(g.configured&&!g.webhook_configured)text='Stripe-Key erkannt · Webhook-Signatur fehlt noch.';
+      else if(gatewayReady())text=g.livemode?'Stripe Live-Billing verbunden.':'Stripe Testmodus vollständig verbunden.';
+      gateway.textContent=text;
+      gateway.className=`subscriptionGatewayStatus ${gatewayReady()?'ready':g.configured?'partial':'pending'}`;
+    }
+    const portal=q('subscriptionPortalButton');if(portal)portal.hidden=!(isOwner()&&(a.has_provider_customer||state.gateway?.has_customer));
 
     const readOnly=q('subscriptionReadOnlyNote');
     if(readOnly)readOnly.hidden=a.can_write!==false;
@@ -215,8 +268,9 @@
   }
 
   async function loadInvoices(client,companyId){
+    if(!isOwner()){state.invoices=[];return}
     const {data,error}=await client.from('subscription_invoices')
-      .select('id,invoice_number,status,currency_code,total_cents,invoice_date,due_date,paid_at,document_storage_path,created_at')
+      .select('id,invoice_number,status,currency_code,total_cents,invoice_date,due_date,paid_at,document_storage_path,hosted_invoice_url,provider_pdf_url,period_start,period_end,created_at')
       .eq('company_id',companyId)
       .order('created_at',{ascending:false})
       .limit(24);
@@ -238,6 +292,7 @@
       if(error)throw error;
       state.access=data||null;
       state.lastCompanyId=context.company.id;
+      try{await refreshGateway()}catch(e){console.warn('Stripe-Status konnte nicht geladen werden',e)}
       try{await loadInvoices(context.client,context.company.id)}catch(e){console.warn('Abo-Rechnungen konnten nicht geladen werden',e);state.invoices=[]}
       renderAccess();
       return state.access;
@@ -300,8 +355,36 @@
     finally{if(btn){btn.disabled=false;btn.textContent='Teststatus anwenden'}}
   }
 
+  async function startCheckout(plan){
+    if(!isOwner())return toast('Nur der Inhaber kann das Abo verwalten.','error');
+    if(!gatewayReady(plan))return toast('Stripe ist technisch vorbereitet. Als Nächstes verbinden wir das kostenlose Stripe-Testkonto und die Testpreise.','info');
+    if(!state.access?.billing_name||!state.access?.billing_email)return toast('Bitte zuerst Rechnungsempfänger und Rechnungs-E-Mail speichern.','warning');
+    try{
+      toast('Stripe Test-Checkout wird geöffnet …','info');
+      const data=await invokeBilling('checkout',{plan});
+      if(data.url)await openExternal(data.url);
+    }catch(e){
+      console.error(e);
+      if(e?.code==='subscription_exists')return openPortal();
+      toast(String(e?.message||'Test-Checkout konnte nicht geöffnet werden.'),'error');
+    }
+  }
+
+  async function openPortal(){
+    if(!isOwner())return toast('Nur der Inhaber kann Zahlungsdaten verwalten.','error');
+    try{
+      const data=await invokeBilling('portal');
+      if(data.url)await openExternal(data.url);
+    }catch(e){console.error(e);toast(String(e?.message||'Stripe-Kundenportal konnte nicht geöffnet werden.'),'error')}
+  }
+
+  async function openInvoice(url){
+    try{const u=new URL(String(url));if(!['https:'].includes(u.protocol))throw new Error('Ungültiger Beleg-Link');await openExternal(u.toString())}
+    catch(e){toast('Der Beleg-Link ist ungültig.','error')}
+  }
+
   function explainPayment(){
-    toast('Echte Zahlungen kommen im nächsten Schritt über einen Zahlungsanbieter. AngebotsPilot speichert selbst keine Karten- oder Kontodaten.','info');
+    toast('Stripe Checkout und Kundenportal sind serverseitig vorbereitet. Karten- und Bankdaten bleiben ausschließlich bei Stripe und werden nicht in AngebotsPilot gespeichert.','info');
   }
 
   function blockKnownWriteClick(event){
@@ -329,7 +412,7 @@
     globalThis.showScreen?.('subscription');
     refresh();
   };
-  globalThis.SubscriptionBilling={refresh,saveBillingProfile,simulate,explainPayment,_state:()=>({...state})};
+  globalThis.SubscriptionBilling={refresh,saveBillingProfile,simulate,startCheckout,openPortal,openInvoice,explainPayment,_state:()=>({...state})};
 
   document.addEventListener('click',blockKnownWriteClick,true);
   window.addEventListener('unhandledrejection',handleSubscriptionError);
@@ -343,6 +426,16 @@
 
   document.addEventListener('DOMContentLoaded',()=>{
     stampBuild();wrapBuildStamp();ensureBanner();renderAccess();
+    try{
+      const u=new URL(location.href),billing=u.searchParams.get('billing');
+      if(billing==='success'){
+        toast('Stripe-Testzahlung abgeschlossen. Der Abo-Status wird automatisch abgeglichen.','success');
+        u.searchParams.delete('billing');u.searchParams.delete('session_id');history.replaceState({},'',u.pathname+(u.search||'')+(u.hash||''));
+        let n=0;const poll=setInterval(async()=>{n++;await refresh({silent:true});if(state.access?.billing_provider==='stripe'||n>=6)clearInterval(poll)},1800);
+      }else if(billing==='cancelled'){
+        toast('Stripe-Checkout wurde abgebrochen. Es wurde nichts geändert.','info');u.searchParams.delete('billing');history.replaceState({},'',u.pathname+(u.search||'')+(u.hash||''));
+      }
+    }catch(e){}
     let tries=0;
     const boot=setInterval(async()=>{
       tries++;

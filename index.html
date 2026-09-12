@@ -9,9 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.30.0">
-<link rel="stylesheet" href="subscription.css?v=11.30.0">
-<link rel="manifest" href="manifest.json?v=11.30.0">
+<link rel="stylesheet" href="style.css?v=11.30.1">
+<link rel="stylesheet" href="subscription.css?v=11.30.1">
+<link rel="manifest" href="manifest.json?v=11.30.1">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -194,7 +194,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.30.0</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.30.1</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -217,10 +217,14 @@
     <div class="sectionTitle"><div><h2>Tarif</h2><p class="mini">Die Tarifstruktur steht. Preise und finale Leistungsgrenzen legen wir vor der Beta fest.</p></div></div>
     <div id="subscriptionPlanGrid" class="subscriptionPlanGrid subscriptionRequiresAccount"></div>
 
-    <div class="sectionTitle"><div><h2>Zahlungsmethode</h2><p class="mini">Später sicher über einen Zahlungsanbieter – keine Karten- oder Kontodaten in AngebotsPilot.</p></div></div>
+    <div class="sectionTitle"><div><h2>Zahlungsmethode</h2><p class="mini">Stripe ist technisch vorbereitet. Karten- und Bankdaten bleiben ausschließlich beim Zahlungsanbieter.</p></div></div>
     <div class="card subscriptionRequiresAccount">
-      <div class="subscriptionPaymentRow"><div><span>STATUS</span><strong id="subscriptionPaymentProvider">Noch nicht verbunden</strong></div><button class="btn small subscriptionOwnerOnly" type="button" onclick="SubscriptionBilling.explainPayment()">So funktioniert es</button></div>
-      <p class="subscriptionPaymentHint">Im nächsten Zahlungs-Schritt verbinden wir Stripe im Testmodus. Erst danach werden echte Zahlungsmethoden und dein Auszahlungskonto eingerichtet.</p>
+      <div class="subscriptionPaymentRow"><div><span>STATUS</span><strong id="subscriptionPaymentProvider">Stripe wird geprüft …</strong></div><button class="btn small subscriptionOwnerOnly" type="button" onclick="SubscriptionBilling.explainPayment()">So funktioniert es</button></div>
+      <div id="subscriptionGatewayStatus" class="subscriptionGatewayStatus pending">Stripe-Testkonto wird geprüft …</div>
+      <div class="subscriptionPaymentActions subscriptionOwnerOnly">
+        <button class="btn" id="subscriptionPortalButton" type="button" hidden onclick="SubscriptionBilling.openPortal()">Zahlungsdaten & Abo verwalten</button>
+      </div>
+      <p class="subscriptionPaymentHint">Checkout, Kundenportal, Webhooks, Zahlungsfehler und automatische Reaktivierung laufen serverseitig. Als Nächstes verbinden wir nur noch dein Stripe-Testkonto und legen Testpreise an.</p>
       <div class="subscriptionReadOnlyNote" id="subscriptionReadOnlyNote" hidden><b>🔒 Lesemodus aktiv</b><br>Vorhandene Kunden, Angebote, Rechnungen und Dateien bleiben sichtbar und exportierbar. Neue Änderungen werden serverseitig blockiert, bis das Abo wieder aktiv ist.</div>
     </div>
 
@@ -261,7 +265,7 @@
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.30.0</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.30.1</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -1425,26 +1429,26 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.30.0" defer></script>
-<script src="country-config.js?v=11.30.0" defer></script>
-<script src="data-repository.js?v=11.30.0" defer></script>
-<script src="einvoice.js?v=11.30.0" defer></script>
-<script src="script.js?v=11.30.0" defer></script>
-<script src="customer-import.js?v=11.30.0" defer></script>
-<script src="cloud-files.js?v=11.30.0" defer></script>
-<script src="cloud-sync.js?v=11.30.0" defer></script>
-<script src="team.js?v=11.30.0" defer></script>
-<script src="assignments.js?v=11.30.0" defer></script>
-<script src="time-tracking.js?v=11.30.0" defer></script>
-<script src="notifications.js?v=11.30.0" defer></script>
-<script src="mail-hub.js?v=11.30.0" defer></script>
-<script src="email-assistant.js?v=11.30.0" defer></script>
-<script src="acceptance.js?v=11.30.0" defer></script>
-<script src="custom-selects.js?v=11.30.0" defer></script>
-<script src="security.js?v=11.30.0" defer></script>
-<script src="onboarding-setup.js?v=11.30.0" defer></script>
-<script src="cloud-auth.js?v=11.30.0" defer></script>
-<script src="subscription.js?v=11.30.0" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.30.0").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.30.1" defer></script>
+<script src="country-config.js?v=11.30.1" defer></script>
+<script src="data-repository.js?v=11.30.1" defer></script>
+<script src="einvoice.js?v=11.30.1" defer></script>
+<script src="script.js?v=11.30.1" defer></script>
+<script src="customer-import.js?v=11.30.1" defer></script>
+<script src="cloud-files.js?v=11.30.1" defer></script>
+<script src="cloud-sync.js?v=11.30.1" defer></script>
+<script src="team.js?v=11.30.1" defer></script>
+<script src="assignments.js?v=11.30.1" defer></script>
+<script src="time-tracking.js?v=11.30.1" defer></script>
+<script src="notifications.js?v=11.30.1" defer></script>
+<script src="mail-hub.js?v=11.30.1" defer></script>
+<script src="email-assistant.js?v=11.30.1" defer></script>
+<script src="acceptance.js?v=11.30.1" defer></script>
+<script src="custom-selects.js?v=11.30.1" defer></script>
+<script src="security.js?v=11.30.1" defer></script>
+<script src="onboarding-setup.js?v=11.30.1" defer></script>
+<script src="cloud-auth.js?v=11.30.1" defer></script>
+<script src="subscription.js?v=11.30.1" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.30.1").catch(()=>{}));}</script>
 </body>
 </html>

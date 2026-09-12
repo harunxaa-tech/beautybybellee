@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.30.0 – SaaS / Abo UI */
+/* AngebotsPilot v11.30.1 – SaaS / Abo UI */
 #subscription{padding-bottom:110px}
 .subscriptionPageTitle{align-items:flex-start}
 .subscriptionStatusCard{overflow:hidden}
@@ -75,3 +75,14 @@
   .subscriptionBillingGrid .wide,.subscriptionTestControls .actions{grid-column:auto}
   .subscriptionPlanBadge{margin-left:62px}
 }
+
+/* v11.30.1 – Stripe test billing */
+.subscriptionPlanAction{width:100%;margin-top:10px}
+.subscriptionPlanAction:disabled{opacity:.55;cursor:not-allowed}
+.subscriptionGatewayStatus{margin-top:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);font-size:.76rem;font-weight:750;line-height:1.35}
+.subscriptionGatewayStatus.pending{background:rgba(255,255,255,.025);color:var(--muted)}
+.subscriptionGatewayStatus.partial{background:rgba(255,190,80,.07);box-shadow:inset 0 0 0 1px rgba(255,190,80,.12)}
+.subscriptionGatewayStatus.ready{background:rgba(95,220,140,.07);box-shadow:inset 0 0 0 1px rgba(95,220,140,.14)}
+.subscriptionPaymentActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.subscriptionInvoiceRow>.btn{flex:0 0 auto}
+@media(max-width:720px){.subscriptionInvoiceRow{align-items:flex-start;flex-wrap:wrap}.subscriptionInvoiceRow>.btn{width:100%}}
