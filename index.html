@@ -9,8 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.29.9">
-<link rel="manifest" href="manifest.json?v=11.29.9">
+<link rel="stylesheet" href="style.css?v=11.30.0">
+<link rel="stylesheet" href="subscription.css?v=11.30.0">
+<link rel="manifest" href="manifest.json?v=11.30.0">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -179,6 +180,7 @@
 <div class="sectionTitle"><h2>Mehr</h2><span>Einstellungen & Werkzeuge</span></div>
 <div class="quickGrid">
 <button class="quick cloudQuick" onclick="openCloudAccount()"><span class="emoji">☁️</span><b>Konto & Cloud</b><small id="cloudQuickStatus">Noch nicht verbunden</small></button>
+<button class="quick owner-only" onclick="openSubscription()"><span class="emoji">💳</span><b>Abo & Abrechnung</b><small id="subscriptionQuickStatus">Tarif, Zahlungen & Belege</small></button>
 <button class="quick" onclick="openNotifications()"><span class="emoji">🔔</span><b>Benachrichtigungen <span id="moreNotificationBadge" class="miniInlineBadge hidden" hidden>0</span></b><small>Push & wichtige Hinweise</small></button>
 <button class="quick office-owner-only emailAssistantQuick" data-feature="secretariat" onclick="openEmailAssistant()"><span class="emoji">✦</span><b>Sekretariat <span class="miniInlineBadge betaBadge">BETA</span></b><small>Deine digitale Sekretärin · Postfach & Freigaben</small></button>
 <button class="quick owner-office-only" data-feature="team" onclick="openTeam()"><span class="emoji">👥</span><b>Team & Zeiten</b><small>Mitarbeiter & Arbeitszeiten</small></button>
@@ -192,7 +194,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.29.9</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.30.0</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -201,11 +203,65 @@
 
 
 
+<section class="screen" id="subscription">
+  <div class="sectionTitle subscriptionPageTitle">
+    <div><button class="backLink" type="button" onclick="showScreen('more')">← Mehr</button><h2>Abo & Abrechnung</h2><p class="mini">Tarif, Rechnungsdaten, Zahlungsstatus und Abo-Belege an einem Ort.</p></div>
+    <span class="securityBadge">🔒 SERVERSEITIG</span>
+  </div>
+
+  <div class="card subscriptionStatusCard" id="subscriptionStatusCard">
+    <div class="subscriptionLoading"><span></span><div><b>Abo wird geprüft …</b><small>Sicherer Abgleich mit deinem Betriebskonto</small></div></div>
+  </div>
+
+  <div id="subscriptionMainContent">
+    <div class="sectionTitle"><div><h2>Tarif</h2><p class="mini">Die Tarifstruktur steht. Preise und finale Leistungsgrenzen legen wir vor der Beta fest.</p></div></div>
+    <div id="subscriptionPlanGrid" class="subscriptionPlanGrid subscriptionRequiresAccount"></div>
+
+    <div class="sectionTitle"><div><h2>Zahlungsmethode</h2><p class="mini">Später sicher über einen Zahlungsanbieter – keine Karten- oder Kontodaten in AngebotsPilot.</p></div></div>
+    <div class="card subscriptionRequiresAccount">
+      <div class="subscriptionPaymentRow"><div><span>STATUS</span><strong id="subscriptionPaymentProvider">Noch nicht verbunden</strong></div><button class="btn small subscriptionOwnerOnly" type="button" onclick="SubscriptionBilling.explainPayment()">So funktioniert es</button></div>
+      <p class="subscriptionPaymentHint">Im nächsten Zahlungs-Schritt verbinden wir Stripe im Testmodus. Erst danach werden echte Zahlungsmethoden und dein Auszahlungskonto eingerichtet.</p>
+      <div class="subscriptionReadOnlyNote" id="subscriptionReadOnlyNote" hidden><b>🔒 Lesemodus aktiv</b><br>Vorhandene Kunden, Angebote, Rechnungen und Dateien bleiben sichtbar und exportierbar. Neue Änderungen werden serverseitig blockiert, bis das Abo wieder aktiv ist.</div>
+    </div>
+
+    <div class="sectionTitle subscriptionOwnerOnly"><div><h2>Rechnungsdaten</h2><p class="mini">Diese Angaben verwenden wir später für deine AngebotsPilot-Abo-Rechnungen.</p></div></div>
+    <div class="card subscriptionOwnerOnly subscriptionRequiresAccount">
+      <div class="subscriptionBillingGrid">
+        <div class="field wide"><label>Firma / Rechnungsempfänger</label><input class="input" id="subscriptionBillingName" autocomplete="organization" placeholder="Musterbetrieb GmbH"></div>
+        <div class="field wide"><label>Rechnungs-E-Mail</label><input class="input" id="subscriptionBillingEmail" type="email" autocomplete="email" placeholder="rechnung@betrieb.de"></div>
+        <div class="field wide"><label>Straße & Hausnummer</label><input class="input" id="subscriptionBillingStreet" autocomplete="street-address" placeholder="Musterstraße 1"></div>
+        <div class="field"><label>PLZ</label><input class="input" id="subscriptionBillingPostal" inputmode="text" autocomplete="postal-code" placeholder="85579"></div>
+        <div class="field"><label>Ort</label><input class="input" id="subscriptionBillingCity" autocomplete="address-level2" placeholder="München"></div>
+        <div class="field"><label>Land</label><select id="subscriptionBillingCountry"><option value="DE">Deutschland</option><option value="AT">Österreich</option><option value="CH">Schweiz</option></select></div>
+        <div class="field"><label>USt-IdNr. <span class="mini">optional</span></label><input class="input" id="subscriptionBillingVat" placeholder="DE123456789"></div>
+      </div>
+      <div class="actions"><button class="btn primary" id="subscriptionBillingSave" type="button" onclick="SubscriptionBilling.saveBillingProfile()">Rechnungsdaten speichern</button></div>
+      <p class="mini">Zahlungsdaten wie Kreditkarten oder Bankzugänge werden später ausschließlich beim Zahlungsanbieter verwaltet und nicht in AngebotsPilot gespeichert.</p>
+    </div>
+
+    <div id="subscriptionNonOwnerNote" class="subscriptionNonOwner" hidden>Die Abo- und Rechnungsdaten verwaltet der Inhaber des Betriebs.</div>
+
+    <div class="sectionTitle"><div><h2>Abo-Rechnungen</h2><p class="mini">Für Buchhaltung und Steuer jederzeit verfügbar.</p></div><span>Belege</span></div>
+    <div class="card subscriptionRequiresAccount" id="subscriptionInvoiceList"><div class="subscriptionEmpty"><span>🧾</span><b>Noch keine Abo-Rechnungen</b><p>Nach einer späteren echten Abo-Zahlung erscheint der Beleg hier automatisch.</p></div></div>
+
+    <div class="card subscriptionRoadmapNote" style="margin-top:14px"><span>🛡️</span><div><b>Professionelle Sperrlogik vorbereitet</b><p>Bei einer fehlgeschlagenen Zahlung folgt später erst eine Warnung und Kulanzfrist. Erst danach wechselt der Betrieb in einen sicheren Lesemodus – ohne Datenverlust. Nach erfolgreicher Zahlung wird der Zugriff automatisch wieder freigeschaltet.</p></div></div>
+
+    <div class="card subscriptionTestCard subscriptionOwnerOnly" id="subscriptionTestCard" hidden style="margin-top:14px">
+      <div class="subscriptionTestHead"><span>🧪</span><div><h3>Beta-Testmodus</h3><p>Nur für unsere bestehenden Testbetriebe. Damit können wir Trial, Zahlungsverzug und Lesemodus prüfen – ohne echtes Geld.</p></div></div>
+      <div class="subscriptionTestControls">
+        <div class="field"><label>Test-Tarif</label><select id="subscriptionTestPlan"><option value="solo">Solo</option><option value="team">Team</option><option value="pro">Pro</option></select></div>
+        <div class="field"><label>Test-Status</label><select id="subscriptionTestStatus"><option value="trial">Testphase</option><option value="active">Aktiv</option><option value="past_due">Zahlung offen</option><option value="grace_period">Kulanzfrist</option><option value="restricted">Eingeschränkt</option><option value="cancelled">Beendet</option></select></div>
+        <div class="actions"><button class="btn" id="subscriptionTestApply" type="button" onclick="SubscriptionBilling.simulate()">Teststatus anwenden</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="screen" id="emailAssistant">
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.29.9</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.30.0</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -1369,25 +1425,26 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.29.9" defer></script>
-<script src="country-config.js?v=11.29.9" defer></script>
-<script src="data-repository.js?v=11.29.9" defer></script>
-<script src="einvoice.js?v=11.29.9" defer></script>
-<script src="script.js?v=11.29.9" defer></script>
-<script src="customer-import.js?v=11.29.9" defer></script>
-<script src="cloud-files.js?v=11.29.9" defer></script>
-<script src="cloud-sync.js?v=11.29.9" defer></script>
-<script src="team.js?v=11.29.9" defer></script>
-<script src="assignments.js?v=11.29.9" defer></script>
-<script src="time-tracking.js?v=11.29.9" defer></script>
-<script src="notifications.js?v=11.29.9" defer></script>
-<script src="mail-hub.js?v=11.29.9" defer></script>
-<script src="email-assistant.js?v=11.29.9" defer></script>
-<script src="acceptance.js?v=11.29.9" defer></script>
-<script src="custom-selects.js?v=11.29.9" defer></script>
-<script src="security.js?v=11.29.9" defer></script>
-<script src="onboarding-setup.js?v=11.29.9" defer></script>
-<script src="cloud-auth.js?v=11.29.9" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.29.9").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.30.0" defer></script>
+<script src="country-config.js?v=11.30.0" defer></script>
+<script src="data-repository.js?v=11.30.0" defer></script>
+<script src="einvoice.js?v=11.30.0" defer></script>
+<script src="script.js?v=11.30.0" defer></script>
+<script src="customer-import.js?v=11.30.0" defer></script>
+<script src="cloud-files.js?v=11.30.0" defer></script>
+<script src="cloud-sync.js?v=11.30.0" defer></script>
+<script src="team.js?v=11.30.0" defer></script>
+<script src="assignments.js?v=11.30.0" defer></script>
+<script src="time-tracking.js?v=11.30.0" defer></script>
+<script src="notifications.js?v=11.30.0" defer></script>
+<script src="mail-hub.js?v=11.30.0" defer></script>
+<script src="email-assistant.js?v=11.30.0" defer></script>
+<script src="acceptance.js?v=11.30.0" defer></script>
+<script src="custom-selects.js?v=11.30.0" defer></script>
+<script src="security.js?v=11.30.0" defer></script>
+<script src="onboarding-setup.js?v=11.30.0" defer></script>
+<script src="cloud-auth.js?v=11.30.0" defer></script>
+<script src="subscription.js?v=11.30.0" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.30.0").catch(()=>{}));}</script>
 </body>
 </html>

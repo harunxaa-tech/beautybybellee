@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-29-9';
+const CACHE='angebotspilot-v11-30-0';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.29.9','./cloud-config.js?v=11.29.9',
-  './country-config.js?v=11.29.9','./data-repository.js?v=11.29.9','./einvoice.js?v=11.29.9','./script.js?v=11.29.9','./customer-import.js?v=11.29.9','./cloud-files.js?v=11.29.9','./cloud-sync.js?v=11.29.9',
-  './team.js?v=11.29.9','./assignments.js?v=11.29.9','./time-tracking.js?v=11.29.9','./notifications.js?v=11.29.9','./mail-hub.js?v=11.29.9','./email-assistant.js?v=11.29.9','./acceptance.js?v=11.29.9','./custom-selects.js?v=11.29.9',
-  './security.js?v=11.29.9','./onboarding-setup.js?v=11.29.9','./cloud-auth.js?v=11.29.9','./manifest.json?v=11.29.9','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.30.0','./subscription.css?v=11.30.0','./cloud-config.js?v=11.30.0',
+  './country-config.js?v=11.30.0','./data-repository.js?v=11.30.0','./einvoice.js?v=11.30.0','./script.js?v=11.30.0','./customer-import.js?v=11.30.0','./cloud-files.js?v=11.30.0','./cloud-sync.js?v=11.30.0',
+  './team.js?v=11.30.0','./assignments.js?v=11.30.0','./time-tracking.js?v=11.30.0','./notifications.js?v=11.30.0','./mail-hub.js?v=11.30.0','./email-assistant.js?v=11.30.0','./acceptance.js?v=11.30.0','./custom-selects.js?v=11.30.0',
+  './security.js?v=11.30.0','./onboarding-setup.js?v=11.30.0','./cloud-auth.js?v=11.30.0','./subscription.js?v=11.30.0','./manifest.json?v=11.30.0','./icon-192.svg','./icon-512.svg'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
@@ -17,7 +17,6 @@ self.addEventListener('fetch',e=>{
   }
   e.respondWith(fetch(e.request).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match(e.request)));
 });
-
 
 self.addEventListener('push',event=>{
   let data={};

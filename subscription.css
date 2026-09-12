@@ -1,0 +1,77 @@
+/* AngebotsPilot v11.30.0 – SaaS / Abo UI */
+#subscription{padding-bottom:110px}
+.subscriptionPageTitle{align-items:flex-start}
+.subscriptionStatusCard{overflow:hidden}
+.subscriptionStatusHead{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.subscriptionStatusHead>div:nth-child(2){flex:1;min-width:180px}
+.subscriptionStatusHead h2{margin:2px 0 3px}
+.subscriptionStatusHead p{margin:0;color:var(--muted);font-size:.88rem}
+.subscriptionStatusIcon{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;font-weight:900;font-size:1.15rem;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.subscriptionTone-success{box-shadow:inset 0 0 0 1px rgba(95,220,140,.25)}
+.subscriptionTone-warning{box-shadow:inset 0 0 0 1px rgba(255,190,80,.28)}
+.subscriptionTone-danger{box-shadow:inset 0 0 0 1px rgba(255,105,105,.28)}
+.subscriptionTone-info{box-shadow:inset 0 0 0 1px rgba(100,170,255,.25)}
+.subscriptionEyebrow{font-size:.68rem;letter-spacing:.12em;font-weight:800;color:var(--muted)}
+.subscriptionPlanBadge{margin-left:auto;padding:8px 11px;border:1px solid var(--line);border-radius:999px;font-size:.78rem;font-weight:800;background:rgba(255,255,255,.035)}
+.subscriptionTrustRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.subscriptionTrustRow span{font-size:.72rem;color:var(--muted);padding:6px 8px;border-radius:999px;background:rgba(255,255,255,.03)}
+.subscriptionGlobalBanner{display:flex;width:calc(100% - 28px);margin:10px 14px 2px;align-items:center;gap:10px;text-align:left;border-radius:14px;border:1px solid var(--line);padding:10px 12px;background:var(--card);color:inherit;box-shadow:var(--shadow);position:relative;z-index:18}
+.subscriptionGlobalBanner.hidden{display:none}
+.subscriptionGlobalBanner span:nth-child(2){flex:1;display:grid;gap:2px}
+.subscriptionGlobalBanner b{font-size:.84rem}
+.subscriptionGlobalBanner small{font-size:.72rem;color:var(--muted);line-height:1.25}
+.subscriptionGlobalBanner em{font-style:normal;font-size:.72rem;font-weight:800;color:var(--muted)}
+.subscriptionBannerIcon{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:rgba(255,255,255,.06)}
+.subscriptionBanner-warning{box-shadow:inset 0 0 0 1px rgba(255,190,80,.22)}
+.subscriptionBanner-danger{box-shadow:inset 0 0 0 1px rgba(255,105,105,.25)}
+.subscriptionBanner-info{box-shadow:inset 0 0 0 1px rgba(100,170,255,.2)}
+.subscriptionPlanGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.subscriptionPlanCard{padding:14px;border-radius:16px;border:1px solid var(--line);background:var(--card)}
+.subscriptionPlanCard.current{outline:2px solid rgba(118,171,255,.38);outline-offset:-2px}
+.subscriptionPlanTop{display:flex;justify-content:space-between;align-items:center;font-size:1.4rem}
+.subscriptionPlanTop em{font-style:normal;font-size:.68rem;font-weight:900;padding:5px 7px;border-radius:999px;background:rgba(255,255,255,.06)}
+.subscriptionPlanCard h3{margin:10px 0 4px}
+.subscriptionPlanCard p{margin:0;color:var(--muted);font-size:.8rem;line-height:1.35}
+.subscriptionPlanCard small{display:block;margin-top:8px;line-height:1.35;color:var(--muted)}
+.subscriptionPricePending{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:.72rem;font-weight:800;color:var(--muted)}
+.subscriptionPaymentRow{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.subscriptionPaymentRow>div{display:grid;gap:4px;flex:1;min-width:200px}
+.subscriptionPaymentRow span{font-size:.74rem;color:var(--muted);font-weight:700}
+.subscriptionPaymentRow strong{font-size:.92rem}
+.subscriptionPaymentHint{margin:12px 0 0;color:var(--muted);font-size:.76rem;line-height:1.45}
+.subscriptionReadOnlyNote{margin-top:12px;padding:12px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.035);font-size:.78rem;line-height:1.45}
+.subscriptionBillingGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.subscriptionBillingGrid .wide{grid-column:1/-1}
+.subscriptionInvoiceRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.subscriptionInvoiceRow:last-child{border-bottom:0}
+.subscriptionInvoiceRow>div{display:grid;gap:4px}
+.subscriptionInvoiceRow small{color:var(--muted)}
+.subscriptionEmpty{display:grid;place-items:center;text-align:center;gap:5px;padding:24px 14px;color:var(--muted)}
+.subscriptionEmpty>span{font-size:1.7rem}
+.subscriptionEmpty b{color:var(--text)}
+.subscriptionEmpty p{max-width:520px;margin:0;line-height:1.45;font-size:.82rem}
+.subscriptionEmpty .btn{margin-top:8px}
+.subscriptionLoading{display:flex;gap:12px;align-items:center;padding:8px 0}
+.subscriptionLoading>span{width:30px;height:30px;border-radius:50%;border:3px solid var(--line);border-top-color:currentColor;animation:subscriptionSpin .8s linear infinite}
+.subscriptionLoading>div{display:grid;gap:3px}
+.subscriptionLoading small{color:var(--muted)}
+@keyframes subscriptionSpin{to{transform:rotate(360deg)}}
+.subscriptionUnavailable .subscriptionRequiresAccount{opacity:.55;pointer-events:none}
+.subscriptionTestCard{border-style:dashed}
+.subscriptionTestHead{display:flex;gap:10px;align-items:flex-start}
+.subscriptionTestHead>span{font-size:1.35rem}
+.subscriptionTestHead h3{margin:0 0 4px}
+.subscriptionTestHead p{margin:0;color:var(--muted);font-size:.8rem;line-height:1.4}
+.subscriptionTestControls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.subscriptionTestControls .actions{grid-column:1/-1;margin:0}
+.subscriptionNonOwner{padding:12px;border-radius:13px;border:1px solid var(--line);color:var(--muted);font-size:.8rem;line-height:1.4}
+.subscriptionRoadmapNote{display:flex;gap:10px;align-items:flex-start}
+.subscriptionRoadmapNote>span{font-size:1.25rem}
+.subscriptionRoadmapNote p{margin:4px 0 0;color:var(--muted);font-size:.8rem;line-height:1.45}
+.subscriptionReadOnly .offerSwipeHint{display:none}
+@media(max-width:720px){
+  .subscriptionPlanGrid{grid-template-columns:1fr}
+  .subscriptionBillingGrid,.subscriptionTestControls{grid-template-columns:1fr}
+  .subscriptionBillingGrid .wide,.subscriptionTestControls .actions{grid-column:auto}
+  .subscriptionPlanBadge{margin-left:62px}
+}

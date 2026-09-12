@@ -1,7 +1,7 @@
 {
   "name": "AngebotsPilot",
   "short_name": "AngebotsPilot",
-  "description": "AngebotsPilot v11.29.9 – Handwerker-Workflow mit Sekretariat, Angeboten, Baustellen, Rechnungen, DE/AT/CH-Compliance, E-Rechnung, Abnahmeprotokoll und datensparsamem Bestandskunden-Import aus CSV/XLSX mit Dublettenprüfung und Importprotokoll sowie Sicherheitscenter, App-Sperre, Passkey/WebAuthn-Vorbereitung und einem geführten 4-Schritt-Onboarding für Solo- und Team-Betriebe.",
+  "description": "AngebotsPilot v11.30.0 – Handwerker-Workflow für Angebote, Kunden, Baustellen, Rechnungen, Sekretariat und Abnahmen mit DE/AT/CH-Grundlage. Neu: sichere SaaS-/Abo-Basis mit Tarifstatus, Rechnungsdaten, Abo-Belegarchiv und professionellem Lesemodus bei Zahlungsverzug; echte Zahlungen folgen separat über den Zahlungsanbieter.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
