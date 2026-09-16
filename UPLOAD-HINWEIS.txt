@@ -1,48 +1,19 @@
-AngebotsPilot v11.31.0 – Rechnungs-Compliance Core
+AngebotsPilot v11.31.0 – Rechnungs-UI Hotfix r3
 
 UPLOAD
-- ZIP entpacken.
-- Alle enthaltenen Dateien direkt ins GitHub-Root hochladen.
-- Vorher nichts löschen.
-- Vorhandene gleichnamige Dateien überschreiben.
+1. ZIP entpacken.
+2. cloud-config.js und service-worker.js ins GitHub-Root hochladen.
+3. Vorhandene Dateien mit gleichem Namen ersetzen.
+4. Vorher nichts löschen.
 
-DATEIEN
-- cloud-config.js
-- service-worker.js
-- compliance-v1131.js
-
-WAS IST NEU
-- Zentrale sichtbare App-Version 11.31.0.
-- Neue Rechnungs-Compliance-Schicht wird zuverlässig über cloud-config.js geladen.
-- XRechnung-CustomizationID auf die korrekte XRechnung-3.0-Kennung korrigiert:
-  urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0
-- Technischer Zielstand XRechnung 3.0.2 / Bundle 2026-08-31.
-- Interner Check wird ausdrücklich als Vorabcheck bezeichnet, nicht als offizielle KoSIT-Vollvalidierung.
-- Dokumentrabatte erhalten im strukturierten XML zusätzlich Rabattgrund und Steuerkategorie.
-- DE-Regelmatrix: B2B-Übergang 2026, Kleinunternehmer, Kleinbetrag, B2C, grenzüberschreitend.
-- AT-Regelmatrix: Bundesverwaltung strukturiert; sonst elektronische Übermittlung mit Empfängerzustimmung beachten.
-- CH-Regelmatrix: Formatneutralität, Unverändertheit/Prüfspur und Aufbewahrung berücksichtigt.
-- Aktueller ZUGFeRD-Zielstand 2.5.2 hinterlegt; hybride PDF/A-3-Erzeugung noch NICHT als fertig ausgegeben.
-- Service-Worker-Cache: angebotspilot-v11-31-0-r1.
-
-SICHERHEIT
-- Keine Datenbankmigration.
-- Keine Geschäftsdaten werden beim Update verändert.
-- Bestehende Rechnungen werden nicht umgeschrieben.
-- Keine Secrets ergänzt.
-- Restore-/Archiv-Fix aus v11.30.6 bleibt erhalten.
-
-QA
-- node --check für alle geänderten JS-Dateien: bestanden.
-- Compliance-Testmatrix bestanden:
-  * XRechnung-Kennung korrigiert
-  * alte xoeinkauf-Kennung entfernt
-  * Rabattgrund + Steuerkategorie im AllowanceCharge
-  * keine falsche Sperre durch alten internen Validator
-  * DE B2B 2026 Übergangsregel
-  * DE Kleinunternehmer-Ausnahme
-  * DE Kleinbetrags-Ausnahme
-  * DE B2C
-  * DE grenzüberschreitend
-  * AT öffentliche Verwaltung
-  * CH Formatlogik
+FIX
+- fehlendes Leistungsdatum wird im Rechnungseditor robust ergänzt
+- „+ Neu“ und „Bearbeiten“ werden vor Ausführung gegen fehlende Editor-Felder abgesichert
+- Korrektur/Storno öffnen anschließend ebenfalls zuverlässig den Editor
+- Compliance-Prüfbox wird im Rechnungseditor sichtbar ergänzt
+- Runtime-Diagnose prüft die Aktionsfunktionen für Neu, Bearbeiten, PDF/Vorschau, Ausstellen,
+  Teilen, Bezahlt, Korrektur, Storno, Position, Speichern, Fertig und Drucken
+- Fehler in Neu/Bearbeiten/Korrektur/Storno führen nicht mehr zu einem stillen Klick ohne Rückmeldung
+- keine Geschäftsdaten und keine Supabase-Daten werden verändert
+- App-Version bleibt 11.31.0; Hotfix-/Cache-Stand r3
+- Service-Worker-Cache: angebotspilot-v11-31-0-r3

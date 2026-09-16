@@ -15,7 +15,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   const VERSION='11.31.0';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC=`./compliance-v1131.js?v=${VERSION}`;
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_0__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_0_R3__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,13 +33,87 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-0-r1',
+    cacheTag:'angebotspilot-v11-31-0-r3',
     stamp:stampBuild
   });
 
   let wrappersInstalled=false;
   let settingsObserver=null;
   let refreshTimer=null;
+
+  // v11.31.0-r3: Rechnungseditor robust gegen fehlende/alte HTML-Felder machen.
+  function ensureInvoiceEditorUi(){
+    const editor=document.getElementById('invoiceEditor');
+    if(!editor)return false;
+
+    let serviceDate=document.getElementById('invoiceServiceDate');
+    if(!serviceDate){
+      const due=document.getElementById('invoiceDueDate');
+      const dateRow=due?.closest?.('.row');
+      if(dateRow){
+        const field=document.createElement('div');
+        field.className='field apInvoiceServiceDateField';
+        field.innerHTML='<label>Leistungsdatum</label><input type="date" class="input" id="invoiceServiceDate" data-invoice-editable><small>Datum, an dem die Leistung ausgeführt bzw. abgeschlossen wurde.</small>';
+        dateRow.insertAdjacentElement('afterend',field);
+        serviceDate=field.querySelector('#invoiceServiceDate');
+      }
+    }
+
+    // Die Compliance-Anzeige war im alten HTML noch nicht vorhanden. Sie ist optional,
+    // soll aber sichtbar sein, sobald v11.31 aktiv ist.
+    let complianceBox=document.getElementById('invoiceComplianceBox');
+    if(!complianceBox){
+      const lines=document.getElementById('invoiceLines');
+      const lineCard=lines?.closest?.('.card');
+      if(lineCard){
+        complianceBox=document.createElement('div');
+        complianceBox.id='invoiceComplianceBox';
+        complianceBox.className='invoiceComplianceBox';
+        complianceBox.innerHTML='<div class="invoiceComplianceHead"><span>🛡️</span><div><b>Rechnungsprüfung bereit</b><small>Pflichtfelder und E‑Rechnungsregeln werden vor dem Ausstellen geprüft.</small></div></div>';
+        lineCard.insertAdjacentElement('beforebegin',complianceBox);
+      }
+    }
+
+    return !!serviceDate;
+  }
+
+  function installInvoiceActionGuards(){
+    ensureInvoiceEditorUi();
+    const names=['newInvoice','editInvoice','createCorrectionDraft','createCancellationDraft'];
+    for(const name of names){
+      const fn=globalThis[name];
+      if(typeof fn!=='function'||fn.__apInvoiceUiGuard)continue;
+      const wrapped=function(){
+        ensureInvoiceEditorUi();
+        try{
+          return fn.apply(this,arguments);
+        }catch(error){
+          console.error(`AngebotsPilot Rechnungsaktion ${name} fehlgeschlagen`,error);
+          const message='Rechnungsansicht konnte nicht geöffnet werden. Bitte App einmal neu laden.';
+          if(globalThis.toast)globalThis.toast(message,'error');
+          else if(globalThis.showToast)globalThis.showToast(message,'error');
+          return undefined;
+        }
+      };
+      wrapped.__apInvoiceUiGuard=true;
+      wrapped.__apOriginal=fn;
+      globalThis[name]=wrapped;
+    }
+  }
+
+  function invoiceButtonDiagnostics(){
+    const required=[
+      'newInvoice','editInvoice','previewInvoice','finalizeInvoiceById','shareInvoicePDF',
+      'markInvoicePaid','createCorrectionDraft','createCancellationDraft','addInvoiceLine',
+      'saveInvoice','autoSaveInvoiceAndClose','printInvoice'
+    ];
+    const missing=required.filter(name=>typeof globalThis[name]!=='function');
+    const ids=['invoiceEditor','invoiceId','invoiceNumber','invoiceCustomer','invoiceDate','invoiceDueDate','invoiceServiceDate','invoiceStatus','invoiceSubject','invoiceNotes','invoiceLines','invoiceAddLineBtn','invoiceDiscountType','invoiceDiscount','invoiceTaxTreatment','invoiceTaxRate','invoiceTaxNote','invoiceSaveBtn','invoicePreviewPaper','invoicePreviewSource'];
+    const missingIds=ids.filter(id=>!document.getElementById(id));
+    return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
+  }
+
+  globalThis.APInvoiceUI={version:'11.31.0-r3',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
   function dataSafetyCardIsCurrent(){
     const card=document.getElementById('dataSafetyCard');
@@ -76,6 +150,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     if(!render.__apCentralRuntime){
       const wrappedRender=function(){
         const result=render.apply(this,arguments);
+        ensureInvoiceEditorUi();
+        installInvoiceActionGuards();
         stampBuild();
         scheduleDataSafetyRefresh();
         return result;
@@ -86,7 +162,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
     if(!show.__apCentralRuntime){
       const wrappedShow=function(){
+        if(arguments[0]==='invoiceEditor')ensureInvoiceEditorUi();
         const result=show.apply(this,arguments);
+        if(arguments[0]==='invoiceEditor')ensureInvoiceEditorUi();
+        installInvoiceActionGuards();
         stampBuild();
         if(arguments[0]==='settings')scheduleDataSafetyRefresh(true);
         return result;
@@ -416,6 +495,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
   function boot(){
     stampBuild();
+    ensureInvoiceEditorUi();
+    installInvoiceActionGuards();
     installWrappers();
     installSettingsObserver();
     ensureDataSafetyLoaded();
@@ -425,6 +506,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
     // Späte App-/Cloud-Initialisierung abfangen, ohne dauerhaft renderAll zu pollen.
     [0,250,800,1800].forEach(ms=>setTimeout(()=>{
+      ensureInvoiceEditorUi();
+      installInvoiceActionGuards();
       installWrappers();
       stampBuild();
       ensureDataSafetyLoaded();
