@@ -1,4 +1,4 @@
-const CACHE='angebotspilot-v11-30-1';
+const CACHE='angebotspilot-v11-30-2';
 const ASSETS=[
   './','./index.html','./style.css?v=11.30.1','./subscription.css?v=11.30.1','./cloud-config.js?v=11.30.1',
   './country-config.js?v=11.30.1','./data-repository.js?v=11.30.1','./einvoice.js?v=11.30.1','./script.js?v=11.30.1','./customer-import.js?v=11.30.1','./cloud-files.js?v=11.30.1','./cloud-sync.js?v=11.30.1',
