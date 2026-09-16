@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.30.2 – Stripe billing, cancellation & B2B contract UX
+/* AngebotsPilot v11.30.3 – direct plan changes, Stripe billing, cancellation & B2B contract UX
    Shared by Web, iOS and later Android. Stripe secrets stay server-side in Supabase Edge Functions. */
 (function(){
   'use strict';
 
-  const BUILD='11.30.2';
+  const BUILD='11.30.3';
   const TERMS_VERSION='2026-09-16-beta-b2b-v1';
   const q=id=>document.getElementById(id);
   const esc=value=>String(value??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
@@ -149,8 +149,10 @@
     host.innerHTML=Object.entries(PLANS).map(([code,p])=>{
       const ready=gatewayReady(code),same=code===current;let action='';
       if(isOwner()&&stripeSub&&same)action=`<button class="btn small subscriptionPlanAction" type="button" onclick="SubscriptionBilling.scrollManage()">Abo verwalten</button>`;
-      else if(isOwner()&&stripeSub&&!same)action=`<button class="btn small subscriptionPlanAction" type="button" onclick="SubscriptionBilling.openPortal()">Tarifwechsel verwalten</button>`;
-      else if(isOwner())action=`<button class="btn small subscriptionPlanAction" type="button" ${ready?'':'disabled'} onclick="SubscriptionBilling.startCheckout('${code}')">${ready?'Im Test-Checkout wählen':'Stripe-Testkonto fehlt'}</button>`;
+      else if(isOwner()&&stripeSub&&!same){
+        const ending=!!state.access?.cancel_at_period_end;
+        action=`<button class="btn small subscriptionPlanAction" type="button" ${ending?'disabled':''} onclick="SubscriptionBilling.changePlan('${code}')">${ending?'Erst Kündigung zurücknehmen':`Zu ${esc(p.name)} wechseln`}</button>`;
+      }else if(isOwner())action=`<button class="btn small subscriptionPlanAction" type="button" ${ready?'':'disabled'} onclick="SubscriptionBilling.startCheckout('${code}')">${ready?'Im Test-Checkout wählen':'Stripe-Testkonto fehlt'}</button>`;
       return `<article class="subscriptionPlanCard ${same?'current':''}"><div class="subscriptionPlanTop"><span>${p.icon}</span>${same?'<em>Aktuell</em>':''}</div><h3>${esc(p.name)}</h3><p>${esc(p.summary)}</p><small>${esc(p.details)}</small><div class="subscriptionPricePending"><strong>${formatMoney(p.priceCents)}</strong> / Monat</div>${action}</article>`;
     }).join('');
   }
@@ -223,7 +225,7 @@
     const provider=q('subscriptionPaymentProvider');if(provider)provider.textContent=a.billing_provider==='stripe'?(a.provider_livemode?'Stripe · Live':'Stripe · Testmodus'):state.gateway?.configured?'Stripe-Testkonto bereit · noch kein Abo':'Stripe technisch vorbereitet · noch nicht verbunden';
     const gateway=q('subscriptionGatewayStatus');
     if(gateway){const g=state.gateway||{};let text='Stripe-Testkonto noch nicht verbunden.';if(g.configured&&!g.webhook_configured)text='Stripe-Key erkannt · Webhook-Signatur fehlt noch.';else if(gatewayReady())text=g.livemode?'Stripe Live-Billing verbunden.':'Stripe Testmodus vollständig verbunden.';gateway.textContent=text;gateway.className=`subscriptionGatewayStatus ${gatewayReady()?'ready':g.configured?'partial':'pending'}`}
-    const portal=q('subscriptionPortalButton');if(portal)portal.hidden=!(isOwner()&&(a.has_provider_customer||state.gateway?.has_customer));
+    const portal=q('subscriptionPortalButton');if(portal){portal.hidden=!(isOwner()&&(a.has_provider_customer||state.gateway?.has_customer));portal.textContent='Zahlungsmethode ändern'};
     const readOnly=q('subscriptionReadOnlyNote');if(readOnly)readOnly.hidden=a.can_write!==false;
     document.querySelectorAll('#subscription .subscriptionOwnerOnly').forEach(el=>el.hidden=!isOwner());
     const nonOwner=q('subscriptionNonOwnerNote');if(nonOwner)nonOwner.hidden=isOwner();
@@ -282,6 +284,31 @@
     catch(e){console.error(e);if(e?.code==='subscription_exists')return scrollManage();toast(String(e?.message||'Test-Checkout konnte nicht geöffnet werden.'),'error')}
   }
 
+  async function changePlan(plan){
+    if(!isOwner())return toast('Nur der Inhaber kann den Tarif wechseln.','error');
+    const a=state.access||{},from=currentPlan(),to=PLANS[plan];
+    if(!to)return toast('Unbekannter Tarif.','error');
+    if(!a.has_provider_subscription)return toast('Kein aktives Stripe-Abo gefunden.','error');
+    if(a.cancel_at_period_end)return toast('Bitte zuerst die vorgemerkte Kündigung zurücknehmen.','warning');
+    if(a.plan===plan)return scrollManage();
+    const text=`Du wechselst von ${from.name} (${formatMoney(from.priceCents)}/Monat) zu ${to.name} (${formatMoney(to.priceCents)}/Monat).\
+\
+Der Tarifwechsel gilt sofort. Stripe berechnet die anteilige Preisdifferenz bzw. Gutschrift für den laufenden Zeitraum und berücksichtigt sie bei der nächsten Rechnung. Dein bisheriger Abrechnungstag bleibt gleich.`;
+    const ok=globalThis.appConfirm?await globalThis.appConfirm({title:`Zu ${to.name} wechseln?`,text,confirmLabel:`Zu ${to.name} wechseln`,icon:'↔️'}):confirm(text);if(!ok)return;
+    const buttons=[...document.querySelectorAll('#subscriptionPlanGrid .subscriptionPlanAction')];buttons.forEach(b=>b.disabled=true);
+    try{
+      const data=await invokeBilling('change_plan',{plan});
+      if(state.access){state.access.plan=data.plan||plan;if(data.current_period_end)state.access.current_period_end=data.current_period_end}
+      renderAccess();
+      toast(`Tarif gewechselt: ${to.name}. Die anteilige Verrechnung erfolgt über Stripe.`, 'success');
+      setTimeout(()=>refresh({silent:true}),1200);
+    }catch(e){
+      console.error(e);
+      if(e?.code==='cancellation_pending')toast('Bitte zuerst die vorgemerkte Kündigung zurücknehmen.','warning');
+      else toast(String(e?.message||'Tarif konnte nicht gewechselt werden.'),'error');
+    }finally{buttons.forEach(b=>b.disabled=false)}
+  }
+
   async function cancelSubscription(){
     if(!isOwner())return toast('Nur der Inhaber kann das Abo kündigen.','error');const a=state.access||{},p=currentPlan();if(!a.has_provider_subscription)return toast('Kein aktives Stripe-Abo gefunden.','error');
     const end=formatDate(a.current_period_end);
@@ -313,7 +340,7 @@
   function handleSubscriptionError(event){const reason=event?.reason||event?.error,text=String(reason?.message||reason||'');if(!text.includes('SUBSCRIPTION_RESTRICTED'))return;toast('Abo im Lesemodus: Diese Änderung wurde nicht gespeichert. Deine Daten bleiben erhalten.','error');refresh({silent:true})}
 
   globalThis.openSubscription=function(){globalThis.showScreen?.('subscription');refresh()};
-  globalThis.SubscriptionBilling={refresh,saveBillingProfile,simulate,startCheckout,cancelSubscription,resumeSubscription,openPortal,openInvoice,explainPayment,showLegalReadiness,scrollManage,_state:()=>({...state})};
+  globalThis.SubscriptionBilling={refresh,saveBillingProfile,simulate,startCheckout,changePlan,cancelSubscription,resumeSubscription,openPortal,openInvoice,explainPayment,showLegalReadiness,scrollManage,_state:()=>({...state})};
 
   document.addEventListener('click',blockKnownWriteClick,true);
   window.addEventListener('unhandledrejection',handleSubscriptionError);

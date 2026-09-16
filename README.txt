@@ -1,8 +1,14 @@
-AngebotsPilot Abo-Patch v11.30.2
+AngebotsPilot Abo v11.30.3
 
-Backend ist bereits in Supabase aktualisiert.
-Für GitHub Pages nur diese beiden Dateien im Repository-Root ersetzen:
+Enthalten:
 - subscription.js
 - service-worker.js
 
-Danach Safari einmal vollständig neu laden bzw. die PWA schließen und erneut öffnen.
+Neu:
+- Tarifwechsel Solo / Team / Pro direkt in AngebotsPilot
+- Stripe-Portal nur noch für Zahlungsmethode
+- direkter Kündigungs- und Reaktivierungsweg bleibt erhalten
+- Tarifwechsel gilt sofort; Stripe verrechnet anteilig auf der nächsten Rechnung
+
+Upload:
+Beide Dateien im GitHub-Root ersetzen. Danach AngebotsPilot komplett schließen und neu öffnen.
