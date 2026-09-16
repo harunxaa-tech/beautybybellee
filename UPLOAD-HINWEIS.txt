@@ -1,0 +1,27 @@
+AngebotsPilot v11.30.6 – Loader/Version Stabilitätsfix
+
+Diese ZIP enthält nur die zwei Root-Dateien, die für den robusten Fix nötig sind:
+- cloud-config.js
+- service-worker.js
+
+Im GitHub-Repo harunxaa-tech/beautybybellee im Root hochladen/ersetzen.
+Keine anderen Dateien und keine Geschäftsdaten löschen.
+
+Was der Fix macht:
+1. data-safety.js wird direkt aus dem Hauptdokument-Bootstrap (cloud-config.js) mit v11.30.6 geladen. Die App ist nicht mehr von einer Service-Worker-HTML-Injektion abhängig.
+2. Der Service Worker injiziert kein HTML/Script mehr. Navigation und Assets laufen network-first mit Offline-Fallback.
+3. Der Bereich „Datensicherung & Archiv“ wird nach späteren renderAll-/Settings-Renders zuverlässig erneut hergestellt.
+4. Cloud-/Login-/Focus-/Visibility-Wechsel aktualisieren den Datensicherungsstatus erneut.
+5. APBuild.version = 11.30.6 ist die verbindliche Runtime-Build-Version; alte sichtbare 11.30.1-Stamps werden überschrieben.
+6. Service-Worker-Cache: angebotspilot-v11-30-6-r3.
+
+Zusätzlicher Restore-Schutz:
+Bei der Codeprüfung wurde entdeckt, dass die aktuelle mergeById()-Logik bei gleicher ID den Backup-Datensatz gewinnen lässt. Ein älteres Backup könnte damit neuere aktuelle Inhalte zurücksetzen. Deshalb ist in diesem v11.30.6-Paket die Restore-VORSCHAU weiterhin aktiv, das tatsächliche „Backup zusammenführen“ aber vorsorglich gesperrt. So kann kein Test versehentlich aktuelle Facility&Care-Daten überschreiben. Der konfliktbewusste Merge-Fix folgt vor dem echten Restore.
+
+Erwarteter Zustand nach Deployment:
+- Mehr -> Version 11.30.6
+- Betrieb -> „Datensicherung & Archiv“
+- Status -> „Cloud-Betrieb verbunden“
+- „Archiv öffnen“ aktiv
+- Backup einlesen -> Vorschau möglich
+- „Backup zusammenführen“ -> Sicherheitsgurt aktiv / deaktiviert
