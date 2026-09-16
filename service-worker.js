@@ -1,7 +1,7 @@
-const CACHE='angebotspilot-v11-30-6-r4';
+const CACHE='angebotspilot-v11-31-0-r1';
 const ASSETS=[
   './','./index.html','./style.css?v=11.30.1','./subscription.css?v=11.30.1','./cloud-config.js?v=11.30.1',
-  './country-config.js?v=11.30.1','./data-repository.js?v=11.30.1','./einvoice.js?v=11.30.1','./script.js?v=11.30.1','./customer-import.js?v=11.30.1','./cloud-files.js?v=11.30.1','./cloud-sync.js?v=11.30.1',
+  './country-config.js?v=11.30.1','./data-repository.js?v=11.30.1','./einvoice.js?v=11.30.1','./compliance-v1131.js?v=11.31.0','./script.js?v=11.30.1','./customer-import.js?v=11.30.1','./cloud-files.js?v=11.30.1','./cloud-sync.js?v=11.30.1',
   './team.js?v=11.30.1','./assignments.js?v=11.30.1','./time-tracking.js?v=11.30.1','./notifications.js?v=11.30.1','./mail-hub.js?v=11.30.1','./email-assistant.js?v=11.30.1','./acceptance.js?v=11.30.1','./custom-selects.js?v=11.30.1',
   './security.js?v=11.30.1','./onboarding-setup.js?v=11.30.1','./cloud-auth.js?v=11.30.1','./subscription.js?v=11.30.6','./data-safety.js?v=11.30.6','./manifest.json?v=11.30.1','./icon-192.svg','./icon-512.svg'
 ];

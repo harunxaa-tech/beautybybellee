@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.30.6 – öffentliche Supabase-Konfiguration + zentraler Runtime-Loader
+/* AngebotsPilot v11.31.0 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,9 +12,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.30.6';
-  const DATA_SAFETY_SRC=`./data-safety.js?v=${VERSION}`;
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_30_6__';
+  const VERSION='11.31.0';
+  const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
+  const COMPLIANCE_SRC=`./compliance-v1131.js?v=${VERSION}`;
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_0__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -32,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-30-6-r4',
+    cacheTag:'angebotspilot-v11-31-0-r1',
     stamp:stampBuild
   });
 
@@ -388,6 +389,18 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     document.head.appendChild(script);
   }
 
+  function ensureComplianceLoaded(){
+    if(globalThis.APCompliance?.runtimeVersion===VERSION)return;
+    const existing=[...document.scripts].find(s=>/compliance-v1131\.js(?:\?|$)/.test(s.src||''));
+    if(existing)return;
+    const script=document.createElement('script');
+    script.src=COMPLIANCE_SRC;
+    script.defer=true;
+    script.dataset.apRuntimeLoader='compliance-v1131';
+    script.onerror=()=>console.error('AngebotsPilot Rechnungs-Compliance konnte nicht geladen werden.');
+    document.head.appendChild(script);
+  }
+
   function installRefreshHooks(){
     const refresh=()=>scheduleDataSafetyRefresh(true);
     window.addEventListener('angebotspilot:syncstate',refresh);
@@ -406,6 +419,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     installWrappers();
     installSettingsObserver();
     ensureDataSafetyLoaded();
+    ensureComplianceLoaded();
     installRefreshHooks();
     forceServiceWorkerCheck();
 
@@ -414,6 +428,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       installWrappers();
       stampBuild();
       ensureDataSafetyLoaded();
+      ensureComplianceLoaded();
       scheduleDataSafetyRefresh(true);
     },ms));
   }

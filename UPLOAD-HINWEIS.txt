@@ -1,23 +1,48 @@
-AngebotsPilot v11.30.6 – Restore-Sicherheitsfix r4
+AngebotsPilot v11.31.0 – Rechnungs-Compliance Core
 
 UPLOAD
-1. ZIP entpacken.
-2. Die Dateien cloud-config.js und service-worker.js im GitHub-Root hochladen und vorhandene Dateien ersetzen.
-3. Vorher nichts löschen.
+- ZIP entpacken.
+- Alle enthaltenen Dateien direkt ins GitHub-Root hochladen.
+- Vorher nichts löschen.
+- Vorhandene gleichnamige Dateien überschreiben.
 
-WAS WURDE GEÄNDERT?
-- Loader/Datensicherung bleibt unverändert stabil.
-- Der bisherige Restore-Sicherheitsgurt wurde durch einen konfliktbewussten Merge ersetzt.
-- Aktuelle Datensätze gewinnen bei älteren oder unklaren Backup-Konflikten.
-- Ein Backup überschreibt einen vorhandenen Datensatz nur, wenn es anhand eines Update-Zeitstempels nachweislich neuer ist.
-- Aktuelle Löschmarker (deletedEntities) werden nicht aus dem Backup entfernt oder zurückgerollt.
-- Fehlende Datensätze aus dem Backup dürfen ergänzt werden.
-- Vor jedem echten Restore wird weiterhin ein lokaler Vorher-Snapshot angelegt.
-- Cloud-/Login-Identität, aktuelle Rolle und Datenschutzstatus werden nicht aus dem Backup übernommen.
-- Restore-Ereignis wird weiterhin auditiert.
-- Service-Worker-Cache: angebotspilot-v11-30-6-r4.
+DATEIEN
+- cloud-config.js
+- service-worker.js
+- compliance-v1131.js
 
-NICHT GEÄNDERT
-- Keine Supabase-Geschäftsdaten wurden durch dieses Frontend-Paket verändert.
-- acceptance.js, einvoice.js, customer-import.js und security.js bleiben unangetastet.
-- Keine Secrets wurden hinzugefügt.
+WAS IST NEU
+- Zentrale sichtbare App-Version 11.31.0.
+- Neue Rechnungs-Compliance-Schicht wird zuverlässig über cloud-config.js geladen.
+- XRechnung-CustomizationID auf die korrekte XRechnung-3.0-Kennung korrigiert:
+  urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0
+- Technischer Zielstand XRechnung 3.0.2 / Bundle 2026-08-31.
+- Interner Check wird ausdrücklich als Vorabcheck bezeichnet, nicht als offizielle KoSIT-Vollvalidierung.
+- Dokumentrabatte erhalten im strukturierten XML zusätzlich Rabattgrund und Steuerkategorie.
+- DE-Regelmatrix: B2B-Übergang 2026, Kleinunternehmer, Kleinbetrag, B2C, grenzüberschreitend.
+- AT-Regelmatrix: Bundesverwaltung strukturiert; sonst elektronische Übermittlung mit Empfängerzustimmung beachten.
+- CH-Regelmatrix: Formatneutralität, Unverändertheit/Prüfspur und Aufbewahrung berücksichtigt.
+- Aktueller ZUGFeRD-Zielstand 2.5.2 hinterlegt; hybride PDF/A-3-Erzeugung noch NICHT als fertig ausgegeben.
+- Service-Worker-Cache: angebotspilot-v11-31-0-r1.
+
+SICHERHEIT
+- Keine Datenbankmigration.
+- Keine Geschäftsdaten werden beim Update verändert.
+- Bestehende Rechnungen werden nicht umgeschrieben.
+- Keine Secrets ergänzt.
+- Restore-/Archiv-Fix aus v11.30.6 bleibt erhalten.
+
+QA
+- node --check für alle geänderten JS-Dateien: bestanden.
+- Compliance-Testmatrix bestanden:
+  * XRechnung-Kennung korrigiert
+  * alte xoeinkauf-Kennung entfernt
+  * Rabattgrund + Steuerkategorie im AllowanceCharge
+  * keine falsche Sperre durch alten internen Validator
+  * DE B2B 2026 Übergangsregel
+  * DE Kleinunternehmer-Ausnahme
+  * DE Kleinbetrags-Ausnahme
+  * DE B2C
+  * DE grenzüberschreitend
+  * AT öffentliche Verwaltung
+  * CH Formatlogik
