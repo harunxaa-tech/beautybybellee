@@ -1,19 +1,16 @@
-AngebotsPilot v11.31.0 – Rechnungs-UI Hotfix r3
+AngebotsPilot v11.31.0 – Rechnungsbeziehungen Hotfix r4
 
-UPLOAD
-1. ZIP entpacken.
-2. cloud-config.js und service-worker.js ins GitHub-Root hochladen.
-3. Vorhandene Dateien mit gleichem Namen ersetzen.
-4. Vorher nichts löschen.
+Upload ins GitHub-Root (main):
+- cloud-config.js
+- service-worker.js
 
-FIX
-- fehlendes Leistungsdatum wird im Rechnungseditor robust ergänzt
-- „+ Neu“ und „Bearbeiten“ werden vor Ausführung gegen fehlende Editor-Felder abgesichert
-- Korrektur/Storno öffnen anschließend ebenfalls zuverlässig den Editor
-- Compliance-Prüfbox wird im Rechnungseditor sichtbar ergänzt
-- Runtime-Diagnose prüft die Aktionsfunktionen für Neu, Bearbeiten, PDF/Vorschau, Ausstellen,
-  Teilen, Bezahlt, Korrektur, Storno, Position, Speichern, Fertig und Drucken
-- Fehler in Neu/Bearbeiten/Korrektur/Storno führen nicht mehr zu einem stillen Klick ohne Rückmeldung
-- keine Geschäftsdaten und keine Supabase-Daten werden verändert
-- App-Version bleibt 11.31.0; Hotfix-/Cache-Stand r3
-- Service-Worker-Cache: angebotspilot-v11-31-0-r3
+Vorher nichts löschen. Vorhandene Dateien mit gleichem Namen überschreiben.
+
+Fix:
+- Korrektur/Storno-Beziehungen werden nach dem Cloud-Sync robust nachgezogen.
+- Nur vorhandene lokale Beziehungen werden gesetzt.
+- Leere lokale Werte löschen niemals eine bestehende Cloud-Verknüpfung.
+- Keine Geschäftsdaten, Rechnungsbeträge oder Supabase-Tabellen werden gelöscht.
+
+Cache: angebotspilot-v11-31-0-r4
+App-Version bleibt 11.31.0.

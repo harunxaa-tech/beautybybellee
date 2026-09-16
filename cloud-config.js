@@ -15,7 +15,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   const VERSION='11.31.0';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC=`./compliance-v1131.js?v=${VERSION}`;
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_0_R3__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_0_R4__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-0-r3',
+    cacheTag:'angebotspilot-v11-31-0-r4',
     stamp:stampBuild
   });
 
@@ -114,6 +114,64 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceUI={version:'11.31.0-r3',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+
+  // v11.31.0-r4: Rechnungsbeziehungen nach dem Cloud-Push robust nachziehen.
+  // Wichtig: Nur vorhandene lokale Beziehungen werden gesetzt; bestehende Cloud-Beziehungen
+  // werden niemals durch leere lokale Werte auf NULL zurückgesetzt.
+  let invoiceRelationRepairTimer=null;
+  let invoiceRelationRepairRunning=false;
+
+  async function repairInvoiceCloudRelations(){
+    if(invoiceRelationRepairRunning)return;
+    const linked=(globalThis.data?.invoices||[]).filter(inv=>inv?.correctionOf||inv?.originalInvoiceId||inv?.cancelledByInvoiceId);
+    if(!linked.length)return;
+    let ctx=null;
+    try{ctx=globalThis.APCloudContext?.()||null}catch(e){ctx=null}
+    if(!ctx?.client||!ctx?.company?.id||!ctx?.session?.user?.id)return;
+
+    invoiceRelationRepairRunning=true;
+    try{
+      const {data:rows,error}=await ctx.client.from('invoices')
+        .select('id,local_id,correction_of_id,original_invoice_id,cancelled_by_invoice_id')
+        .eq('company_id',ctx.company.id)
+        .is('deleted_at',null);
+      if(error)throw error;
+      const byLocal=new Map((rows||[]).filter(r=>r?.local_id).map(r=>[String(r.local_id),r]));
+
+      for(const inv of linked){
+        const cloud=byLocal.get(String(inv.id));
+        if(!cloud)continue;
+        const patch={};
+        if(inv.correctionOf){
+          const original=byLocal.get(String(inv.correctionOf));
+          if(original?.id&&cloud.correction_of_id!==original.id)patch.correction_of_id=original.id;
+        }
+        if(inv.originalInvoiceId){
+          const original=byLocal.get(String(inv.originalInvoiceId));
+          if(original?.id&&cloud.original_invoice_id!==original.id)patch.original_invoice_id=original.id;
+        }
+        if(inv.cancelledByInvoiceId){
+          const cancellation=byLocal.get(String(inv.cancelledByInvoiceId));
+          if(cancellation?.id&&cloud.cancelled_by_invoice_id!==cancellation.id)patch.cancelled_by_invoice_id=cancellation.id;
+        }
+        if(!Object.keys(patch).length)continue;
+        const {error:updateError}=await ctx.client.from('invoices')
+          .update(patch)
+          .eq('company_id',ctx.company.id)
+          .eq('id',cloud.id);
+        if(updateError)throw updateError;
+      }
+    }catch(error){
+      console.warn('Rechnungsbeziehungen konnten noch nicht nachgezogen werden',error);
+    }finally{
+      invoiceRelationRepairRunning=false;
+    }
+  }
+
+  function scheduleInvoiceRelationRepair(delay=450){
+    clearTimeout(invoiceRelationRepairTimer);
+    invoiceRelationRepairTimer=setTimeout(()=>repairInvoiceCloudRelations(),delay);
+  }
 
   function dataSafetyCardIsCurrent(){
     const card=document.getElementById('dataSafetyCard');
@@ -482,10 +540,13 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
   function installRefreshHooks(){
     const refresh=()=>scheduleDataSafetyRefresh(true);
-    window.addEventListener('angebotspilot:syncstate',refresh);
-    window.addEventListener('focus',refresh);
-    window.addEventListener('pageshow',refresh);
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+    window.addEventListener('angebotspilot:syncstate',event=>{
+      refresh();
+      if(event?.detail?.syncing===false)scheduleInvoiceRelationRepair(350);
+    });
+    window.addEventListener('focus',()=>{refresh();scheduleInvoiceRelationRepair(500)});
+    window.addEventListener('pageshow',()=>{refresh();scheduleInvoiceRelationRepair(500)});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();scheduleInvoiceRelationRepair(500)}});
   }
 
   function forceServiceWorkerCheck(){
@@ -513,6 +574,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       ensureDataSafetyLoaded();
       ensureComplianceLoaded();
       scheduleDataSafetyRefresh(true);
+      scheduleInvoiceRelationRepair(300);
     },ms));
   }
 
