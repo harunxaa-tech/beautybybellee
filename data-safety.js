@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.30.5 – Datenexport, sichere Wiederherstellung & Archiv
+/* AngebotsPilot v11.30.6 – Datenexport, sichere Wiederherstellung & Archiv
    Vollständige Betriebssicherung ohne stille Cloud-Überschreibung. */
 (function(){
   'use strict';
 
-  const BUILD='11.30.5';
+  const BUILD='11.30.6';
   const BACKUP_FORMAT='angebotspilot-backup';
   const BACKUP_FORMAT_VERSION=2;
   const PAGE_SIZE=1000;
@@ -320,7 +320,14 @@
   }
 
   async function enhanceBackupCard(){
-    ensureUI();const h=[...document.querySelectorAll('h3')].find(x=>x.textContent.trim()==='Datensicherung'),card=h?.closest('.card');if(!card)return;
+    ensureUI();
+    let card=q('dataSafetyCard');
+    if(!card){
+      const h=[...document.querySelectorAll('h3')].find(x=>['Datensicherung','Datensicherung & Archiv'].includes(x.textContent.trim()));
+      card=h?.closest('.card');
+      if(!card)return;
+      card.id='dataSafetyCard';
+    }
     const connected=!!ctx()?.company?.id,arch=connected?await archiveCount():null;
     card.innerHTML=`<h3 style="margin-top:0">Datensicherung & Archiv</h3><p class="mini">Vollständiger Betriebsexport, sichere Wiederherstellung mit Vorschau und Cloud-Archiv statt versehentlichem endgültigem Datenverlust.</p>
       <div class="dsGrid"><button class="dsAction" type="button" onclick="DataSafety.exportCompany()"><span>📦</span><b>Betrieb exportieren</b><small>ZIP + JSON + CSV${connected?' · Cloud & lokal':' · lokal'}</small></button><label class="dsAction"><span>↩️</span><b>Backup einlesen</b><small>Erst prüfen, dann zusammenführen</small><input type="file" accept=".zip,.json,application/zip,application/json" hidden onchange="DataSafety.chooseBackup(event)"></label><button class="dsAction" type="button" onclick="DataSafety.openArchive()" ${connected?'':'disabled'}><span>🗄️</span><b>Archiv öffnen ${arch===null?'':`<span class="dsCount">${arch}</span>`}</b><small>${connected?'Gelöschte Kerndaten wiederherstellen':'Cloud-Konto erforderlich'}</small></button></div>
