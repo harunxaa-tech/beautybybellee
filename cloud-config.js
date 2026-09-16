@@ -32,7 +32,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-30-6-r3',
+    cacheTag:'angebotspilot-v11-30-6-r4',
     stamp:stampBuild
   });
 
@@ -112,34 +112,248 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     if(!ds||ds.__apRestoreSafetyGuard)return;
     ds.__apRestoreSafetyGuard=true;
 
-    // v11.30.6-Sicherheitsgurt: Die bestehende Merge-Funktion lässt bei gleicher ID
-    // derzeit den Backup-Datensatz gewinnen. Vorschau bleibt erlaubt, echtes Anwenden
-    // wird bis zum konfliktbewussten Merge-Fix bewusst blockiert.
+    const CORE=['customers','offers','events','tasks','jobs','invoices','catalog'];
+    const FORMAT='angebotspilot-backup';
+    const MAX_FORMAT_VERSION=2;
+    const decoder=new TextDecoder();
+    const encoder=new TextEncoder();
+    let safeRestoreState=null;
+
+    const clone=value=>{
+      try{return structuredClone(value)}catch(e){return JSON.parse(JSON.stringify(value))}
+    };
+    const nowIso=()=>new Date().toISOString();
+    const total=obj=>Object.values(obj||{}).reduce((sum,n)=>sum+(Number(n)||0),0);
+    const notify=(message,type='info')=>{
+      if(globalThis.toast)return globalThis.toast(message,type);
+      if(globalThis.showToast)return globalThis.showToast(message,type);
+      console[type==='error'?'error':'log'](message);
+    };
+    const currentContext=()=>{
+      try{return globalThis.APCloudContext?.()||null}catch(e){return null}
+    };
+    const canManage=()=>['owner','office'].includes(currentContext()?.membership?.role||globalThis.data?.privacy?.role||'owner');
+
+    function readStoredZip(buffer){
+      const view=new DataView(buffer),bytes=new Uint8Array(buffer),files={};let pos=0;
+      const u16=o=>view.getUint16(o,true),u32=o=>view.getUint32(o,true);
+      while(pos+30<=bytes.length&&u32(pos)===0x04034b50){
+        const flags=u16(pos+6),method=u16(pos+8),size=u32(pos+18),nameLen=u16(pos+26),extraLen=u16(pos+28);
+        if(method!==0)throw new Error('Dieses ZIP verwendet eine nicht unterstützte Komprimierung. Bitte ein AngebotsPilot-Backup verwenden.');
+        if(flags&0x08)throw new Error('Dieses ZIP-Format kann nicht sicher geprüft werden.');
+        const name=decoder.decode(bytes.slice(pos+30,pos+30+nameLen));
+        const begin=pos+30+nameLen+extraLen,end=begin+size;
+        if(end>bytes.length)throw new Error('Backup-ZIP ist beschädigt.');
+        files[name]=bytes.slice(begin,end);pos=end;
+      }
+      return files;
+    }
+
+    async function sha256(text){
+      if(!crypto?.subtle)return '';
+      const digest=await crypto.subtle.digest('SHA-256',encoder.encode(text));
+      return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+    }
+
+    function normalizeBackup(raw){
+      if(raw?.format===FORMAT&&raw?.data)return raw;
+      if(raw&&typeof raw==='object'&&(Array.isArray(raw.customers)||Array.isArray(raw.offers)||raw.settings)){
+        return {format:FORMAT,formatVersion:0,appBuild:'legacy',companyId:raw?.meta?.cloudCompanyId||raw?.meta?.companyId||'',data:raw,integrity:{},legacy:true};
+      }
+      throw new Error('Datei ist kein gültiges AngebotsPilot-Backup.');
+    }
+
+    async function parseForSafeRestore(file){
+      if(!file)throw new Error('Keine Datei ausgewählt.');
+      if(file.size>120*1024*1024)throw new Error('Backup ist zu groß für die sichere Browser-Wiederherstellung.');
+      const buffer=await file.arrayBuffer();let raw;
+      if(file.name.toLowerCase().endsWith('.zip')||file.type==='application/zip'){
+        const files=readStoredZip(buffer),payload=files['backup/arbeitsdaten.json'];
+        if(!payload)throw new Error('Im ZIP fehlt backup/arbeitsdaten.json.');
+        raw=JSON.parse(decoder.decode(payload));
+      }else raw=JSON.parse(decoder.decode(new Uint8Array(buffer)));
+      const backup=normalizeBackup(raw);
+      if((Number(backup.formatVersion)||0)>MAX_FORMAT_VERSION)throw new Error('Dieses Backup stammt aus einer neueren AngebotsPilot-Version. Bitte zuerst die App aktualisieren.');
+      if(!backup.data||typeof backup.data!=='object')throw new Error('Backup enthält keine Arbeitsdaten.');
+      const context=currentContext(),activeCompany=context?.company?.id||globalThis.data?.meta?.cloudCompanyId||globalThis.data?.meta?.companyId||'';
+      if(context?.company?.id&&backup.companyId&&backup.companyId!==context.company.id&&backup.companyId!==globalThis.data?.meta?.companyId){
+        throw new Error('Sicherheitsstopp: Dieses Backup gehört zu einem anderen Betrieb.');
+      }
+      if(backup.integrity?.dataSha256){
+        const actual=await sha256(JSON.stringify(backup.data));
+        if(actual!==backup.integrity.dataSha256)throw new Error('Integritätsprüfung fehlgeschlagen. Das Backup wurde möglicherweise verändert oder beschädigt.');
+      }
+      return {fileName:file.name,backup,activeCompany};
+    }
+
+    function timestampOf(row){
+      if(!row||typeof row!=='object')return 0;
+      const keys=['client_updated_at','clientUpdatedAt','updated_at','updatedAt','modified_at','modifiedAt'];
+      let best=0;
+      for(const key of keys){
+        const value=row[key];if(!value)continue;
+        const ms=Date.parse(value);if(Number.isFinite(ms)&&ms>best)best=ms;
+      }
+      return best;
+    }
+
+    function sameRecord(a,b){
+      try{return JSON.stringify(a)===JSON.stringify(b)}catch(e){return false}
+    }
+
+    function currentTombstones(current,collection){
+      return new Set((current?.meta?.deletedEntities||[])
+        .filter(x=>x&&x.collection===collection)
+        .map(x=>String(x.id??''))
+        .filter(Boolean));
+    }
+
+    function mergeCollection(currentRows,incomingRows,collection){
+      const out=(Array.isArray(currentRows)?currentRows:[]).map(clone);
+      const byId=new Map();
+      out.forEach((row,index)=>{if(row&&row.id!==undefined&&row.id!==null)byId.set(String(row.id),index)});
+      const tombstones=currentTombstones(globalThis.data||{},collection);
+      const stats={added:0,backupNewer:0,currentProtected:0,identical:0,deletedProtected:0,noIdSkipped:0};
+
+      for(const incoming of Array.isArray(incomingRows)?incomingRows:[]){
+        if(!incoming||typeof incoming!=='object')continue;
+        const id=incoming.id===undefined||incoming.id===null?'':String(incoming.id);
+        if(!id){stats.noIdSkipped++;continue}
+        if(tombstones.has(id)){stats.deletedProtected++;continue}
+        if(!byId.has(id)){
+          byId.set(id,out.length);out.push(clone(incoming));stats.added++;continue;
+        }
+        const index=byId.get(id),current=out[index];
+        if(sameRecord(current,incoming)){stats.identical++;continue}
+        const currentTs=timestampOf(current),backupTs=timestampOf(incoming);
+        if(currentTs&&backupTs&&backupTs>currentTs){
+          out[index]=clone(incoming);stats.backupNewer++;
+        }else{
+          stats.currentProtected++;
+        }
+      }
+      return {rows:out,stats};
+    }
+
+    function fillMissing(currentValue,backupValue){
+      if(currentValue===undefined||currentValue===null||currentValue==='')return clone(backupValue);
+      if(Array.isArray(currentValue))return clone(currentValue);
+      if(currentValue&&backupValue&&typeof currentValue==='object'&&typeof backupValue==='object'){
+        const out=clone(currentValue);
+        for(const [key,value] of Object.entries(backupValue)){
+          out[key]=key in out?fillMissing(out[key],value):clone(value);
+        }
+        return out;
+      }
+      return clone(currentValue);
+    }
+
+    function buildSafeMerge(current,incoming){
+      const merged=clone(current||{}),details={},summary={added:0,backupNewer:0,currentProtected:0,identical:0,deletedProtected:0,noIdSkipped:0};
+      for(const collection of CORE){
+        const result=mergeCollection(current?.[collection],incoming?.[collection],collection);
+        merged[collection]=result.rows;details[collection]=result.stats;
+        for(const key of Object.keys(summary))summary[key]+=result.stats[key]||0;
+      }
+      merged.settings=fillMissing(current?.settings||{},incoming?.settings||{});
+      merged.privacy=clone(current?.privacy||{});
+      merged.users=clone(current?.users||[]);
+      merged.audit=clone(current?.audit||[]);
+      merged.meta={...(clone(current?.meta||{})),lastRestoreAt:nowIso(),lastRestoreBuild:VERSION,lastRestoreMode:'conflict-aware-current-protected'};
+      // Aktuelle Löschmarker bleiben erhalten. Backup-Löschmarker werden bewusst nicht importiert.
+      merged.meta.deletedEntities=clone(current?.meta?.deletedEntities||[]);
+      return {merged,summary,details};
+    }
+
+    function savePreRestoreSnapshot(){
+      try{
+        const prefix='angebotspilot_pre_restore_',key=prefix+Date.now();
+        localStorage.setItem(key,JSON.stringify({savedAt:nowIso(),data:clone(globalThis.data||{})}));
+        Object.keys(localStorage).filter(k=>k.startsWith(prefix)).sort().reverse().slice(3).forEach(k=>localStorage.removeItem(k));
+        return key;
+      }catch(e){console.warn('Lokaler Vorher-Snapshot nicht möglich',e);return ''}
+    }
+
+    async function writeRestoreAudit(state,beforeKey){
+      try{
+        const c=currentContext();if(!c?.client||!c?.company?.id||!c?.session?.user?.id)return;
+        await c.client.from('data_operation_events').insert({
+          company_id:c.company.id,user_id:c.session.user.id,event_type:'restore_applied',entity_type:'backup',entity_id:'',
+          metadata:{app_build:VERSION,source_file:state.fileName,format_version:state.backup.formatVersion||0,pre_restore_snapshot:!!beforeKey,mode:'conflict-aware-current-protected',merge_summary:state.plan.summary}
+        });
+      }catch(e){console.warn('Restore-Audit konnte nicht geschrieben werden',e)}
+    }
+
+    function decorateSafePreview(state){
+      const body=document.getElementById('dataSafetyRestoreBody');if(!body)return;
+      body.querySelector('.apRestoreConflictGuard')?.remove();
+      body.querySelector('.apRestoreSafeMerge')?.remove();
+      const s=state.plan.summary;
+      const box=document.createElement('div');box.className='dsSafe apRestoreSafeMerge';
+      box.innerHTML=`<b>✓ Konfliktsicherer Merge bereit</b><br>${s.added} fehlende Datensätze werden ergänzt · ${s.backupNewer} nachweislich neuere Backup-Datensätze werden übernommen · ${s.currentProtected} aktuelle Konflikte bleiben geschützt · ${s.identical} identische Datensätze bleiben unverändert${s.deletedProtected?` · ${s.deletedProtected} aktuelle Löschungen bleiben geschützt`:''}.`;
+      body.querySelector('.dsSheetActions')?.before(box);
+      const apply=[...body.querySelectorAll('button')].find(b=>/Backup zusammenführen|Merge-Schutz aktiv|Sicher zusammenführen/.test(b.textContent||''));
+      if(apply){apply.disabled=false;apply.textContent='Sicher zusammenführen';}
+    }
+
+    function decorateRestoreError(message){
+      const body=document.getElementById('dataSafetyRestoreBody');if(!body)return;
+      const box=document.createElement('div');box.className='dsWarn apRestoreConflictGuard';
+      box.innerHTML=`<b>🛡️ Sicherheitsstopp</b><br>${String(message||'Backup konnte nicht für den sicheren Merge vorbereitet werden.')}`;
+      body.querySelector('.dsSheetActions')?.before(box);
+      const apply=[...body.querySelectorAll('button')].find(b=>/Backup zusammenführen|Sicher zusammenführen/.test(b.textContent||''));
+      if(apply){apply.disabled=true;apply.textContent='Merge nicht freigegeben';}
+    }
+
     const originalChoose=ds.chooseBackup?.bind(ds);
     if(originalChoose){
       ds.chooseBackup=async function(event){
+        const file=event?.target?.files?.[0]||null;
+        safeRestoreState=null;
+        const safeParse=file?parseForSafeRestore(file):Promise.reject(new Error('Keine Datei ausgewählt.'));
         const result=await originalChoose(event);
-        setTimeout(()=>{
-          const body=document.getElementById('dataSafetyRestoreBody');
-          if(!body)return;
-          if(!body.querySelector('.apRestoreConflictGuard')){
-            const warning=document.createElement('div');
-            warning.className='dsWarn apRestoreConflictGuard';
-            warning.innerHTML='<b>🛡️ Sicherheitsprüfung aktiv</b><br>Die Vorschau ist freigegeben. Das tatsächliche Zusammenführen bleibt in v11.30.6 gesperrt, bis Konflikte zwischen neueren aktuellen Daten und älteren Backup-Daten eindeutig gelöst werden.';
-            body.querySelector('.dsSheetActions')?.before(warning);
-          }
-          const apply=[...body.querySelectorAll('button')].find(b=>/Backup zusammenführen/.test(b.textContent||''));
-          if(apply){apply.disabled=true;apply.textContent='Merge-Schutz aktiv';}
-        },0);
+        try{
+          const parsed=await safeParse,current=globalThis.data||{},plan=buildSafeMerge(current,parsed.backup.data);
+          safeRestoreState={...parsed,plan};
+          setTimeout(()=>decorateSafePreview(safeRestoreState),0);
+        }catch(e){
+          console.error(e);safeRestoreState=null;
+          setTimeout(()=>decorateRestoreError(e?.message),0);
+        }
         return result;
       };
     }
 
+    const originalClose=ds.closeRestore?.bind(ds);
+    ds.closeRestore=function(){safeRestoreState=null;return originalClose?.()};
+
     ds.applyRestore=async function(){
-      const message='Restore-Vorschau ist sicher verfügbar. Das tatsächliche Zusammenführen ist in v11.30.6 vorsorglich gesperrt, bis Konflikte mit neueren aktuellen Datensätzen sauber aufgelöst werden.';
-      if(globalThis.toast)return globalThis.toast(message,'warning');
-      if(globalThis.showToast)return globalThis.showToast(message,'warning');
-      console.warn(message);
+      if(!safeRestoreState)return notify('Bitte Backup erneut auswählen und prüfen.','warning');
+      if(!canManage())return notify('Nur Inhaber oder Büro können ein Backup einspielen.','error');
+      const state=safeRestoreState,current=globalThis.data||{},freshPlan=buildSafeMerge(current,state.backup.data);
+      state.plan=freshPlan;
+      const s=freshPlan.summary;
+      const text=`Die Sicherung wird konfliktbewusst mit dem aktuellen Betrieb zusammengeführt. Aktuelle Datensätze werden niemals von älteren oder unklaren Backup-Ständen überschrieben.\n\nNeu ergänzen: ${s.added}\nBackup nachweislich neuer: ${s.backupNewer}\nAktuelle Konflikte geschützt: ${s.currentProtected}\nIdentisch: ${s.identical}\nAktuelle Löschungen geschützt: ${s.deletedProtected}`;
+      const ok=globalThis.appConfirm?!!(await globalThis.appConfirm({title:'Backup sicher zusammenführen?',text,confirmLabel:'Sicher zusammenführen',icon:'🛡️'})):confirm(`Backup sicher zusammenführen?\n\n${text}`);
+      if(!ok)return;
+      const beforeKey=savePreRestoreSnapshot();
+      try{
+        Object.keys(current).forEach(key=>delete current[key]);Object.assign(current,freshPlan.merged);globalThis.data=current;
+        if(globalThis.AppRepository?.prepare)globalThis.AppRepository.prepare(current,null);
+        if(globalThis.safePersistCloudIdentity)globalThis.safePersistCloudIdentity(current);else localStorage.setItem('digitaler_handwerker_v3',JSON.stringify(current));
+        const c=currentContext();
+        if(c?.company?.id&&globalThis.CloudSync?.pushSnapshot){
+          await globalThis.CloudSync.pushSnapshot();
+          await globalThis.CloudSync.pullCloud();
+        }
+        await writeRestoreAudit(state,beforeKey);
+        document.getElementById('dataSafetyRestoreModal')?.classList.add('hidden');
+        safeRestoreState=null;
+        globalThis.renderAll?.();
+        notify(`✓ Backup sicher zusammengeführt. ${s.added+s.backupNewer} Datensätze übernommen, ${s.currentProtected} aktuelle Konflikte geschützt.`,'success');
+      }catch(e){
+        console.error(e);notify(String(e?.message||'Wiederherstellung fehlgeschlagen.'),'error');
+      }
     };
   }
 
