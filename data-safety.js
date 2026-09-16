@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.30.4 – Datenexport, sichere Wiederherstellung & Archiv
+/* AngebotsPilot v11.30.5 – Datenexport, sichere Wiederherstellung & Archiv
    Vollständige Betriebssicherung ohne stille Cloud-Überschreibung. */
 (function(){
   'use strict';
 
-  const BUILD='11.30.4';
+  const BUILD='11.30.5';
   const BACKUP_FORMAT='angebotspilot-backup';
   const BACKUP_FORMAT_VERSION=2;
   const PAGE_SIZE=1000;
@@ -26,6 +26,8 @@
   const q=id=>document.getElementById(id);
   let restorePreview=null;
   let archiveRows=[];
+  let contextWatchKey='';
+  let contextWatchTimer=null;
 
   function ctx(){try{return globalThis.APCloudContext?.()||null}catch(e){return null}}
   function role(){return ctx()?.membership?.role||globalThis.data?.privacy?.role||'owner'}
@@ -326,6 +328,22 @@
       <div class="dsDanger"><button class="btn danger" style="width:100%" onclick="resetApp()">Lokale App-Daten zurücksetzen</button><p class="mini">Getrennt vom Archiv und vom Abo. Nur verwenden, wenn du den lokalen Arbeitsbereich bewusst zurücksetzen willst.</p></div>`;
   }
 
+  function startContextWatcher(){
+    if(contextWatchTimer)return;
+    const check=()=>{
+      const c=ctx();
+      const key=`${c?.session?.user?.id||''}:${c?.company?.id||''}:${c?.membership?.role||''}`;
+      if(key!==contextWatchKey){
+        contextWatchKey=key;
+        enhanceBackupCard();
+      }
+    };
+    check();
+    contextWatchTimer=setInterval(check,1000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+    window.addEventListener('angebotspilot:syncstate',check);
+  }
+
   function installLegacyOverrides(){
     globalThis.exportBackup=()=>exportCompany();
     globalThis.importBackup=event=>chooseBackup(event);
@@ -334,7 +352,7 @@
     const r=globalThis.renderAll;if(typeof r==='function'&&!r.__dsBuild){const w=function(){const x=r.apply(this,arguments);stamp();return x};w.__dsBuild=true;globalThis.renderAll=w}
     const s=globalThis.showScreen;if(typeof s==='function'&&!s.__dsBuild){const w=function(){const x=s.apply(this,arguments);stamp();if(arguments[0]==='settings')setTimeout(enhanceBackupCard,0);return x};w.__dsBuild=true;globalThis.showScreen=w}
   }
-  function init(){ensureUI();installLegacyOverrides();wrapBuild();stamp();enhanceBackupCard()}
+  function init(){ensureUI();installLegacyOverrides();wrapBuild();stamp();enhanceBackupCard();startContextWatcher()}
 
   globalThis.DataSafety={BUILD,exportCompany,chooseBackup,applyRestore,openArchive,restoreArchived,closeRestore:()=>{restorePreview=null;closeModal('dataSafetyRestoreModal')},closeArchive:()=>closeModal('dataSafetyArchiveModal'),refreshCard:enhanceBackupCard};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.30.3 – direct plan changes, Stripe billing, cancellation & B2B contract UX
+/* AngebotsPilot v11.30.5 – direct plan changes, Stripe billing, cancellation & B2B contract UX
    Shared by Web, iOS and later Android. Stripe secrets stay server-side in Supabase Edge Functions. */
 (function(){
   'use strict';
 
-  const BUILD='11.30.3';
+  const BUILD='11.30.5';
   const TERMS_VERSION='2026-09-16-beta-b2b-v1';
   const q=id=>document.getElementById(id);
   const esc=value=>String(value??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
