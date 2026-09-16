@@ -1,18 +1,30 @@
-const CACHE='angebotspilot-v11-30-3';
+const CACHE='angebotspilot-v11-30-4';
+const DATA_SAFETY_TAG='<script src="./data-safety.js?v=11.30.4"></script>';
 const ASSETS=[
   './','./index.html','./style.css?v=11.30.1','./subscription.css?v=11.30.1','./cloud-config.js?v=11.30.1',
   './country-config.js?v=11.30.1','./data-repository.js?v=11.30.1','./einvoice.js?v=11.30.1','./script.js?v=11.30.1','./customer-import.js?v=11.30.1','./cloud-files.js?v=11.30.1','./cloud-sync.js?v=11.30.1',
   './team.js?v=11.30.1','./assignments.js?v=11.30.1','./time-tracking.js?v=11.30.1','./notifications.js?v=11.30.1','./mail-hub.js?v=11.30.1','./email-assistant.js?v=11.30.1','./acceptance.js?v=11.30.1','./custom-selects.js?v=11.30.1',
-  './security.js?v=11.30.1','./onboarding-setup.js?v=11.30.1','./cloud-auth.js?v=11.30.1','./subscription.js?v=11.30.3','./manifest.json?v=11.30.1','./icon-192.svg','./icon-512.svg'
+  './security.js?v=11.30.1','./onboarding-setup.js?v=11.30.1','./cloud-auth.js?v=11.30.1','./subscription.js?v=11.30.3','./data-safety.js?v=11.30.4','./manifest.json?v=11.30.1','./icon-192.svg','./icon-512.svg'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+
+async function injectDataSafety(response){
+  if(!response||!response.ok)return response;
+  const type=response.headers.get('content-type')||'';
+  if(!type.includes('text/html'))return response;
+  const html=await response.text();
+  const patched=html.includes('data-safety.js')?html:html.replace('</body>',DATA_SAFETY_TAG+'</body>');
+  const headers=new Headers(response.headers);headers.delete('content-length');headers.set('content-type','text/html; charset=utf-8');
+  return new Response(patched,{status:response.status,statusText:response.statusText,headers});
+}
+
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   const u=new URL(e.request.url);
   if(u.origin!==self.location.origin){e.respondWith(fetch(e.request));return}
   if(e.request.mode==='navigate'){
-    e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put('./index.html',copy));return r}).catch(()=>caches.match('./index.html')));
+    e.respondWith(fetch(e.request).then(injectDataSafety).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put('./index.html',copy));return r}).catch(()=>caches.match('./index.html')));
     return;
   }
   e.respondWith(fetch(e.request).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match(e.request)));
@@ -23,12 +35,9 @@ self.addEventListener('push',event=>{
   try{data=event.data?event.data.json():{}}catch(e){data={body:event.data?.text?.()||''}}
   const title=data.title||'AngebotsPilot';
   event.waitUntil(self.registration.showNotification(title,{
-    body:data.body||'',
-    tag:data.tag||'angebotspilot',
-    renotify:true,
+    body:data.body||'',tag:data.tag||'angebotspilot',renotify:true,
     data:{url:data.url||'./?screen=notifications',type:data.type||'general',metadata:data.metadata||{}},
-    badge:'./icon-192.svg',
-    icon:'./icon-192.svg'
+    badge:'./icon-192.svg',icon:'./icon-192.svg'
   }));
 });
 self.addEventListener('notificationclick',event=>{
