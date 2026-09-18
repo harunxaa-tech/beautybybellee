@@ -1,16 +1,16 @@
-AngebotsPilot v11.31.22
+AngebotsPilot v11.31.23 – ROOT UPDATE
 
 Im GitHub-Repository im Root ersetzen/hochladen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113122.js (neu)
+- compliance-v113123.js (neu)
 
-Wichtig:
-- Keine anderen Dateien löschen.
-- Nach dem Upload den AngebotsPilot-Tab einmal komplett schließen und neu öffnen.
+Nichts löschen. Keine Geschäftsdaten ändern.
 
-Änderungen:
-- XRechnung: BT-29 Verkäuferkennung wird bei Einzelunternehmern automatisch aus der bereits hinterlegten Steuer-/USt-Kennung erzeugt.
-- KoSIT BR-CO-26 führt nicht mehr fälschlich zurück zum Steuernummer-Feld.
-- Eingaben in Steuernummer/USt-ID/IBAN/Bank werden beim Feldwechsel lokal als Entwurf gepuffert, bis Speichern gedrückt wird.
-- Keine Geschäftsdaten werden durch das Update verändert.
+Fix v11.31.23:
+- Compliance-Loader erkennt jetzt ausschließlich die aktuelle Server-Schicht.
+- Alte 11.31.21/11.31.22 Script-Tags blockieren das Update nicht mehr.
+- BT-29 Verkäuferkennung wird vor KoSIT technisch verifiziert.
+- BR-CO-26 wird nicht mehr fälschlich als fehlende Steuernummer behandelt.
+
+Nach Upload den AngebotsPilot-Tab komplett schließen und neu öffnen.
