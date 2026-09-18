@@ -1,21 +1,12 @@
-AngebotsPilot v11.31.05 – ROOT-Update
+AngebotsPilot v11.31.06 – ROOT Update
 
-Enthalten:
+ROOT-Dateien überschreiben:
 - cloud-config.js
 - service-worker.js
 
-Upload:
-1. ZIP entpacken.
-2. Beide Dateien direkt im ROOT des GitHub-Repositories hochladen und die vorhandenen Dateien überschreiben.
-3. Vorher nichts löschen.
-4. App danach einmal vollständig schließen und neu öffnen.
+Vorher nichts löschen. Danach App komplett schließen und neu öffnen.
 
-Neu in 11.31.05:
-- Rechnungsnummer-Reservierung bleibt bis zur tatsächlichen Finalisierung bestehen.
-- Vor dem Ausstellen muss ein passender Cloud-Entwurf mit derselben reservierten Nummer bestätigt sein.
-- Die Datenbank blockiert die Finalisierung eines bestehenden Entwurfs ohne passenden Nummern-Claim.
-- Nach dem Ausstellen prüft die App, ob die Cloud die Finalisierung wirklich gespeichert hat.
-- Bei unterbrochener Verbindung bleibt die Nummer reserviert; die App warnt davor, den Beleg vor Cloud-Bestätigung zu versenden.
-- Sichere Wiederherstellung historischer finalisierter Rechnungen bleibt kompatibel.
-
-Bestehende Rechnungen und Geschäftsdaten werden nicht verändert.
+Schwerpunkt v11.31.06:
+- finalisierte Rechnungspositionen werden aus dem unveränderbaren Finalisierungs-Snapshot geschützt/repariert
+- bestehende Entwürfe ziehen ihre serverseitige Nummern-Reservierung beim Start/Fokus automatisch nach
+- alle Schutzmechanismen aus v11.31.05 bleiben erhalten

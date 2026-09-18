@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.05 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.06 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,10 +12,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.05';
+  const VERSION='11.31.06';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_05__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_06__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-05',
+    cacheTag:'angebotspilot-v11-31-06',
     stamp:stampBuild
   });
 
@@ -279,7 +279,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.05',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.06',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -481,6 +481,21 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
+  let invoiceDraftClaimTimer=null;
+
+  function scheduleDraftInvoiceClaims(delay=500){
+    clearTimeout(invoiceDraftClaimTimer);
+    invoiceDraftClaimTimer=setTimeout(async()=>{
+      try{
+        const ctx=invoiceNumberingContext();
+        if(!ctx?.client||!ctx?.company?.id)return;
+        await prepareAllDraftInvoiceNumbers();
+      }catch(error){
+        console.warn('Entwurfs-Rechnungsnummern konnten noch nicht automatisch abgesichert werden',error);
+      }
+    },delay);
+  }
+
   function invoiceEditorHasSaveableContent(){
     const id=String(document.getElementById('invoiceId')?.value||'').trim();
     const customer=String(document.getElementById('invoiceCustomer')?.value||'').trim();
@@ -621,15 +636,16 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.05',
+    version:'11.31.06',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.05',
+      version:'11.31.06',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
-      finalizationGuard:true
+      finalizationGuard:true,
+      finalizedLineGuard:true
     })
   };
 
@@ -887,7 +903,118 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     invoiceSafetyRepairTimer=setTimeout(()=>repairInvoiceSafety(),delay);
   }
 
+  // v11.31.06: Finalisierte Rechnungspositionen werden aus dem unveränderbaren
+  // Finalisierungs-Snapshot rekonstruiert. Der ältere Sync-Pfad löscht Positionen
+  // vor dem Neu-Einfügen; bei einem unvollständigen lokalen Zustand konnte dadurch
+  // eine ausgestellte Rechnung in der Cloud ohne Positionen enden.
+  let finalizedLineGuardInstalled=false;
+  let finalizedLineRepairRunning=false;
+  let finalizedLineRepairTimer=null;
+
+  function cloneFinalizedLines(lines){
+    try{return structuredClone(lines||[])}catch(e){return JSON.parse(JSON.stringify(lines||[]))}
+  }
+
+  function snapshotLinesForFinalized(inv){
+    return (inv?.finalizedSnapshot?.lines||[]).filter(line=>String(line?.name||'').trim());
+  }
+
+  function normalizeFinalizedInvoiceLinesLocal(){
+    let changed=false;
+    for(const inv of (globalThis.data?.invoices||[])){
+      if(!inv?.finalizedAt)continue;
+      const canonical=snapshotLinesForFinalized(inv);
+      if(!canonical.length)continue;
+      const current=(inv.lines||[]).filter(line=>String(line?.name||'').trim());
+      const sig=list=>JSON.stringify(list.map(line=>({
+        name:String(line?.name||''),qty:Number(line?.qty)||0,unit:String(line?.unit||''),price:Number(line?.price)||0,
+        workers:line?.workers==null?null:Number(line.workers),hoursPerWorker:line?.hoursPerWorker==null?null:Number(line.hoursPerWorker)
+      })));
+      if(sig(current)!==sig(canonical)){
+        inv.lines=cloneFinalizedLines(canonical);
+        changed=true;
+      }
+    }
+    if(changed)persistInvoiceNumberState();
+    return changed;
+  }
+
+  async function repairFinalizedInvoiceLinesCloud(){
+    if(finalizedLineRepairRunning)return;
+    const ctx=invoiceNumberingContext();
+    if(!ctx?.client||!ctx?.company?.id)return;
+    const finalized=(globalThis.data?.invoices||[]).filter(inv=>inv?.finalizedAt&&snapshotLinesForFinalized(inv).length);
+    if(!finalized.length)return;
+    finalizedLineRepairRunning=true;
+    try{
+      normalizeFinalizedInvoiceLinesLocal();
+      const {data:rows,error}=await ctx.client.from('invoices')
+        .select('id,local_id,finalized_at,deleted_at')
+        .eq('company_id',ctx.company.id)
+        .is('deleted_at',null);
+      if(error)throw error;
+      const byLocal=new Map((rows||[]).filter(r=>r?.local_id&&r?.finalized_at).map(r=>[String(r.local_id),r]));
+      for(const inv of finalized){
+        const cloud=byLocal.get(String(inv.id));if(!cloud)continue;
+        const canonical=snapshotLinesForFinalized(inv);
+        const {data:existing,error:lineError}=await ctx.client.from('invoice_lines')
+          .select('id,position,name,qty,unit,price,workers,hours_per_worker')
+          .eq('invoice_id',cloud.id).order('position');
+        if(lineError)throw lineError;
+        const sig=list=>JSON.stringify((list||[]).map(line=>({
+          name:String(line?.name||''),qty:Number(line?.qty)||0,unit:String(line?.unit||''),price:Number(line?.price)||0,
+          workers:line?.workers==null?null:Number(line.workers),hoursPerWorker:(line?.hours_per_worker??line?.hoursPerWorker)==null?null:Number(line?.hours_per_worker??line?.hoursPerWorker)
+        })));
+        if(sig(existing)===sig(canonical))continue;
+
+        const {error:delError}=await ctx.client.from('invoice_lines').delete().eq('invoice_id',cloud.id);
+        if(delError)throw delError;
+        const payload=canonical.map((line,i)=>({
+          invoice_id:cloud.id,
+          local_id:String(line.id||`${inv.id}:line:${i}`),
+          position:i+1,
+          name:String(line.name||''),
+          qty:Number(line.qty)||1,
+          unit:String(line.unit||'Stk.'),
+          price:Number(line.price)||0,
+          workers:line.workers==null?null:Number(line.workers),
+          hours_per_worker:line.hoursPerWorker==null?null:Number(line.hoursPerWorker)
+        }));
+        if(payload.length){
+          const {error:insertError}=await ctx.client.from('invoice_lines').insert(payload);
+          if(insertError)throw insertError;
+        }
+      }
+    }catch(error){
+      console.warn('Finalisierte Rechnungspositionen konnten noch nicht vollständig geprüft werden',error);
+    }finally{
+      finalizedLineRepairRunning=false;
+    }
+  }
+
+  function scheduleFinalizedInvoiceLineRepair(delay=350){
+    clearTimeout(finalizedLineRepairTimer);
+    finalizedLineRepairTimer=setTimeout(()=>repairFinalizedInvoiceLinesCloud(),delay);
+  }
+
+  function installFinalizedInvoiceLineGuard(){
+    const sync=globalThis.CloudSync;
+    if(!sync||finalizedLineGuardInstalled||typeof sync.pushSnapshot!=='function')return;
+    finalizedLineGuardInstalled=true;
+    const original=sync.pushSnapshot;
+    const wrapped=async function(){
+      normalizeFinalizedInvoiceLinesLocal();
+      const result=await original.apply(sync,arguments);
+      scheduleFinalizedInvoiceLineRepair(180);
+      return result;
+    };
+    wrapped.__apFinalizedLineGuard=true;
+    wrapped.__apOriginal=original;
+    sync.pushSnapshot=wrapped;
+  }
+
   function installManualSyncGuard(){
+    installFinalizedInvoiceLineGuard();
     const sync=globalThis.CloudSync;
     if(!sync||manualSyncInstalled||typeof sync.pushSnapshot!=='function'||typeof sync.pullCloud!=='function')return;
     manualSyncInstalled=true;
@@ -897,11 +1024,15 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       // pushSnapshot interpretiert das als bereits laufenden Sync und überspringt den Push.
       // Deshalb hier bewusst: erst pushen, danach pullen.
       snapshotLinkedInvoiceDrafts();
+      normalizeFinalizedInvoiceLinesLocal();
       await prepareAllDraftInvoiceNumbers();
       await sync.pushSnapshot();
       await repairInvoiceSafety();
+      await repairFinalizedInvoiceLinesCloud();
       await sync.pullCloud();
+      normalizeFinalizedInvoiceLinesLocal();
       await repairInvoiceSafety();
+      await repairFinalizedInvoiceLinesCloud();
       snapshotLinkedInvoiceDrafts();
       return true;
     };
@@ -1301,24 +1432,26 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       installInvoiceNumberingGuards();
       if(event?.detail?.syncing===true)snapshotLinkedInvoiceDrafts();
       if(event?.detail?.syncing===false){
+        scheduleDraftInvoiceClaims(180);
+        scheduleFinalizedInvoiceLineRepair(220);
         scheduleInvoiceRelationRepair(250);
         scheduleInvoiceSafetyRepair(300);
         setTimeout(polishInvoiceUi,0);
       }
     });
     window.addEventListener('focus',()=>{
-      refresh();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
-      polishInvoiceUi();
+      refresh();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     window.addEventListener('pageshow',()=>{
-      refresh();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
-      polishInvoiceUi();
+      refresh();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     document.addEventListener('visibilitychange',()=>{if(!document.hidden){
-      refresh();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
-      polishInvoiceUi();
+      refresh();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     }});
   }
@@ -1340,8 +1473,12 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     ensureDataSafetyLoaded();
     ensureComplianceLoaded();
     installRefreshHooks();
+    installFinalizedInvoiceLineGuard();
     installManualSyncGuard();
     snapshotLinkedInvoiceDrafts();
+    normalizeFinalizedInvoiceLinesLocal();
+    scheduleDraftInvoiceClaims(700);
+    scheduleFinalizedInvoiceLineRepair(850);
     scheduleInvoiceSafetyRepair(600);
     forceServiceWorkerCheck();
 
@@ -1357,8 +1494,12 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       ensureDataSafetyLoaded();
       ensureComplianceLoaded();
       scheduleDataSafetyRefresh(true);
+      installFinalizedInvoiceLineGuard();
       installManualSyncGuard();
       snapshotLinkedInvoiceDrafts();
+      normalizeFinalizedInvoiceLinesLocal();
+      scheduleDraftInvoiceClaims(220);
+      scheduleFinalizedInvoiceLineRepair(280);
       scheduleInvoiceRelationRepair(250);
       scheduleInvoiceSafetyRepair(350);
     },ms));
