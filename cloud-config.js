@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.06 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.07 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,10 +12,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.06';
+  const VERSION='11.31.07';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_06__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_07__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-06',
+    cacheTag:'angebotspilot-v11-31-07',
     stamp:stampBuild
   });
 
@@ -279,7 +279,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.06',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.07',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -636,11 +636,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.06',
+    version:'11.31.07',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.06',
+      version:'11.31.07',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -903,7 +903,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     invoiceSafetyRepairTimer=setTimeout(()=>repairInvoiceSafety(),delay);
   }
 
-  // v11.31.06: Finalisierte Rechnungspositionen werden aus dem unveränderbaren
+  // v11.31.07: Finalisierte Rechnungspositionen werden aus dem unveränderbaren
   // Finalisierungs-Snapshot rekonstruiert. Der ältere Sync-Pfad löscht Positionen
   // vor dem Neu-Einfügen; bei einem unvollständigen lokalen Zustand konnte dadurch
   // eine ausgestellte Rechnung in der Cloud ohne Positionen enden.

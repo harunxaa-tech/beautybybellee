@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.5 – Kern-Geschäftsdaten Cloud-Synchronisierung */
+/* AngebotsPilot v11.31.07 – Kern-Geschäftsdaten Cloud-Synchronisierung */
 (function(){
   'use strict';
   const KEY='digitaler_handwerker_v3';
@@ -162,29 +162,82 @@
     const rows=(d.tasks||[]).map(x=>({...base(x),customer_id:x.customerId?custMap.get(x.customerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,title:x.title||'Aufgabe',due_date:x.date||null,status:x.done?'done':'open',priority:x.priority||'normal',notes:x.notes||'',done:!!x.done}));
     await upsertRows('tasks',rows);
   }
+
+  function isFinalizedInvoiceForSync(inv){
+    return !!(inv&&(inv.finalizedAt||['open','paid','cancelled'].includes(inv.status)));
+  }
+
+  async function syncDraftInvoiceLines(inv,cloud){
+    const lines=(inv.lines||[]).filter(l=>String(l?.name||'').trim()).map((l,i)=>({
+      invoice_id:cloud.id,
+      local_id:String(l.id||`${inv.id}:line:${i}`),
+      position:i+1,
+      name:l.name,
+      qty:n(l.qty)||1,
+      unit:l.unit||'Stk.',
+      price:n(l.price),
+      workers:l.workers?Number(l.workers):null,
+      hours_per_worker:l.hoursPerWorker?n(l.hoursPerWorker):null
+    }));
+
+    // Ein leerer/unvollständiger lokaler Zwischenstand darf Cloud-Positionen nicht
+    // zerstören. Die App lässt Rechnungen ohnehin nur mit mindestens einer Position speichern.
+    if(!lines.length)return;
+
+    const {error:upsertError}=await client.from('invoice_lines')
+      .upsert(lines,{onConflict:'invoice_id,local_id'});
+    if(upsertError)throw upsertError;
+
+    // Nur bei bearbeitbaren Entwürfen dürfen wirklich entfernte Positionen gelöscht werden.
+    // Dabei löschen wir ausschließlich bekannte Cloud-Zeilen, die lokal nicht mehr vorkommen.
+    const {data:existing,error:existingError}=await client.from('invoice_lines')
+      .select('id,local_id')
+      .eq('invoice_id',cloud.id);
+    if(existingError)throw existingError;
+
+    const wanted=new Set(lines.map(line=>String(line.local_id)));
+    const staleIds=(existing||[])
+      .filter(row=>row?.local_id&&!wanted.has(String(row.local_id)))
+      .map(row=>row.id)
+      .filter(Boolean);
+    if(staleIds.length){
+      const {error:deleteError}=await client.from('invoice_lines')
+        .delete()
+        .in('id',staleIds)
+        .eq('invoice_id',cloud.id);
+      if(deleteError)throw deleteError;
+    }
+  }
+
   async function syncInvoices(d,custMap,offerMap,jobMap){
     const raw=d.invoices||[];
-    let rows=raw.map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,number:x.number||'',invoice_date:x.date||new Date().toISOString().slice(0,10),due_date:x.dueDate||null,status:x.status||'draft',subject:x.subject||'Rechnung',notes:x.notes||'',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total),document_type:x.documentType||'invoice',finalized_at:x.finalizedAt||null,offer_number:x.offerNumber||'',source_offer_number:x.sourceOfferNumber||'',created_automatically:!!x.createdAutomatically,finalized_snapshot:x.finalizedSnapshot||null,paid_at:x.paidAt||null,cancelled_at:x.cancelledAt||null,reminder_stage:x.reminderStage||'none',last_reminder_at:x.lastReminderAt||null,payment_confirmation_sent_at:x.paymentConfirmationSentAt||null,country_code:x.countryCode||d.settings?.countryCode||'DE',currency_code:x.currencyCode||d.settings?.currency||'EUR',invoice_language:x.invoiceLanguage||d.settings?.appLanguage||'de',tax_treatment:x.taxTreatment||d.settings?.taxTreatment||'standard',tax_note:x.taxNote||'',service_date:x.serviceDate||x.date||null,recipient_type:x.recipientType||'auto',recipient_country_code:x.recipientCountryCode||x.countryCode||d.settings?.countryCode||'DE',recipient_vat_id:x.recipientVatId||'',buyer_reference:x.buyerReference||'',e_invoice_format:x.eInvoiceFormat||'auto',structured_storage_path:x.structuredStoragePath||'',structured_sha256:x.structuredSha256||'',compliance_status:x.complianceStatus||'unchecked',compliance_report:x.complianceReport||{},compliance_checked_at:x.complianceCheckedAt||null})).filter(x=>x.customer_id);
+    const rows=raw.map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,number:x.number||'',invoice_date:x.date||new Date().toISOString().slice(0,10),due_date:x.dueDate||null,status:x.status||'draft',subject:x.subject||'Rechnung',notes:x.notes||'',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total),document_type:x.documentType||'invoice',finalized_at:x.finalizedAt||null,offer_number:x.offerNumber||'',source_offer_number:x.sourceOfferNumber||'',created_automatically:!!x.createdAutomatically,finalized_snapshot:x.finalizedSnapshot||null,paid_at:x.paidAt||null,cancelled_at:x.cancelledAt||null,reminder_stage:x.reminderStage||'none',last_reminder_at:x.lastReminderAt||null,payment_confirmation_sent_at:x.paymentConfirmationSentAt||null,country_code:x.countryCode||d.settings?.countryCode||'DE',currency_code:x.currencyCode||d.settings?.currency||'EUR',invoice_language:x.invoiceLanguage||d.settings?.appLanguage||'de',tax_treatment:x.taxTreatment||d.settings?.taxTreatment||'standard',tax_note:x.taxNote||'',service_date:x.serviceDate||x.date||null,recipient_type:x.recipientType||'auto',recipient_country_code:x.recipientCountryCode||x.countryCode||d.settings?.countryCode||'DE',recipient_vat_id:x.recipientVatId||'',buyer_reference:x.buyerReference||'',e_invoice_format:x.eInvoiceFormat||'auto',structured_storage_path:x.structuredStoragePath||'',structured_sha256:x.structuredSha256||'',compliance_status:x.complianceStatus||'unchecked',compliance_report:x.complianceReport||{},compliance_checked_at:x.complianceCheckedAt||null})).filter(x=>x.customer_id);
     await upsertRows('invoices',rows);
-    let invoiceMap=await mapFor('invoices');
-    // relationship refs second pass
-    const relational=raw.map(x=>({
-      local:x.id,
-      original:x.originalInvoiceId?invoiceMap.get(x.originalInvoiceId)?.id:null,
-      correction:x.correctionOf?invoiceMap.get(x.correctionOf)?.id:null,
-      cancelledBy:x.cancelledByInvoiceId?invoiceMap.get(x.cancelledByInvoiceId)?.id:null
-    }));
-    for(const rel of relational){
-      const cloud=invoiceMap.get(rel.local);if(!cloud)continue;
-      const {error}=await client.from('invoices').update({original_invoice_id:rel.original||null,correction_of_id:rel.correction||null,cancelled_by_invoice_id:rel.cancelledBy||null}).eq('id',cloud.id);
-      if(error)throw error;
-    }
+    const invoiceMap=await mapFor('invoices');
+
+    // Beziehungsfelder werden nur gesetzt, wenn lokal tatsächlich eine Beziehung vorhanden ist.
+    // Ein älteres/teilweises Gerät darf bestehende Cloud-Beziehungen nie durch NULL überschreiben.
     for(const inv of raw){
       const cloud=invoiceMap.get(inv.id);if(!cloud)continue;
-      const {error:delErr}=await client.from('invoice_lines').delete().eq('invoice_id',cloud.id);
-      if(delErr)throw delErr;
-      const lines=(inv.lines||[]).filter(l=>l.name).map((l,i)=>({invoice_id:cloud.id,local_id:String(l.id||`${inv.id}:line:${i}`),position:i+1,name:l.name,qty:n(l.qty)||1,unit:l.unit||'Stk.',price:n(l.price),workers:l.workers?Number(l.workers):null,hours_per_worker:l.hoursPerWorker?n(l.hoursPerWorker):null}));
-      if(lines.length){const {error}=await client.from('invoice_lines').insert(lines);if(error)throw error}
+      const patch={};
+      if(inv.originalInvoiceId){const original=invoiceMap.get(inv.originalInvoiceId);if(original?.id)patch.original_invoice_id=original.id}
+      if(inv.correctionOf){const original=invoiceMap.get(inv.correctionOf);if(original?.id)patch.correction_of_id=original.id}
+      if(inv.cancelledByInvoiceId){const cancellation=invoiceMap.get(inv.cancelledByInvoiceId);if(cancellation?.id)patch.cancelled_by_invoice_id=cancellation.id}
+      if(Object.keys(patch).length){
+        const {error}=await client.from('invoices').update(patch).eq('id',cloud.id);
+        if(error)throw error;
+      }
+    }
+
+    for(const inv of raw){
+      const cloud=invoiceMap.get(inv.id);if(!cloud)continue;
+
+      // Ausgestellte Rechnungspositionen sind unveränderbar. Sie werden weder gelöscht,
+      // noch neu geschrieben. Zahlungs-/Storno-Status kann weiterhin am Rechnungs-Kopf
+      // synchronisiert werden, ohne den ausgestellten Inhalt anzufassen.
+      if(isFinalizedInvoiceForSync(inv))continue;
+
+      await syncDraftInvoiceLines(inv,cloud);
     }
     return invoiceMap;
   }
