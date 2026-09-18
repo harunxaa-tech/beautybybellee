@@ -1,13 +1,21 @@
-AngebotsPilot v11.31.02
+AngebotsPilot v11.31.03
 
-Upload ins GitHub-Repository harunxaa-tech/beautybybellee, Branch main, direkt ins ROOT:
-- cloud-config.js überschreiben
-- service-worker.js überschreiben
+Enthalten:
+- cloud-config.js
+- service-worker.js
 
-Vorher nichts löschen. Keine Geschäftsdaten werden durch dieses Paket verändert.
+Upload:
+1. Beide Dateien im ROOT des GitHub-Repositories überschreiben.
+2. Vorher nichts löschen.
+3. Danach die App einmal vollständig neu laden.
 
-Fixes:
-- manueller Cloud-Sync pusht jetzt zuerst und lädt danach die Cloud
-- Korrektur-/Stornoentwürfe erhalten eine lokale Sicherheitskopie
-- fehlende Positionsdaten/Original-Verknüpfungen werden bei einem unvollständigen Cloud-Zwischenstand geschützt
-- interne/sichtbare Version auf 11.31.02 angehoben
+Änderungen:
+- Eindeutige Rechnungsstatus in der Übersicht.
+- „Als bezahlt markieren“ statt missverständlichem „Bezahlt“.
+- Kein normaler Zahlungsbutton bei Storno-/Negativbelegen.
+- Keine Zahlungsfälligkeits-/Mahnanzeige bei Stornobelegen.
+- Gesperrte Rechnung: „Ausgestellt“ statt „Entwurf“.
+- Gesperrte Rechnung: „Schließen“ statt „Fertig“.
+- Korrektur/Storno in der gesperrten Ansicht eindeutig benannt.
+- Storno- und bereits stornierte Belege zeigen keine unpassenden Korrektur/Storno-Aktionen.
+- Bestehende v11.31.02 Sync- und Rechnungs-Sicherheitsfixes bleiben erhalten.

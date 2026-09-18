@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.02 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.03 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,10 +12,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.02';
+  const VERSION='11.31.03';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
-  const COMPLIANCE_SRC=`./compliance-v1131.js?v=${VERSION}`;
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_02__';
+  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_03__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-02',
+    cacheTag:'angebotspilot-v11-31-03',
     stamp:stampBuild
   });
 
@@ -92,6 +92,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
             return result.then(value=>{
               snapshotLinkedInvoiceDrafts();
               scheduleInvoiceSafetyRepair(250);
+              setTimeout(polishInvoiceUi,0);
               return value;
             }).catch(error=>{
               console.error(`AngebotsPilot Rechnungsaktion ${name} fehlgeschlagen`,error);
@@ -103,6 +104,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
           }
           snapshotLinkedInvoiceDrafts();
           scheduleInvoiceSafetyRepair(250);
+          setTimeout(polishInvoiceUi,0);
           return result;
         }catch(error){
           console.error(`AngebotsPilot Rechnungsaktion ${name} fehlgeschlagen`,error);
@@ -118,6 +120,153 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     }
   }
 
+
+  // v11.31.03: Rechnungsstatus und Aktionen eindeutig darstellen.
+  // Keine Buchungslogik wird hier verändert; es geht um klare UI und sichere Aktionsgrenzen.
+  function invoiceUiStatusLabel(inv){
+    if(!inv)return'';
+    if(inv.status==='draft'){
+      if(inv.documentType==='cancellation')return'Storno · Entwurf';
+      if(inv.correctionOf||inv.documentType==='correction')return'Korrektur · Entwurf';
+      return'Entwurf';
+    }
+    if(inv.status==='cancelled')return'Storniert';
+    if(inv.status==='paid'){
+      if(inv.correctionOf||inv.documentType==='correction')return'Korrektur · bezahlt';
+      return'Bezahlt';
+    }
+    if(inv.status==='open'){
+      if(inv.documentType==='cancellation')return'Storno · ausgestellt';
+      if(inv.correctionOf||inv.documentType==='correction')return'Korrektur · ausgestellt';
+      return'Ausgestellt · offen';
+    }
+    return String(inv.status||'');
+  }
+
+  function invoiceUiTypeTitle(inv){
+    if(inv?.documentType==='cancellation')return'Storno';
+    if(inv?.correctionOf||inv?.documentType==='correction')return'Korrektur';
+    return'Rechnung';
+  }
+
+  function isInvoiceUiLocked(inv){
+    return !!(inv&&(inv.finalizedAt||['open','paid','cancelled'].includes(inv.status)));
+  }
+
+  function cardForInvoice(inv){
+    const cards=[...document.querySelectorAll('#invoiceList .invoiceListCard')];
+    return cards.find(card=>{
+      const meta=[...card.querySelectorAll('p')].find(p=>(p.textContent||'').includes(`· ${inv.number} ·`));
+      return !!meta;
+    })||null;
+  }
+
+  function polishInvoiceListUi(){
+    const invoices=globalThis.data?.invoices||[];
+    for(const inv of invoices){
+      const card=cardForInvoice(inv);if(!card)continue;
+      const badge=card.querySelector('.badge');
+      if(badge)badge.textContent=invoiceUiStatusLabel(inv);
+
+      const payBtn=card.querySelector('button[onclick*="markInvoicePaid"]');
+      const nonPayable=inv.documentType==='cancellation'||Number(inv.total)<=0||inv.status!=='open';
+      if(payBtn){
+        payBtn.hidden=nonPayable;
+        if(!nonPayable)payBtn.textContent='Als bezahlt markieren';
+      }
+
+      if(inv.documentType==='cancellation'){
+        card.querySelectorAll('.invoiceFollowupState,.invoiceReminderBtn,.invoiceDunningBtn,.invoicePaidConfirmBtn')
+          .forEach(el=>el.remove());
+        const meta=[...card.querySelectorAll('p')].find(p=>(p.textContent||'').includes(`· ${inv.number} ·`));
+        if(meta){
+          const customer=globalThis.data?.customers?.find?.(x=>x.id===inv.customerId);
+          const date=inv.date?new Date(`${inv.date}T12:00:00`).toLocaleDateString('de-DE'):'';
+          meta.textContent=`${customer?.name||'Unbekannter Kunde'} · ${inv.number} · Storno${date?` · ausgestellt ${date}`:''}`;
+        }
+      }
+    }
+  }
+
+  function polishInvoiceEditorUi(){
+    const editor=document.getElementById('invoiceEditor');if(!editor)return;
+    const id=document.getElementById('invoiceId')?.value||'';
+    const inv=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(id))||null;
+    const locked=isInvoiceUiLocked(inv);
+
+    const title=document.getElementById('invoiceEditorTitle');
+    if(title)title.textContent=invoiceUiTypeTitle(inv);
+
+    const finish=editor.querySelector('.finishBtn');
+    if(finish)finish.textContent=locked?'Schließen':'✓ Fertig';
+
+    const numberState=editor.querySelector('.documentNumberField .discountFieldHead .mini');
+    if(numberState)numberState.textContent=locked?'Ausgestellt':'Entwurf';
+
+    const numberHint=document.getElementById('invoiceNumberHint');
+    if(numberHint)numberHint.textContent=locked
+      ?'Ausgestellt und gesperrt. Die Rechnungsnummer kann nicht mehr geändert werden.'
+      :'Wird automatisch vorgeschlagen. Vor dem Ausstellen kannst du sie ändern.';
+
+    const status=document.getElementById('invoiceStatus');
+    if(status){
+      const labels={draft:'Entwurf',open:'Ausgestellt · offen',paid:'Bezahlt',cancelled:'Storniert'};
+      [...status.options].forEach(opt=>{if(labels[opt.value])opt.textContent=labels[opt.value]});
+    }
+
+    const banner=document.getElementById('invoiceLockBanner');
+    if(banner&&locked){
+      const head=banner.querySelector('b');
+      if(head){
+        head.textContent=inv?.documentType==='cancellation'
+          ?'Ausgestellter Stornobeleg – gesperrt'
+          :(inv?.correctionOf||inv?.documentType==='correction')
+            ?'Ausgestellte Korrektur – gesperrt'
+            :'Ausgestellte Rechnung – gesperrt';
+      }
+    }
+
+    const corr=document.getElementById('invoiceCorrectionBtn');
+    const cancel=document.getElementById('invoiceCancelDraftBtn');
+    const hideLegalActions=!!inv&&(inv.documentType==='cancellation'||inv.status==='cancelled');
+    if(corr)corr.hidden=hideLegalActions;
+    if(cancel)cancel.hidden=hideLegalActions;
+    const actionBox=editor.querySelector('.invoiceLockActions');
+    if(actionBox)actionBox.hidden=hideLegalActions;
+
+    // Gesperrte Felder optisch klarer machen, ohne Stylesheets anfassen zu müssen.
+    editor.querySelectorAll('[data-invoice-editable]').forEach(el=>{
+      if(locked){
+        el.setAttribute('aria-disabled','true');
+        el.style.opacity='0.72';
+      }else{
+        el.removeAttribute('aria-disabled');
+        el.style.opacity='';
+      }
+    });
+  }
+
+  function polishInvoiceUi(){
+    polishInvoiceListUi();
+    polishInvoiceEditorUi();
+  }
+
+  function installPaymentActionGuard(){
+    const fn=globalThis.markInvoicePaid;
+    if(typeof fn!=='function'||fn.__apPaymentGuard)return;
+    const wrapped=async function(id){
+      const inv=(globalThis.data?.invoices||[]).find(x=>x.id===id);
+      if(inv&&(inv.documentType==='cancellation'||Number(inv.total)<=0)){
+        globalThis.toast?.('Dieser Beleg hat keinen normalen Zahlungseingang.');
+        return;
+      }
+      return fn.apply(this,arguments);
+    };
+    wrapped.__apPaymentGuard=true;
+    wrapped.__apOriginal=fn;
+    globalThis.markInvoicePaid=wrapped;
+  }
+
   function invoiceButtonDiagnostics(){
     const required=[
       'newInvoice','editInvoice','previewInvoice','finalizeInvoiceById','shareInvoicePDF',
@@ -130,7 +279,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.02',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.03',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
   // v11.31.0-r4: Rechnungsbeziehungen nach dem Cloud-Push robust nachziehen.
   // Wichtig: Nur vorhandene lokale Beziehungen werden gesetzt; bestehende Cloud-Beziehungen
@@ -453,6 +602,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         const result=render.apply(this,arguments);
         ensureInvoiceEditorUi();
         installInvoiceActionGuards();
+        installPaymentActionGuard();
+        polishInvoiceUi();
         stampBuild();
         scheduleDataSafetyRefresh();
         return result;
@@ -467,6 +618,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         const result=show.apply(this,arguments);
         if(arguments[0]==='invoiceEditor')ensureInvoiceEditorUi();
         installInvoiceActionGuards();
+        installPaymentActionGuard();
+        polishInvoiceUi();
         stampBuild();
         if(arguments[0]==='settings')scheduleDataSafetyRefresh(true);
         return result;
@@ -790,18 +943,22 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       if(event?.detail?.syncing===false){
         scheduleInvoiceRelationRepair(250);
         scheduleInvoiceSafetyRepair(300);
+        setTimeout(polishInvoiceUi,0);
       }
     });
     window.addEventListener('focus',()=>{
       refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      polishInvoiceUi();
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     window.addEventListener('pageshow',()=>{
       refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      polishInvoiceUi();
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     document.addEventListener('visibilitychange',()=>{if(!document.hidden){
       refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      polishInvoiceUi();
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     }});
   }
@@ -815,6 +972,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     stampBuild();
     ensureInvoiceEditorUi();
     installInvoiceActionGuards();
+    installPaymentActionGuard();
+    polishInvoiceUi();
     installWrappers();
     installSettingsObserver();
     ensureDataSafetyLoaded();
@@ -829,6 +988,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     [0,250,800,1800].forEach(ms=>setTimeout(()=>{
       ensureInvoiceEditorUi();
       installInvoiceActionGuards();
+      installPaymentActionGuard();
+      polishInvoiceUi();
       installWrappers();
       stampBuild();
       ensureDataSafetyLoaded();
