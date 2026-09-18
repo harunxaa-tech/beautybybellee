@@ -1,14 +1,15 @@
-AngebotsPilot v11.31.14 – Upload-Hinweis
+AngebotsPilot v11.31.15 – ROOT Upload
 
-Im GitHub-Repository im ROOT ersetzen:
+Bitte diese Dateien in den ROOT des GitHub-Repositories hochladen/ersetzen:
 - cloud-config.js
 - service-worker.js
+- compliance-v113115.js (NEU)
 
-Keine anderen Dateien löschen oder ersetzen.
+Nichts löschen und keine Geschäftsdaten verändern.
 
-Neu in 11.31.14:
-- XRechnungsfehler erklären direkt am betroffenen Feld, was fehlt.
-- Nach dem Speichern geht AngebotsPilot automatisch zum nächsten fehlenden Pflichtfeld.
-- Erst wenn alle Pflichtangaben erledigt sind, geht es zurück zur Rechnung und prüft erneut.
-- Firmenadresse erklärt ausdrücklich Straße + Hausnummer + PLZ + Ort; Wetter-Standort bleibt getrennt.
-- Alle bisherigen Sync-, Rechnungs-, Compliance- und Wetter-Fixes bleiben erhalten.
+Supabase ist bereits vorbereitet:
+- Migration v11_31_15_invoice_validation_events ist aktiv.
+- Edge Function xrechnung-validate v2 ist aktiv und verlangt JWT.
+
+Wichtig:
+Die neue Serverprüfung speichert keine Rechnungs-XML in der Audit-Tabelle, sondern nur Prüfsumme und Ergebnis-Metadaten. Der offizielle KoSIT-Erfolg wird erst dann als bestanden angezeigt, wenn ein eigener KoSIT-Daemon serverseitig verbunden ist. Bis dahin bleibt der Status ausdrücklich „KoSIT noch ausstehend“.
