@@ -1,17 +1,17 @@
-AngebotsPilot v11.31.09 – Kundenstamm / E-Rechnungsfelder
+AngebotsPilot v11.31.10 – ROOT Upload
 
-Im GitHub-Repository im ROOT ersetzen:
+Bitte im GitHub-Repository im ROOT ersetzen:
 - cloud-config.js
 - service-worker.js
 
-Nichts löschen. compliance-v113108.js und cloud-sync.js bleiben unverändert bestehen.
+Keine anderen Dateien löschen.
 
-Neu in 11.31.09:
-- Kundentyp (Automatisch / Privat / Unternehmen / Behörde) im Kundeneditor
-- Land (DE / AT / CH) im Kundeneditor
-- aufklappbarer Bereich für USt-ID, Käuferreferenz/Leitweg-ID, E-Rechnungsadresse, Lieferantennummer
-- Option, strukturierte E-Rechnung für einen Kunden explizit zu erzwingen
-- bestehende gespeicherte Kundendaten werden beim Bearbeiten in diese Felder übernommen
-- Compliance-Engine bleibt bewusst auf 11.31.08; 11.31.09 ändert keine Rechnungs-/Cloud-Datenlogik
+Neu in 11.31.10:
+- E-Rechnungsbereich je Kundentyp klar als Pflicht / Prüfen / Bei Bedarf gekennzeichnet
+- Bei Behörden/XRechnung automatisch aufgeklappt
+- Fehlende Pflichtfelder sichtbar markiert
+- Rechnungsfehler führen automatisch zum passenden Kunden-, Betriebs- oder Rechnungsfeld
+- Nach Speichern der fehlenden Angabe geht es automatisch zur Rechnung zurück und die Prüfung aktualisiert sich
+- Betrieb erhält einen einfachen E-Rechnung-Bereitschaftscheck für Adresse, E-Mail und IBAN
 
-Nach Upload App einmal komplett schließen und neu öffnen.
+Compliance-Engine bleibt v11.31.08; Rechnungs-Sync bleibt v11.31.07.

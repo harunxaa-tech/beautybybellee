@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.09 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.10 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,11 +12,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.09';
+  const VERSION='11.31.10';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
   const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_09__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_10__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -34,7 +34,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-09',
+    cacheTag:'angebotspilot-v11-31-10',
     stamp:stampBuild
   });
 
@@ -42,7 +42,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   let settingsObserver=null;
   let refreshTimer=null;
 
-  // v11.31.09: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
+  // v11.31.10: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
   // der alte statische Kundeneditor zeigte sie aber noch nicht an. Diese UI wird bewusst
   // kompakt ergänzt: Kundentyp + Land sichtbar, Spezialfelder in einem optionalen Bereich.
   function ensureCustomerComplianceUi(){
@@ -81,7 +81,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         </div>
       </div>
       <details class="apCustomerEInvoiceDetails" style="margin:6px 0 18px">
-        <summary style="cursor:pointer;font-weight:700;padding:10px 0">E-Rechnung & Steuerdaten <span class="mini">(optional)</span></summary>
+        <summary class="apCustomerEInvoiceSummary" style="cursor:pointer;font-weight:800;padding:14px 15px;border:1px solid rgba(160,180,210,.25);border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(120,140,170,.08)"><span class="apCustomerEInvoiceSummaryText">🧾 E-Rechnung & Steuerdaten</span><span class="apCustomerEInvoiceSummaryState mini">Bei Bedarf</span></summary>
         <div class="field"><label>USt-ID / UID / MWST-Nr.</label><input class="input" id="custVatId" autocomplete="off" placeholder="z. B. DE123456789"></div>
         <div class="field"><label>Käuferreferenz / Leitweg-ID</label><input class="input" id="custBuyerReference" autocomplete="off" placeholder="Bei Behörden bzw. wenn vom Kunden vorgegeben"><small>Für XRechnung entspricht dies typischerweise der Käuferreferenz (BT-10).</small></div>
         <div class="field"><label>E-Rechnungsadresse</label><input class="input" id="custEInvoiceAddress" autocomplete="off" placeholder="z. B. Leitweg-ID / Peppol-ID"><small>Nur ausfüllen, wenn der Empfänger eine spezielle elektronische Adresse vorgibt.</small></div>
@@ -98,14 +98,187 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
+  // v11.31.10: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
+  let complianceRepairState=null;
+
+  function customerComplianceRequirement(){
+    const type=document.getElementById('custCustomerType')?.value||'auto';
+    const country=document.getElementById('custCountryCode')?.value||'DE';
+    const forced=!!document.getElementById('custEInvoiceRequired')?.checked;
+    const required=[];
+    let title='🧾 E-Rechnung & Steuerdaten',state='Bei Bedarf',open=false;
+    if(type==='public'&&country==='DE'){
+      title='🧾 Pflichtangaben für XRechnung';required.push('custBuyerReference','custEInvoiceAddress');state='Pflicht';open=true;
+    }else if(type==='public'&&country==='AT'){
+      title='🧾 Pflichtangaben für Behördenrechnung';required.push('custBuyerReference','custSupplierNumber','custEInvoiceAddress');state='Pflicht';open=true;
+    }else if(type==='public'){
+      title='🧾 Angaben für Behördenrechnung';required.push('custBuyerReference');state='Prüfen';open=true;
+    }else if(type==='business'){
+      state=forced?'E-Rechnung aktiv':'Für E-Rechnung prüfen';open=forced;if(forced)required.push('custEInvoiceAddress');
+    }else if(type==='private'){
+      title='🧾 Steuer- & E-Rechnungsdaten';state='Nur bei Bedarf';
+    }
+    return{type,country,forced,required,title,state,open};
+  }
+
+  function setComplianceFieldState(id,required,missing){
+    const el=document.getElementById(id);if(!el)return;
+    const field=el.closest?.('.field')||el.parentElement;
+    if(field){
+      field.style.borderRadius='12px';field.style.padding=required?'8px':'';field.style.marginLeft=required?'-8px':'';field.style.marginRight=required?'-8px':'';
+      field.style.background=missing?'rgba(255,84,84,.08)':required?'rgba(190,220,80,.05)':'';
+      const label=field.querySelector?.('label');
+      if(label){const clean=String(label.textContent||'').replace(/\s*\*\s*$/,'');label.textContent=required?clean+' *':clean;}
+    }
+    el.style.outline=missing?'2px solid rgba(255,96,96,.72)':'';el.style.outlineOffset=missing?'2px':'';
+  }
+
+  function updateCustomerComplianceUi(){
+    if(!ensureCustomerComplianceUi())return;
+    const req=customerComplianceRequirement();
+    const details=document.querySelector('#customerEditor .apCustomerEInvoiceDetails');
+    const summary=details?.querySelector('.apCustomerEInvoiceSummary');
+    const text=summary?.querySelector('.apCustomerEInvoiceSummaryText');
+    const badge=summary?.querySelector('.apCustomerEInvoiceSummaryState');
+    const missing=req.required.filter(id=>!String(document.getElementById(id)?.value||'').trim());
+    if(text)text.textContent=req.title;
+    if(badge){
+      badge.textContent=missing.length?`${missing.length} Angabe${missing.length===1?'':'n'} fehlt${missing.length===1?'':'en'}`:(req.required.length?'✓ vollständig':req.state);
+      badge.style.fontWeight='800';badge.style.color=missing.length?'#ffaaaa':req.required.length?'#d8ff62':'';
+    }
+    if(summary){
+      summary.style.borderColor=missing.length?'rgba(255,96,96,.55)':req.required.length?'rgba(200,255,70,.35)':'rgba(160,180,210,.25)';
+      summary.style.background=missing.length?'rgba(255,84,84,.07)':req.required.length?'rgba(190,220,80,.06)':'rgba(120,140,170,.08)';
+    }
+    if(details&&(req.open||missing.length||details.dataset.apForceOpen==='1'))details.open=true;
+    ['custVatId','custBuyerReference','custEInvoiceAddress','custSupplierNumber'].forEach(id=>{
+      const required=req.required.includes(id);setComplianceFieldState(id,required,required&&!String(document.getElementById(id)?.value||'').trim());
+    });
+  }
+
+  function bindCustomerComplianceUi(){
+    if(!ensureCustomerComplianceUi())return;
+    ['custCustomerType','custCountryCode','custVatId','custBuyerReference','custEInvoiceAddress','custSupplierNumber','custEInvoiceRequired'].forEach(id=>{
+      const el=document.getElementById(id);if(!el||el.dataset.apComplianceBound==='1')return;
+      el.dataset.apComplianceBound='1';el.addEventListener('change',updateCustomerComplianceUi);el.addEventListener('input',updateCustomerComplianceUi);
+    });
+    updateCustomerComplianceUi();
+  }
+
+  function companyReadiness(){
+    const get=id=>String(document.getElementById(id)?.value??'').trim();
+    const address=get('companyAddress')||String(globalThis.data?.settings?.address||'').trim();
+    const email=get('companyEmail')||String(globalThis.data?.settings?.email||'').trim();
+    const iban=(get('iban')||String(globalThis.data?.settings?.iban||'')).replace(/\s+/g,'').toUpperCase();
+    const missing=[];
+    let addressOk=false;
+    try{const parsed=globalThis.APCompliance?.parseAddress?.(address,document.getElementById('companyCountry')?.value||globalThis.data?.settings?.countryCode||'DE');addressOk=!!(parsed?.street&&parsed?.postalCode&&parsed?.city)}catch(e){}
+    if(!addressOk)addressOk=/\d{4,5}\s+\S+/.test(address)&&address.length>=8;
+    if(!addressOk)missing.push({id:'companyAddress',label:'vollständige Firmenadresse'});
+    if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))missing.push({id:'companyEmail',label:'Firmen-E-Mail'});
+    if(!/^[A-Z]{2}[A-Z0-9]{13,32}$/.test(iban))missing.push({id:'iban',label:'IBAN'});
+    return{missing};
+  }
+
+  function focusComplianceField(id){
+    const el=document.getElementById(id);if(!el)return false;
+    const details=el.closest?.('details');if(details)details.open=true;
+    el.style.outline='3px solid rgba(215,255,45,.9)';el.style.outlineOffset='3px';el.style.scrollMarginTop='120px';
+    setTimeout(()=>{try{el.scrollIntoView({behavior:'smooth',block:'center'});el.focus({preventScroll:true})}catch(e){el.focus?.()}},90);
+    setTimeout(()=>{el.style.outline='';el.style.outlineOffset=''},5000);
+    return true;
+  }
+
+  function ensureCompanyEInvoiceReadiness(){
+    const screen=document.getElementById('settings');if(!screen)return false;
+    let card=document.getElementById('companyEInvoiceReadiness');
+    if(!card){
+      const anchor=[...screen.querySelectorAll('.sectionTitle')].find(x=>(x.textContent||'').includes('Rechnungsangaben'));if(!anchor)return false;
+      card=document.createElement('div');card.id='companyEInvoiceReadiness';card.className='card';card.style.border='1px solid rgba(160,180,210,.25)';card.style.marginBottom='14px';anchor.insertAdjacentElement('beforebegin',card);
+    }
+    const r=companyReadiness();
+    card.innerHTML=r.missing.length
+      ?`<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px">🧾</span><div style="flex:1"><b style="font-size:18px">E-Rechnung noch nicht startklar</b><p class="mini" style="margin:5px 0 10px">${r.missing.map(x=>x.label).join(' · ')}</p><button type="button" class="btn small" id="apFixCompanyEInvoice">Fehlende Angabe öffnen →</button></div></div>`
+      :'<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px">✅</span><div><b style="font-size:18px">E-Rechnung bereit</b><p class="mini" style="margin:5px 0 0">Firmenadresse, E-Mail und Zahlungskonto sind vollständig hinterlegt.</p></div></div>';
+    const btn=document.getElementById('apFixCompanyEInvoice');if(btn)btn.onclick=()=>focusComplianceField(r.missing[0]?.id);
+    ['companyAddress','companyEmail','iban'].forEach(id=>{const el=document.getElementById(id);if(el&&el.dataset.apReadinessBound!=='1'){el.dataset.apReadinessBound='1';el.addEventListener('input',ensureCompanyEInvoiceReadiness);el.addEventListener('change',ensureCompanyEInvoiceReadiness)}});
+    return true;
+  }
+
+  function classifyComplianceError(message){
+    const m=String(message||'');
+    const customer=[[/Kundentyp/i,'custCustomerType'],[/Kundenname|Kundenname\/Firma/i,'custName'],[/Kundenadresse/i,'custAddress'],[/Leitweg|Käuferreferenz|BuyerReference|BT-10/i,'custBuyerReference'],[/elektronische Adresse des Kunden|E-Rechnungsadresse/i,'custEInvoiceAddress'],[/Lieferantennummer/i,'custSupplierNumber'],[/UID des Kunden|USt-ID.*Kunden|USt-Id.*Kunden/i,'custVatId']];
+    const settings=[[/Firmenname/i,'companyName'],[/Firmenadresse/i,'companyAddress'],[/Firmen-E-Mail/i,'companyEmail'],[/IBAN|Zahlungsweg|Zahlungskonto/i,'iban'],[/Steuernummer|USt-IdNr\. des Betriebs/i,'taxNumber'],[/UID des österreichischen Betriebs|MWST-\/UID-Nummer des schweizerischen Betriebs/i,'vatId']];
+    const invoice=[[/Rechnungsnummer/i,'invoiceNumber'],[/Rechnungsdatum/i,'invoiceDate'],[/Leistungsdatum|Lieferdatum/i,'invoiceServiceDate'],[/Fälligkeitsdatum|Fälligkeit/i,'invoiceDueDate'],[/Betreff/i,'invoiceSubject'],[/Rechnungsposition|Position .*Menge|Einheit fehlt/i,'invoiceLines'],[/Steuersatz|Steuerbehandlung/i,'invoiceTaxTreatment']];
+    for(const [rx,id] of customer)if(rx.test(m))return{scope:'customer',id,message:m};
+    for(const [rx,id] of settings)if(rx.test(m))return{scope:'settings',id,message:m};
+    for(const [rx,id] of invoice)if(rx.test(m))return{scope:'invoice',id,message:m};
+    return{scope:'invoice',id:'invoiceComplianceBox',message:m};
+  }
+
+  function openComplianceRepair(inv,result){
+    const errors=result?.errors||[],target=classifyComplianceError(errors[0]||'');
+    complianceRepairState={invoiceId:inv?.id||document.getElementById('invoiceId')?.value||'',customerId:inv?.customerId||'',target,errors:[...errors]};
+    globalThis.__apComplianceRepair=complianceRepairState;
+    (globalThis.toast||globalThis.showToast)?.('Fehlende Angabe gefunden – ich öffne direkt das richtige Feld.','warning');
+    if(target.scope==='customer'&&complianceRepairState.customerId){
+      globalThis.editCustomer?.(complianceRepairState.customerId);
+      setTimeout(()=>{ensureCustomerComplianceUi();bindCustomerComplianceUi();const details=document.querySelector('#customerEditor .apCustomerEInvoiceDetails');if(details){details.dataset.apForceOpen='1';details.open=true}updateCustomerComplianceUi();focusComplianceField(target.id)},140);
+      return;
+    }
+    if(target.scope==='settings'){
+      globalThis.showScreen?.('settings');setTimeout(()=>{ensureCompanyEInvoiceReadiness();focusComplianceField(target.id)},160);return;
+    }
+    focusComplianceField(target.id);
+  }
+
+  function resumeInvoiceAfterComplianceRepair(kind){
+    const state=complianceRepairState||globalThis.__apComplianceRepair;if(!state||state.target?.scope!==kind)return;
+    complianceRepairState=null;globalThis.__apComplianceRepair=null;
+    const invoiceId=state.invoiceId;if(!invoiceId)return;
+    setTimeout(()=>{
+      const inv=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(invoiceId));
+      if(inv&&typeof globalThis.editInvoice==='function'){
+        globalThis.editInvoice(invoiceId);
+        setTimeout(()=>{const check=globalThis.refreshInvoiceComplianceUI?.(inv),remaining=check?.errors?.length||0;(globalThis.toast||globalThis.showToast)?.(remaining?`Angabe gespeichert · noch ${remaining} Punkt${remaining===1?'':'e'} zu ergänzen`:'✓ Angabe gespeichert · Rechnung erneut geprüft',remaining?'warning':'success')},180);
+      }
+    },120);
+  }
+
+  function installGuidedComplianceRepair(){
+    const fn=globalThis.runInvoiceComplianceBeforeFinalize;
+    if(typeof fn==='function'&&!fn.__apGuidedComplianceRepair){
+      const wrapped=async function(inv){
+        if(!globalThis.APCompliance)return fn.apply(this,arguments);
+        globalThis.APCompliance.prepareInvoice?.(inv);
+        const result=globalThis.APCompliance.check(inv);globalThis.refreshInvoiceComplianceUI?.(inv);
+        if(!result.ok){openComplianceRepair(inv,result);return result}
+        return result;
+      };
+      wrapped.__apGuidedComplianceRepair=true;wrapped.__apOriginal=fn;globalThis.runInvoiceComplianceBeforeFinalize=wrapped;
+    }
+    const settingsFn=globalThis.saveSettings;
+    if(typeof settingsFn==='function'&&!settingsFn.__apGuidedComplianceRepair){
+      const wrappedSettings=function(){
+        const shouldResume=(complianceRepairState||globalThis.__apComplianceRepair)?.target?.scope==='settings';
+        const result=settingsFn.apply(this,arguments);ensureCompanyEInvoiceReadiness();if(shouldResume)resumeInvoiceAfterComplianceRepair('settings');return result;
+      };
+      wrappedSettings.__apGuidedComplianceRepair=true;wrappedSettings.__apOriginal=settingsFn;globalThis.saveSettings=wrappedSettings;
+    }
+  }
+
   function installCustomerComplianceGuards(){
     ensureCustomerComplianceUi();
     for(const name of ['newCustomer','editCustomer','saveCustomer']){
       const fn=globalThis[name];
       if(typeof fn!=='function'||fn.__apCustomerComplianceGuard)continue;
       const wrapped=function(){
-        ensureCustomerComplianceUi();
-        return fn.apply(this,arguments);
+        ensureCustomerComplianceUi();bindCustomerComplianceUi();
+        const shouldResume=name==='saveCustomer'&&(complianceRepairState||globalThis.__apComplianceRepair)?.target?.scope==='customer';
+        const result=fn.apply(this,arguments);
+        setTimeout(()=>{bindCustomerComplianceUi();updateCustomerComplianceUi()},0);
+        if(shouldResume)resumeInvoiceAfterComplianceRepair('customer');
+        return result;
       };
       wrapped.__apCustomerComplianceGuard=true;
       wrapped.__apOriginal=fn;
@@ -351,7 +524,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.09',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.10',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APComplianceUX={version:'11.31.10',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -708,11 +882,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.09',
+    version:'11.31.10',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.09',
+      version:'11.31.10',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -1472,7 +1646,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function ensureComplianceLoaded(){
-    // v11.31.09 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
+    // v11.31.10 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
     if(globalThis.APCompliance?.runtimeVersion==='11.31.08')return;
 
     // 1) Basis-Core 11.31.0 sicherstellen. Er enthält Länder-/Rechtsrouting und
@@ -1521,17 +1695,17 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       }
     });
     window.addEventListener('focus',()=>{
-      refresh();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      refresh();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     window.addEventListener('pageshow',()=>{
-      refresh();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      refresh();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     document.addEventListener('visibilitychange',()=>{if(!document.hidden){
-      refresh();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      refresh();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     }});
@@ -1545,7 +1719,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   function boot(){
     stampBuild();
     ensureCustomerComplianceUi();
+    bindCustomerComplianceUi();
     installCustomerComplianceGuards();
+    installGuidedComplianceRepair();
+    ensureCompanyEInvoiceReadiness();
     ensureInvoiceEditorUi();
     installInvoiceActionGuards();
     installInvoiceNumberingGuards();
@@ -1568,7 +1745,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     // Späte App-/Cloud-Initialisierung abfangen, ohne dauerhaft renderAll zu pollen.
     [0,250,800,1800].forEach(ms=>setTimeout(()=>{
       ensureCustomerComplianceUi();
+      bindCustomerComplianceUi();
       installCustomerComplianceGuards();
+      installGuidedComplianceRepair();
+      ensureCompanyEInvoiceReadiness();
       ensureInvoiceEditorUi();
       installInvoiceActionGuards();
       installInvoiceNumberingGuards();
