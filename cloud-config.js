@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.12 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.13 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,11 +12,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.12';
+  const VERSION='11.31.13';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
   const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_12__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_13__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -34,7 +34,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-12',
+    cacheTag:'angebotspilot-v11-31-13',
     stamp:stampBuild
   });
 
@@ -43,7 +43,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   let refreshTimer=null;
 
 
-  // v11.31.12: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
+  // v11.31.13: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
   // Fix: auch direkte Wetterdialoge sichern, die updateConsent bisher umgangen haben.
   // Der Browser/iOS behält seine eigene Systemberechtigung separat; hier speichern wir
   // ausschließlich die bereits vom Nutzer in AngebotsPilot bestätigte Auswahl.
@@ -121,6 +121,115 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
+  let cloudPermissionLoadedKey='';
+  let cloudPermissionLoadPromise=null;
+
+  function permissionCloudContext(userId='',companyId=''){
+    const ident=permissionIdentity(userId,companyId);if(!ident)return null;
+    try{
+      const ctx=globalThis.APCloudContext?.();
+      if(!ctx?.client||!ctx?.session?.user?.id||!ctx?.company?.id)return null;
+      if(String(ctx.session.user.id)!==ident.user||String(ctx.company.id)!==ident.company)return null;
+      return{...ident,client:ctx.client};
+    }catch(e){return null}
+  }
+
+  function permissionLocalTimestamp(stored){
+    const ms=Date.parse(stored?.savedAt||'');
+    return Number.isFinite(ms)?ms:0;
+  }
+
+  function permissionCloudTimestamp(row){
+    const ms=Date.parse(row?.consent_updated_at||row?.updated_at||'');
+    return Number.isFinite(ms)?ms:0;
+  }
+
+  async function saveCloudPermissionPrefs(patch={},userId='',companyId=''){
+    const ctx=permissionCloudContext(userId,companyId);if(!ctx)return false;
+    globalThis.data.privacy=globalThis.data.privacy||{};
+    globalThis.data.privacy.consents=globalThis.data.privacy.consents||{};
+    const c=globalThis.data.privacy.consents;
+    const weather=typeof patch.weather==='boolean'?patch.weather:!!c.weather;
+    const location=typeof patch.location==='boolean'?patch.location:!!c.location;
+    const now=new Date().toISOString();
+    const {error}=await ctx.client.from('user_preferences').upsert({
+      company_id:ctx.company,
+      user_id:ctx.user,
+      weather_consent:weather,
+      location_consent:location,
+      consent_updated_at:now,
+      updated_at:now
+    },{onConflict:'company_id,user_id'});
+    if(error)throw error;
+    writeDevicePermissionPrefs({weather,location},ctx.user,ctx.company);
+    cloudPermissionLoadedKey=`${ctx.company}:${ctx.user}`;
+    return true;
+  }
+
+  async function loadCloudPermissionPrefs(userId='',companyId='',force=false){
+    const ctx=permissionCloudContext(userId,companyId);if(!ctx)return false;
+    const key=`${ctx.company}:${ctx.user}`;
+    if(!force&&cloudPermissionLoadedKey===key)return true;
+    if(cloudPermissionLoadPromise)return cloudPermissionLoadPromise;
+
+    cloudPermissionLoadPromise=(async()=>{
+      const {data:row,error}=await ctx.client.from('user_preferences')
+        .select('weather_consent,location_consent,consent_updated_at,updated_at')
+        .eq('company_id',ctx.company).eq('user_id',ctx.user).maybeSingle();
+      if(error)throw error;
+
+      globalThis.data.privacy=globalThis.data.privacy||{};
+      globalThis.data.privacy.consents=globalThis.data.privacy.consents||{};
+      const c=globalThis.data.privacy.consents;
+      const local=readDevicePermissionPrefs(ctx.user,ctx.company);
+      const localTs=permissionLocalTimestamp(local),cloudTs=permissionCloudTimestamp(row);
+      const localHas=local&&(typeof local.weather==='boolean'||typeof local.location==='boolean');
+      const cloudHas=row&&(typeof row.weather_consent==='boolean'||typeof row.location_consent==='boolean');
+
+      if(localHas&&localTs>cloudTs){
+        if(typeof local.weather==='boolean')c.weather=local.weather;
+        if(typeof local.location==='boolean')c.location=local.location;
+        await saveCloudPermissionPrefs({weather:!!c.weather,location:!!c.location},ctx.user,ctx.company);
+      }else if(cloudHas){
+        if(typeof row.weather_consent==='boolean')c.weather=row.weather_consent;
+        if(typeof row.location_consent==='boolean')c.location=row.location_consent;
+        writeDevicePermissionPrefs({weather:!!c.weather,location:!!c.location},ctx.user,ctx.company);
+      }else if(localHas||c.weather===true||c.location===true){
+        if(localHas){
+          if(typeof local.weather==='boolean')c.weather=local.weather;
+          if(typeof local.location==='boolean')c.location=local.location;
+        }
+        await saveCloudPermissionPrefs({weather:!!c.weather,location:!!c.location},ctx.user,ctx.company);
+      }
+
+      cloudPermissionLoadedKey=key;
+      try{globalThis.safePersistCloudIdentity?.(globalThis.data)}catch(e){}
+      try{globalThis.renderPrivacy?.()}catch(e){}
+      return !!(cloudHas||localHas||c.weather===true||c.location===true);
+    })().catch(error=>{
+      console.warn('Cloud-Einwilligung konnte noch nicht geladen werden',error);
+      return false;
+    }).finally(()=>{cloudPermissionLoadPromise=null});
+    return cloudPermissionLoadPromise;
+  }
+
+  async function waitForPermissionCloudContext(timeoutMs=2200){
+    const start=Date.now();
+    while(Date.now()-start<timeoutMs){
+      const ctx=permissionCloudContext();if(ctx)return ctx;
+      await new Promise(resolve=>setTimeout(resolve,80));
+    }
+    return permissionCloudContext();
+  }
+
+  async function restoreBestPermissionPrefs({waitForCloud=false}={}){
+    restoreDevicePermissionPrefs();
+    if(waitForCloud&&!permissionCloudContext())await waitForPermissionCloudContext();
+    await loadCloudPermissionPrefs();
+    restoreDevicePermissionPrefs();
+    return !!globalThis.data?.privacy?.consents?.weather;
+  }
+
   function installPersistentPermissionGuards(){
     restoreDevicePermissionPrefs();
 
@@ -133,6 +242,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
           // Falls nur eine der beiden Entscheidungen geändert wurde, die andere aus
           // dem aktuellen App-Zustand ebenfalls konsistent festhalten.
           persistCurrentDevicePermissionPrefs();
+          saveCloudPermissionPrefs({[type]:!!value}).catch(error=>console.warn('Cloud-Einwilligung konnte noch nicht gespeichert werden',error));
         }
         return result;
       };
@@ -150,6 +260,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         const result=saveFn.apply(this,arguments);
         if(String(action||'')==='Einwilligung geändert'){
           persistCurrentDevicePermissionPrefs();
+          saveCloudPermissionPrefs().catch(error=>console.warn('Cloud-Einwilligung konnte noch nicht gespeichert werden',error));
         }
         return result;
       };
@@ -162,13 +273,17 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       const fn=globalThis[name];
       if(typeof fn!=='function'||fn.__apPersistentPermissions)continue;
       const wrapped=async function(){
-        // Vor jeder Wetteraktion zuerst die gerätegebundene Entscheidung wiederherstellen.
-        restoreDevicePermissionPrefs();
+        // Nach einem Safari-Neustart im Privatmodus kann localStorage leer sein.
+        // Beim automatischen Wetter kurz auf das Cloud-Konto warten und die Entscheidung
+        // serverseitig wiederherstellen, bevor irgendein Dialog angezeigt wird.
+        const automatic=name==='refreshWeather'&&!arguments[0];
+        await restoreBestPermissionPrefs({waitForCloud:automatic});
         try{
           return await fn.apply(this,arguments);
         }finally{
-          // Direkte Dialogpfade setzen data.privacy.consents selbst; danach dauerhaft sichern.
+          // Direkte Dialogpfade setzen data.privacy.consents selbst; lokal + Cloud sichern.
           persistCurrentDevicePermissionPrefs();
+          saveCloudPermissionPrefs().catch(error=>console.warn('Cloud-Einwilligung konnte noch nicht gespeichert werden',error));
         }
       };
       wrapped.__apPersistentPermissions=true;
@@ -183,6 +298,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         persistCurrentDevicePermissionPrefs();
         const result=workspaceFn.apply(this,arguments);
         restoreDevicePermissionPrefs(userId,companyId);
+        loadCloudPermissionPrefs(userId,companyId,true).catch(error=>console.warn('Cloud-Einwilligung konnte nach Kontowechsel noch nicht geladen werden',error));
         return result;
       };
       wrapped.__apPersistentPermissions=true;
@@ -195,13 +311,15 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APPermissionPrefs={
-    version:'11.31.12',
+    version:'11.31.13',
     restore:restoreDevicePermissionPrefs,
+    restoreCloud:loadCloudPermissionPrefs,
     persist:persistCurrentDevicePermissionPrefs,
+    persistCloud:saveCloudPermissionPrefs,
     state:()=>readDevicePermissionPrefs()
   };
 
-  // v11.31.12: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
+  // v11.31.13: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
   // der alte statische Kundeneditor zeigte sie aber noch nicht an. Diese UI wird bewusst
   // kompakt ergänzt: Kundentyp + Land sichtbar, Spezialfelder in einem optionalen Bereich.
   function ensureCustomerComplianceUi(){
@@ -257,7 +375,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
-  // v11.31.12: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
+  // v11.31.13: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
   let complianceRepairState=null;
 
   function customerComplianceRequirement(){
@@ -683,8 +801,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.12',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
-  globalThis.APComplianceUX={version:'11.31.12',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
+  globalThis.APInvoiceUI={version:'11.31.13',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APComplianceUX={version:'11.31.13',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -1041,11 +1159,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.12',
+    version:'11.31.13',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.12',
+      version:'11.31.13',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -1805,7 +1923,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function ensureComplianceLoaded(){
-    // v11.31.12 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
+    // v11.31.13 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
     if(globalThis.APCompliance?.runtimeVersion==='11.31.08')return;
 
     // 1) Basis-Core 11.31.0 sicherstellen. Er enthält Länder-/Rechtsrouting und

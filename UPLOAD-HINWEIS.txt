@@ -1,4 +1,4 @@
-AngebotsPilot v11.31.12 – ROOT Update
+AngebotsPilot v11.31.13 – ROOT Update
 
 Bitte im GitHub-Repository im ROOT ersetzen:
 - cloud-config.js
@@ -6,7 +6,9 @@ Bitte im GitHub-Repository im ROOT ersetzen:
 
 Nichts löschen und keine Geschäftsdaten verändern.
 
-Fix v11.31.12:
-- Wetter-/Standort-Einwilligung bleibt nach Login erhalten.
-- Auch die direkten Wetterdialoge (automatisches Wetter, manuelle Ortssuche und Gerätestandort) schreiben die einmal erteilte Auswahl dauerhaft pro Konto und Gerät.
-- 11.31.10 Guided Compliance UX und alle bisherigen Rechnungs-/Sync-Schutzschichten bleiben erhalten.
+Fix v11.31.13:
+- Wetter-/Standort-Einwilligung wird zusätzlich pro Benutzer + Betrieb in der Cloud gespeichert.
+- Nach Safari-Neustart bzw. gelöschtem Privatmodus-Speicher wird die Entscheidung nach dem Login wiederhergestellt.
+- Automatisches Wetter wartet kurz auf den Cloud-Kontext, bevor ein eigener AngebotsPilot-Dialog erscheint.
+- Widerruf unter Datenschutz bleibt möglich und wird ebenfalls synchronisiert.
+- 11.31.10 Guided Compliance UX und alle Rechnungs-/Sync-Schutzschichten bleiben erhalten.
