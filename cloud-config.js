@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.03 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.04 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,10 +12,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.03';
+  const VERSION='11.31.04';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_03__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_04__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-03',
+    cacheTag:'angebotspilot-v11-31-04',
     stamp:stampBuild
   });
 
@@ -279,7 +279,252 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.03',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.04',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+
+
+  // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
+  // Die Datenbank erzwingt zusätzlich Mandant + normalisierte Nummer eindeutig.
+  let invoiceNumberingGuardsInstalled=false;
+
+  function invoiceNumberingContext(){
+    try{return globalThis.APCloudContext?.()||null}catch(e){return null}
+  }
+
+  function invoiceNumberingError(error){
+    const code=String(error?.code||'');
+    const raw=String(error?.message||error||'Rechnungsnummer konnte nicht reserviert werden.');
+    if(code==='23505'||/bereits vergeben|duplicate|unique/i.test(raw)){
+      return'Diese Rechnungsnummer ist bereits vergeben. Bitte eine andere Nummer verwenden.';
+    }
+    if(code==='42501'||/Berechtigung/i.test(raw))return'Keine Berechtigung zum Vergeben von Rechnungsnummern.';
+    return raw;
+  }
+
+  async function reserveInvoiceNumber({localId,proposed,manual=false,required=false}={}){
+    const requested=String(proposed||'').trim();
+    if(!requested)throw new Error('Rechnungsnummer fehlt.');
+    if(!localId)throw new Error('Rechnungs-ID fehlt.');
+
+    const ctx=invoiceNumberingContext();
+    if(!ctx?.client||!ctx?.company?.id){
+      if(required)throw new Error('Zum Ausstellen muss die Cloud verbunden sein, damit die Rechnungsnummer sicher reserviert werden kann.');
+      return requested;
+    }
+
+    try{
+      const {data:allocated,error}=await ctx.client.rpc('reserve_invoice_number',{
+        p_company_id:ctx.company.id,
+        p_local_id:String(localId),
+        p_requested_number:requested,
+        p_manual:!!manual
+      });
+      if(error)throw error;
+      const result=String(allocated||'').trim();
+      if(!result)throw new Error('Die Cloud hat keine Rechnungsnummer zurückgegeben.');
+      return result;
+    }catch(error){
+      const msg=invoiceNumberingError(error);
+      const duplicate=String(error?.code||'')==='23505'||/bereits vergeben|duplicate|unique/i.test(String(error?.message||''));
+      if(required||manual||duplicate)throw new Error(msg);
+      console.warn('Rechnungsnummer vorerst nur lokal vergeben',error);
+      return requested;
+    }
+  }
+
+  function persistInvoiceNumberState(){
+    try{
+      if(globalThis.safePersistCloudIdentity)return globalThis.safePersistCloudIdentity(globalThis.data);
+      localStorage.setItem('digitaler_handwerker_v3',JSON.stringify(globalThis.data||{}));
+      return true;
+    }catch(error){
+      console.warn('Rechnungsnummer konnte lokal nicht zwischengespeichert werden',error);
+      return false;
+    }
+  }
+
+  function editorInvoiceId(){
+    const field=document.getElementById('invoiceId');
+    if(!field)return'';
+    let id=String(field.value||'').trim();
+    if(!id){
+      id=globalThis.crypto?.randomUUID?.()||globalThis.uid?.()||('inv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
+      field.value=id;
+    }
+    return id;
+  }
+
+  async function reserveEditorInvoiceNumber({required=false}={}){
+    const input=document.getElementById('invoiceNumber');
+    if(!input)return'';
+    const localId=editorInvoiceId();
+    let proposed=String(input.value||'').trim();
+    if(!proposed&&typeof globalThis.nextUniqueInvoiceNumber==='function'){
+      proposed=String(globalThis.nextUniqueInvoiceNumber()||'').trim();
+      input.value=proposed;
+    }
+    const manual=input.dataset.manual==='1';
+    const allocated=await reserveInvoiceNumber({localId,proposed,manual,required});
+    if(allocated!==proposed){
+      input.value=allocated;
+      input.dataset.manual='0';
+      globalThis.toast?.(`Rechnungsnummer sicher auf ${allocated} gesetzt`);
+    }
+    return allocated;
+  }
+
+  async function reserveInvoiceRecord(inv,{manual=false,required=false}={}){
+    if(!inv?.id||!inv?.number)return inv?.number||'';
+    const before=String(inv.number).trim();
+    const allocated=await reserveInvoiceNumber({localId:inv.id,proposed:before,manual,required});
+    if(allocated!==before){
+      inv.number=allocated;
+      const openId=document.getElementById('invoiceId')?.value||'';
+      if(String(openId)===String(inv.id)){
+        const input=document.getElementById('invoiceNumber');
+        if(input){input.value=allocated;input.dataset.manual='0'}
+      }
+      persistInvoiceNumberState();
+      globalThis.toast?.(`Rechnungsnummer sicher auf ${allocated} gesetzt`);
+    }
+    return allocated;
+  }
+
+  async function prepareAllDraftInvoiceNumbers(){
+    const drafts=(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft'&&!inv?.finalizedAt&&inv?.id&&inv?.number);
+    let changed=false;
+    for(const inv of drafts){
+      const before=String(inv.number||'').trim();
+      if(!before)continue;
+      const allocated=await reserveInvoiceNumber({localId:inv.id,proposed:before,manual:false,required:false});
+      if(allocated&&allocated!==before){inv.number=allocated;changed=true}
+    }
+    if(changed){
+      persistInvoiceNumberState();
+      globalThis.renderInvoices?.();
+      polishInvoiceUi();
+    }
+    return true;
+  }
+
+  function invoiceEditorHasSaveableContent(){
+    const id=String(document.getElementById('invoiceId')?.value||'').trim();
+    const customer=String(document.getElementById('invoiceCustomer')?.value||'').trim();
+    const subject=String(document.getElementById('invoiceSubject')?.value||'').trim();
+    const line=[...document.querySelectorAll('#invoiceLines .item .field input')].some(input=>String(input.value||'').trim());
+    return !!(id||(customer&&subject&&line));
+  }
+
+  async function reserveNewInvoicesCreatedBy(action){
+    const before=new Set((globalThis.data?.invoices||[]).map(inv=>String(inv.id)));
+    const result=await action();
+    const created=(globalThis.data?.invoices||[]).filter(inv=>!before.has(String(inv.id))&&inv?.status==='draft'&&!inv?.finalizedAt);
+    let changed=false;
+    for(const inv of created){
+      const old=String(inv.number||'').trim();
+      if(!old)continue;
+      const allocated=await reserveInvoiceNumber({localId:inv.id,proposed:old,manual:false,required:false});
+      if(allocated!==old){inv.number=allocated;changed=true}
+    }
+    if(created.length){
+      if(changed)persistInvoiceNumberState();
+      const openId=document.getElementById('invoiceId')?.value||'';
+      const open=created.find(inv=>String(inv.id)===String(openId));
+      if(open){
+        const input=document.getElementById('invoiceNumber');
+        if(input){input.value=open.number;input.dataset.manual='0'}
+      }
+      try{await globalThis.CloudSync?.pushSnapshot?.()}catch(error){console.warn('Neuer Rechnungsentwurf wird beim nächsten Sync erneut gespeichert',error)}
+      globalThis.renderInvoices?.();
+      polishInvoiceUi();
+    }
+    return result;
+  }
+
+  function installInvoiceNumberingGuards(){
+    if(invoiceNumberingGuardsInstalled)return;
+    if(typeof globalThis.saveInvoice!=='function'||typeof globalThis.finalizeInvoiceById!=='function')return;
+    invoiceNumberingGuardsInstalled=true;
+
+    const save=globalThis.saveInvoice;
+    if(!save.__apNumberGuard){
+      const wrapped=async function(){
+        const status=document.getElementById('invoiceStatus')?.value||'draft';
+        const required=['open','paid'].includes(status);
+        try{
+          if(invoiceEditorHasSaveableContent())await reserveEditorInvoiceNumber({required});
+        }catch(error){
+          globalThis.toast?.(invoiceNumberingError(error),'error');
+          return;
+        }
+        return save.apply(this,arguments);
+      };
+      wrapped.__apNumberGuard=true;
+      wrapped.__apInvoiceUiGuard=!!save.__apInvoiceUiGuard;
+      wrapped.__apOriginal=save;
+      globalThis.saveInvoice=wrapped;
+    }
+
+    const autoClose=globalThis.autoSaveInvoiceAndClose;
+    if(typeof autoClose==='function'&&!autoClose.__apNumberGuard){
+      const wrapped=async function(){
+        try{
+          if(invoiceEditorHasSaveableContent())await reserveEditorInvoiceNumber({required:false});
+        }catch(error){
+          globalThis.toast?.(invoiceNumberingError(error),'error');
+          return;
+        }
+        return autoClose.apply(this,arguments);
+      };
+      wrapped.__apNumberGuard=true;
+      wrapped.__apInvoiceUiGuard=!!autoClose.__apInvoiceUiGuard;
+      wrapped.__apOriginal=autoClose;
+      globalThis.autoSaveInvoiceAndClose=wrapped;
+    }
+
+    const finalize=globalThis.finalizeInvoiceById;
+    if(!finalize.__apNumberGuard){
+      const wrapped=async function(id){
+        const inv=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(id));
+        if(inv&&!isInvoiceUiLocked(inv)){
+          try{await reserveInvoiceRecord(inv,{manual:true,required:true})}
+          catch(error){globalThis.toast?.(invoiceNumberingError(error),'error');return}
+        }
+        return finalize.apply(this,arguments);
+      };
+      wrapped.__apNumberGuard=true;
+      wrapped.__apOriginal=finalize;
+      globalThis.finalizeInvoiceById=wrapped;
+    }
+
+    for(const name of ['createCorrectionDraft','createCancellationDraft','createInvoiceFromJob','saveJob','setOfferStatusFromModal']){
+      const fn=globalThis[name];
+      if(typeof fn!=='function'||fn.__apNumberGuard)continue;
+      const wrapped=async function(){
+        try{return await reserveNewInvoicesCreatedBy(()=>Promise.resolve(fn.apply(this,arguments)))}
+        catch(error){
+          console.error(`Rechnungsnummern-Schutz bei ${name} fehlgeschlagen`,error);
+          globalThis.toast?.(invoiceNumberingError(error),'error');
+          return;
+        }
+      };
+      wrapped.__apNumberGuard=true;
+      wrapped.__apInvoiceUiGuard=!!fn.__apInvoiceUiGuard;
+      wrapped.__apOriginal=fn;
+      globalThis[name]=wrapped;
+    }
+  }
+
+  globalThis.APInvoiceNumbering={
+    version:'11.31.04',
+    reserve:reserveInvoiceNumber,
+    prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
+    diagnostics:()=>({
+      version:'11.31.04',
+      cloudReady:!!invoiceNumberingContext()?.client,
+      companyId:invoiceNumberingContext()?.company?.id||'',
+      localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length
+    })
+  };
 
   // v11.31.0-r4: Rechnungsbeziehungen nach dem Cloud-Push robust nachziehen.
   // Wichtig: Nur vorhandene lokale Beziehungen werden gesetzt; bestehende Cloud-Beziehungen
@@ -545,6 +790,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       // pushSnapshot interpretiert das als bereits laufenden Sync und überspringt den Push.
       // Deshalb hier bewusst: erst pushen, danach pullen.
       snapshotLinkedInvoiceDrafts();
+      await prepareAllDraftInvoiceNumbers();
       await sync.pushSnapshot();
       await repairInvoiceSafety();
       await sync.pullCloud();
@@ -602,6 +848,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         const result=render.apply(this,arguments);
         ensureInvoiceEditorUi();
         installInvoiceActionGuards();
+        installInvoiceNumberingGuards();
         installPaymentActionGuard();
         polishInvoiceUi();
         stampBuild();
@@ -618,6 +865,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         const result=show.apply(this,arguments);
         if(arguments[0]==='invoiceEditor')ensureInvoiceEditorUi();
         installInvoiceActionGuards();
+        installInvoiceNumberingGuards();
         installPaymentActionGuard();
         polishInvoiceUi();
         stampBuild();
@@ -939,6 +1187,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     window.addEventListener('angebotspilot:syncstate',event=>{
       refresh();
       installManualSyncGuard();
+      installInvoiceNumberingGuards();
       if(event?.detail?.syncing===true)snapshotLinkedInvoiceDrafts();
       if(event?.detail?.syncing===false){
         scheduleInvoiceRelationRepair(250);
@@ -947,17 +1196,17 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       }
     });
     window.addEventListener('focus',()=>{
-      refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      refresh();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     window.addEventListener('pageshow',()=>{
-      refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      refresh();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     document.addEventListener('visibilitychange',()=>{if(!document.hidden){
-      refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      refresh();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     }});
@@ -972,6 +1221,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     stampBuild();
     ensureInvoiceEditorUi();
     installInvoiceActionGuards();
+    installInvoiceNumberingGuards();
     installPaymentActionGuard();
     polishInvoiceUi();
     installWrappers();
@@ -988,6 +1238,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     [0,250,800,1800].forEach(ms=>setTimeout(()=>{
       ensureInvoiceEditorUi();
       installInvoiceActionGuards();
+      installInvoiceNumberingGuards();
       installPaymentActionGuard();
       polishInvoiceUi();
       installWrappers();

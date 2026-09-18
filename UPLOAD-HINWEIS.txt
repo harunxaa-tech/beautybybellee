@@ -1,21 +1,20 @@
-AngebotsPilot v11.31.03
-
-Enthalten:
-- cloud-config.js
-- service-worker.js
+AngebotsPilot v11.31.04 – kollisionssichere Rechnungsnummern
 
 Upload:
-1. Beide Dateien im ROOT des GitHub-Repositories überschreiben.
-2. Vorher nichts löschen.
-3. Danach die App einmal vollständig neu laden.
+1. ZIP entpacken.
+2. cloud-config.js und service-worker.js im ROOT des GitHub-Repositories überschreiben.
+3. Vorher keine Dateien und keine Geschäftsdaten löschen.
+4. App danach einmal vollständig neu laden.
 
-Änderungen:
-- Eindeutige Rechnungsstatus in der Übersicht.
-- „Als bezahlt markieren“ statt missverständlichem „Bezahlt“.
-- Kein normaler Zahlungsbutton bei Storno-/Negativbelegen.
-- Keine Zahlungsfälligkeits-/Mahnanzeige bei Stornobelegen.
-- Gesperrte Rechnung: „Ausgestellt“ statt „Entwurf“.
-- Gesperrte Rechnung: „Schließen“ statt „Fertig“.
-- Korrektur/Storno in der gesperrten Ansicht eindeutig benannt.
-- Storno- und bereits stornierte Belege zeigen keine unpassenden Korrektur/Storno-Aktionen.
-- Bestehende v11.31.02 Sync- und Rechnungs-Sicherheitsfixes bleiben erhalten.
+Datenbank:
+Die notwendige Supabase-Migration wurde bereits sicher eingespielt.
+Bestehende Rechnungen und Rechnungsnummern wurden dabei NICHT verändert.
+
+Neu in 11.31.04:
+- Rechnungsnummern werden pro Betrieb serverseitig atomar reserviert.
+- Zwei Geräte können nicht mehr dieselbe Nummer erfolgreich reservieren.
+- Automatische Nummern springen bei einer Kollision sicher auf die nächste freie Nummer.
+- Manuell eingegebene doppelte Nummern werden blockiert.
+- Beim Ausstellen ist eine sichere Cloud-Reservierung Pflicht.
+- Zusätzlich schützt ein normalisierter Unique-Index gegen Groß-/Kleinschreibung und Leerzeichen.
+- Bereits vorhandene 11.31.02 Sync-Schutzmechanismen und 11.31.03 Rechnungs-UX bleiben erhalten.
