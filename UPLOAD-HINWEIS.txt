@@ -1,21 +1,14 @@
-ANGEBOTSPILOT v11.31.16 – ROOT-UPLOAD
+AngebotsPilot v11.31.17 – ROOT-Update
 
-Diese Dateien in den ROOT des GitHub-Repositories hochladen und vorhandene Dateien ersetzen:
+Im GitHub-Repository im ROOT ersetzen/hochladen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113116.js  (NEU)
+- compliance-v113117.js (neu)
 
-Nichts anderes löschen.
+Die bisherige compliance-v113116.js muss nicht gelöscht werden; sie wird von 11.31.17 nicht mehr geladen.
 
-Warum 11.31.16:
-Bei der Kontrolle von 11.31.15 wurde entdeckt, dass die neue Serverprüfung zwar geladen war,
-der bestehende Ausstellen-Button aber weiterhin nur den synchronen lokalen Check aufgerufen hat.
-11.31.16 bindet die serverseitige XRechnungsprüfung jetzt tatsächlich VOR dem Ausstellen ein.
-
-Ablauf:
-lokaler Check -> serverseitiger XRechnungs-Preflight -> Ausstellen-Bestätigung.
-Erst nach der Bestätigung wird die Rechnung finalisiert/archiviert.
-
-KoSIT:
-Ein echter KoSIT-Erfolg wird weiterhin nur angezeigt, wenn der Server tatsächlich einen
-angebundenen KoSIT-Daemon bestätigt. Bis dahin: „Serverprüfung ✓ · KoSIT noch ausstehend“.
+Neu in 11.31.17:
+- technische KoSIT-/Serverfehler werden NICHT mehr als fehlendes Eingabefeld dargestellt
+- kein automatischer Sprung zu falschen Formularfeldern bei Validator-/Netzwerkfehlern
+- echte KoSIT-Ablehnungen bleiben klar von technischen Ausfällen getrennt
+- bei technischen Fehlern bleibt die Rechnung sicher Entwurf und die App erklärt das direkt im Rechnungseditor
