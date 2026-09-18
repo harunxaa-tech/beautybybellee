@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.04 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.05 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,10 +12,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.04';
+  const VERSION='11.31.05';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_04__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_05__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-04',
+    cacheTag:'angebotspilot-v11-31-05',
     stamp:stampBuild
   });
 
@@ -279,7 +279,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.04',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.05',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -389,6 +389,81 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return allocated;
   }
 
+  function sleepInvoiceGuard(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+
+  async function waitForInvoiceCloudIdle(timeoutMs=10000){
+    const started=Date.now();
+    while(globalThis.CloudSync?.state?.().syncing){
+      if(Date.now()-started>timeoutMs)throw new Error('Cloud-Synchronisierung läuft noch. Bitte kurz warten und erneut versuchen.');
+      await sleepInvoiceGuard(120);
+    }
+  }
+
+  async function pushInvoiceSnapshotRequired(){
+    const sync=globalThis.CloudSync;
+    if(!sync?.pushSnapshot)throw new Error('Cloud-Synchronisierung ist nicht bereit.');
+    await waitForInvoiceCloudIdle();
+    await sync.pushSnapshot();
+    await waitForInvoiceCloudIdle();
+  }
+
+  async function verifyInvoiceReadyForFinalize(inv){
+    const ctx=invoiceNumberingContext();
+    if(!ctx?.client||!ctx?.company?.id)throw new Error('Zum Ausstellen muss die Cloud verbunden sein.');
+    const {data:ready,error}=await ctx.client.rpc('verify_invoice_finalization_ready',{
+      p_company_id:ctx.company.id,
+      p_local_id:String(inv.id),
+      p_number:String(inv.number||'').trim()
+    });
+    if(error)throw error;
+    return ready===true;
+  }
+
+  async function ensureInvoiceFinalizationReady(inv){
+    if(!inv?.id||!inv?.number)throw new Error('Rechnungsnummer oder Rechnungs-ID fehlt.');
+    await reserveInvoiceRecord(inv,{manual:true,required:true});
+
+    // Der Entwurf muss vor der rechtlichen Finalisierung bereits mit genau dieser
+    // Nummer in der Cloud stehen. Ein zweites Gerät kann die Nummer dann nicht mehr nehmen.
+    for(let attempt=0;attempt<3;attempt++){
+      await pushInvoiceSnapshotRequired();
+      if(await verifyInvoiceReadyForFinalize(inv))return true;
+      await sleepInvoiceGuard(250*(attempt+1));
+    }
+    throw new Error('Die Rechnungsnummer konnte vor dem Ausstellen nicht eindeutig in der Cloud bestätigt werden. Bitte synchronisieren und erneut versuchen.');
+  }
+
+  async function confirmInvoiceFinalizationInCloud(inv){
+    if(!inv?.id||!inv?.number||!inv?.finalizedAt)return false;
+    const ctx=invoiceNumberingContext();
+    if(!ctx?.client||!ctx?.company?.id)throw new Error('Cloud-Verbindung fehlt.');
+
+    for(let attempt=0;attempt<3;attempt++){
+      await pushInvoiceSnapshotRequired();
+      const {data:rows,error}=await ctx.client.from('invoices')
+        .select('number,status,finalized_at,deleted_at')
+        .eq('company_id',ctx.company.id)
+        .eq('local_id',String(inv.id))
+        .limit(1);
+      if(error)throw error;
+      const row=rows?.[0];
+      if(row?.finalized_at && !row?.deleted_at && String(row.number||'').trim().toLowerCase()===String(inv.number||'').trim().toLowerCase()){
+        if(inv.finalizationCloudPending){delete inv.finalizationCloudPending;persistInvoiceNumberState()}
+        return true;
+      }
+      await sleepInvoiceGuard(250*(attempt+1));
+    }
+    throw new Error('Die ausgestellte Rechnung wurde noch nicht von der Cloud bestätigt.');
+  }
+
+  async function prepareFinalizedInvoiceClaimsForRestore(){
+    const finalized=(globalThis.data?.invoices||[]).filter(inv=>inv?.finalizedAt&&inv?.id&&inv?.number);
+    for(const inv of finalized){
+      await reserveInvoiceNumber({localId:inv.id,proposed:inv.number,manual:true,required:true});
+    }
+    return true;
+  }
+
   async function prepareAllDraftInvoiceNumbers(){
     const drafts=(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft'&&!inv?.finalizedAt&&inv?.id&&inv?.number);
     let changed=false;
@@ -450,13 +525,32 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       const wrapped=async function(){
         const status=document.getElementById('invoiceStatus')?.value||'draft';
         const required=['open','paid'].includes(status);
+        const localId=editorInvoiceId();
         try{
-          if(invoiceEditorHasSaveableContent())await reserveEditorInvoiceNumber({required});
+          if(invoiceEditorHasSaveableContent()){
+            await reserveEditorInvoiceNumber({required});
+            const existing=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(localId));
+            if(required&&existing&&!isInvoiceUiLocked(existing))await ensureInvoiceFinalizationReady(existing);
+          }
         }catch(error){
           globalThis.toast?.(invoiceNumberingError(error),'error');
           return;
         }
-        return save.apply(this,arguments);
+        const result=await save.apply(this,arguments);
+        if(required){
+          const finalized=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(localId));
+          if(finalized?.finalizedAt){
+            try{
+              await confirmInvoiceFinalizationInCloud(finalized);
+              globalThis.toast?.('✓ Ausstellung in der Cloud bestätigt');
+            }catch(error){
+              finalized.finalizationCloudPending=true;persistInvoiceNumberState();
+              console.error('Cloud-Bestätigung der Ausstellung fehlt',error);
+              globalThis.toast?.('⚠️ Ausstellung noch nicht von der Cloud bestätigt. Bitte Rechnung noch nicht versenden und erneut synchronisieren.','error');
+            }
+          }
+        }
+        return result;
       };
       wrapped.__apNumberGuard=true;
       wrapped.__apInvoiceUiGuard=!!save.__apInvoiceUiGuard;
@@ -485,11 +579,23 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     if(!finalize.__apNumberGuard){
       const wrapped=async function(id){
         const inv=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(id));
+        const beforeFinalized=inv?.finalizedAt||'';
         if(inv&&!isInvoiceUiLocked(inv)){
-          try{await reserveInvoiceRecord(inv,{manual:true,required:true})}
+          try{await ensureInvoiceFinalizationReady(inv)}
           catch(error){globalThis.toast?.(invoiceNumberingError(error),'error');return}
         }
-        return finalize.apply(this,arguments);
+        const result=await finalize.apply(this,arguments);
+        if(inv?.finalizedAt&&!beforeFinalized){
+          try{
+            await confirmInvoiceFinalizationInCloud(inv);
+            globalThis.toast?.('✓ Ausstellung in der Cloud bestätigt');
+          }catch(error){
+            inv.finalizationCloudPending=true;persistInvoiceNumberState();
+            console.error('Cloud-Bestätigung der Ausstellung fehlt',error);
+            globalThis.toast?.('⚠️ Ausstellung noch nicht von der Cloud bestätigt. Bitte Rechnung noch nicht versenden und erneut synchronisieren.','error');
+          }
+        }
+        return result;
       };
       wrapped.__apNumberGuard=true;
       wrapped.__apOriginal=finalize;
@@ -515,14 +621,15 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.04',
+    version:'11.31.05',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.04',
+      version:'11.31.05',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
-      localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length
+      localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
+      finalizationGuard:true
     })
   };
 
@@ -1125,6 +1232,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         if(globalThis.safePersistCloudIdentity)globalThis.safePersistCloudIdentity(current);else localStorage.setItem('digitaler_handwerker_v3',JSON.stringify(current));
         const c=currentContext();
         if(c?.company?.id&&globalThis.CloudSync?.pushSnapshot){
+          // Restore kann historische, bereits finalisierte Rechnungen neu in die Cloud bringen.
+          // Dafür werden ihre Nummern vor dem Push kontrolliert beansprucht; bestehende
+          // Rechnungen desselben lokalen Datensatzes bleiben idempotent.
+          await prepareFinalizedInvoiceClaimsForRestore();
           await globalThis.CloudSync.pushSnapshot();
           await globalThis.CloudSync.pullCloud();
         }

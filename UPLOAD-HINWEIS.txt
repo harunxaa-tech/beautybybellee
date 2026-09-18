@@ -1,20 +1,21 @@
-AngebotsPilot v11.31.04 – kollisionssichere Rechnungsnummern
+AngebotsPilot v11.31.05 – ROOT-Update
+
+Enthalten:
+- cloud-config.js
+- service-worker.js
 
 Upload:
 1. ZIP entpacken.
-2. cloud-config.js und service-worker.js im ROOT des GitHub-Repositories überschreiben.
-3. Vorher keine Dateien und keine Geschäftsdaten löschen.
-4. App danach einmal vollständig neu laden.
+2. Beide Dateien direkt im ROOT des GitHub-Repositories hochladen und die vorhandenen Dateien überschreiben.
+3. Vorher nichts löschen.
+4. App danach einmal vollständig schließen und neu öffnen.
 
-Datenbank:
-Die notwendige Supabase-Migration wurde bereits sicher eingespielt.
-Bestehende Rechnungen und Rechnungsnummern wurden dabei NICHT verändert.
+Neu in 11.31.05:
+- Rechnungsnummer-Reservierung bleibt bis zur tatsächlichen Finalisierung bestehen.
+- Vor dem Ausstellen muss ein passender Cloud-Entwurf mit derselben reservierten Nummer bestätigt sein.
+- Die Datenbank blockiert die Finalisierung eines bestehenden Entwurfs ohne passenden Nummern-Claim.
+- Nach dem Ausstellen prüft die App, ob die Cloud die Finalisierung wirklich gespeichert hat.
+- Bei unterbrochener Verbindung bleibt die Nummer reserviert; die App warnt davor, den Beleg vor Cloud-Bestätigung zu versenden.
+- Sichere Wiederherstellung historischer finalisierter Rechnungen bleibt kompatibel.
 
-Neu in 11.31.04:
-- Rechnungsnummern werden pro Betrieb serverseitig atomar reserviert.
-- Zwei Geräte können nicht mehr dieselbe Nummer erfolgreich reservieren.
-- Automatische Nummern springen bei einer Kollision sicher auf die nächste freie Nummer.
-- Manuell eingegebene doppelte Nummern werden blockiert.
-- Beim Ausstellen ist eine sichere Cloud-Reservierung Pflicht.
-- Zusätzlich schützt ein normalisierter Unique-Index gegen Groß-/Kleinschreibung und Leerzeichen.
-- Bereits vorhandene 11.31.02 Sync-Schutzmechanismen und 11.31.03 Rechnungs-UX bleiben erhalten.
+Bestehende Rechnungen und Geschäftsdaten werden nicht verändert.
