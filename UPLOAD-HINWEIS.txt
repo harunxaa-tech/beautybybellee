@@ -1,17 +1,15 @@
-AngebotsPilot v11.31.10 – ROOT Upload
+AngebotsPilot v11.31.11 – ROOT Update
 
 Bitte im GitHub-Repository im ROOT ersetzen:
 - cloud-config.js
 - service-worker.js
 
-Keine anderen Dateien löschen.
+Nichts löschen. Geschäftsdaten bleiben unverändert.
 
-Neu in 11.31.10:
-- E-Rechnungsbereich je Kundentyp klar als Pflicht / Prüfen / Bei Bedarf gekennzeichnet
-- Bei Behörden/XRechnung automatisch aufgeklappt
-- Fehlende Pflichtfelder sichtbar markiert
-- Rechnungsfehler führen automatisch zum passenden Kunden-, Betriebs- oder Rechnungsfeld
-- Nach Speichern der fehlenden Angabe geht es automatisch zur Rechnung zurück und die Prüfung aktualisiert sich
-- Betrieb erhält einen einfachen E-Rechnung-Bereitschaftscheck für Adresse, E-Mail und IBAN
+Neu in 11.31.11:
+- Wetter-/Standort-Einwilligung wird pro angemeldetem Konto auf diesem Gerät dauerhaft gemerkt.
+- Nach erneutem Login erscheint die AngebotsPilot-Abfrage nicht erneut, wenn sie bereits bestätigt wurde.
+- Kontowechsel bleiben getrennt: Eine Zustimmung eines anderen Kontos wird nicht übernommen.
+- Die iOS/Safari-Systemberechtigung bleibt davon unabhängig und wird nicht umgangen.
 
-Compliance-Engine bleibt v11.31.08; Rechnungs-Sync bleibt v11.31.07.
+Außerdem bleiben alle 11.31.10-Verbesserungen zur geführten Fehlerbehebung bei E-Rechnungen erhalten.

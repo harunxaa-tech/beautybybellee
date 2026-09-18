@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.10 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.11 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,11 +12,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.10';
+  const VERSION='11.31.11';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
   const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_10__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_11__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -34,7 +34,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-10',
+    cacheTag:'angebotspilot-v11-31-11',
     stamp:stampBuild
   });
 
@@ -42,7 +42,141 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   let settingsObserver=null;
   let refreshTimer=null;
 
-  // v11.31.10: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
+
+  // v11.31.11: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
+  // Der Browser/iOS behält seine eigene Systemberechtigung separat; hier speichern wir
+  // ausschließlich die bereits vom Nutzer in AngebotsPilot bestätigte Auswahl.
+  const DEVICE_PERMISSION_PREFIX='angebotspilot_device_permissions_v1';
+  let permissionGuardsInstalled=false;
+
+  function permissionIdentity(userId='',companyId=''){
+    let user=String(userId||'').trim(),company=String(companyId||'').trim();
+    try{
+      const ctx=globalThis.APCloudContext?.();
+      user=user||String(ctx?.session?.user?.id||'').trim();
+      company=company||String(ctx?.company?.id||'').trim();
+    }catch(e){}
+    user=user||String(globalThis.data?.meta?.authUserId||'').trim();
+    company=company||String(globalThis.data?.meta?.cloudCompanyId||'').trim();
+    if(!user||!company)return null;
+    return{user,company,key:`${DEVICE_PERMISSION_PREFIX}_${company}_${user}`};
+  }
+
+  function readDevicePermissionPrefs(userId='',companyId=''){
+    const ident=permissionIdentity(userId,companyId);if(!ident)return null;
+    try{
+      const raw=localStorage.getItem(ident.key);if(!raw)return null;
+      const parsed=JSON.parse(raw);
+      return parsed&&typeof parsed==='object'?{...parsed,key:ident.key}:null;
+    }catch(e){return null}
+  }
+
+  function writeDevicePermissionPrefs(patch={},userId='',companyId=''){
+    const ident=permissionIdentity(userId,companyId);if(!ident)return false;
+    try{
+      let current={};
+      try{current=JSON.parse(localStorage.getItem(ident.key)||'{}')||{}}catch(e){}
+      const next={
+        ...current,
+        ...patch,
+        version:1,
+        companyId:ident.company,
+        userId:ident.user,
+        savedAt:new Date().toISOString()
+      };
+      localStorage.setItem(ident.key,JSON.stringify(next));
+      return true;
+    }catch(e){
+      console.warn('Geräte-Einwilligung konnte nicht gespeichert werden',e);
+      return false;
+    }
+  }
+
+  function persistCurrentDevicePermissionPrefs(userId='',companyId=''){
+    const c=globalThis.data?.privacy?.consents;
+    if(!c)return false;
+    return writeDevicePermissionPrefs({weather:!!c.weather,location:!!c.location},userId,companyId);
+  }
+
+  function restoreDevicePermissionPrefs(userId='',companyId=''){
+    const ident=permissionIdentity(userId,companyId);if(!ident||!globalThis.data)return false;
+    globalThis.data.privacy=globalThis.data.privacy||{};
+    globalThis.data.privacy.consents=globalThis.data.privacy.consents||{};
+    const c=globalThis.data.privacy.consents;
+    const stored=readDevicePermissionPrefs(ident.user,ident.company);
+
+    if(stored){
+      if(typeof stored.weather==='boolean')c.weather=stored.weather;
+      if(typeof stored.location==='boolean')c.location=stored.location;
+    }else if(c.weather===true||c.location===true){
+      // Migration: eine bereits bestätigte Auswahl aus 11.31.10 einmalig übernehmen.
+      writeDevicePermissionPrefs({weather:!!c.weather,location:!!c.location},ident.user,ident.company);
+    }else{
+      return false;
+    }
+
+    try{globalThis.safePersistCloudIdentity?.(globalThis.data)}catch(e){}
+    try{globalThis.renderPrivacy?.()}catch(e){}
+    return true;
+  }
+
+  function installPersistentPermissionGuards(){
+    restoreDevicePermissionPrefs();
+
+    const consentFn=globalThis.updateConsent;
+    if(typeof consentFn==='function'&&!consentFn.__apPersistentPermissions){
+      const wrapped=function(type,value){
+        const result=consentFn.apply(this,arguments);
+        if(type==='weather'||type==='location'){
+          writeDevicePermissionPrefs({[type]:!!value});
+          // Falls nur eine der beiden Entscheidungen geändert wurde, die andere aus
+          // dem aktuellen App-Zustand ebenfalls konsistent festhalten.
+          persistCurrentDevicePermissionPrefs();
+        }
+        return result;
+      };
+      wrapped.__apPersistentPermissions=true;
+      wrapped.__apOriginal=consentFn;
+      globalThis.updateConsent=wrapped;
+    }
+
+    const locationFn=globalThis.useDeviceLocation;
+    if(typeof locationFn==='function'&&!locationFn.__apPersistentPermissions){
+      const wrapped=async function(){
+        restoreDevicePermissionPrefs();
+        return locationFn.apply(this,arguments);
+      };
+      wrapped.__apPersistentPermissions=true;
+      wrapped.__apOriginal=locationFn;
+      globalThis.useDeviceLocation=wrapped;
+    }
+
+    const workspaceFn=globalThis.ensureWorkspaceForCloudAccount;
+    if(typeof workspaceFn==='function'&&!workspaceFn.__apPersistentPermissions){
+      const wrapped=function(userId,companyId){
+        // Vor einem Kontowechsel die Auswahl des bisherigen Kontos sichern.
+        persistCurrentDevicePermissionPrefs();
+        const result=workspaceFn.apply(this,arguments);
+        restoreDevicePermissionPrefs(userId,companyId);
+        return result;
+      };
+      wrapped.__apPersistentPermissions=true;
+      wrapped.__apOriginal=workspaceFn;
+      globalThis.ensureWorkspaceForCloudAccount=wrapped;
+    }
+
+    permissionGuardsInstalled=true;
+    return true;
+  }
+
+  globalThis.APPermissionPrefs={
+    version:'11.31.11',
+    restore:restoreDevicePermissionPrefs,
+    persist:persistCurrentDevicePermissionPrefs,
+    state:()=>readDevicePermissionPrefs()
+  };
+
+  // v11.31.11: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
   // der alte statische Kundeneditor zeigte sie aber noch nicht an. Diese UI wird bewusst
   // kompakt ergänzt: Kundentyp + Land sichtbar, Spezialfelder in einem optionalen Bereich.
   function ensureCustomerComplianceUi(){
@@ -98,7 +232,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
-  // v11.31.10: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
+  // v11.31.11: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
   let complianceRepairState=null;
 
   function customerComplianceRequirement(){
@@ -524,8 +658,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.10',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
-  globalThis.APComplianceUX={version:'11.31.10',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
+  globalThis.APInvoiceUI={version:'11.31.11',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APComplianceUX={version:'11.31.11',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -882,11 +1016,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.10',
+    version:'11.31.11',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.10',
+      version:'11.31.11',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -1646,7 +1780,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function ensureComplianceLoaded(){
-    // v11.31.10 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
+    // v11.31.11 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
     if(globalThis.APCompliance?.runtimeVersion==='11.31.08')return;
 
     // 1) Basis-Core 11.31.0 sicherstellen. Er enthält Länder-/Rechtsrouting und
@@ -1695,17 +1829,17 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       }
     });
     window.addEventListener('focus',()=>{
-      refresh();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      refresh();installPersistentPermissionGuards();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     window.addEventListener('pageshow',()=>{
-      refresh();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      refresh();installPersistentPermissionGuards();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     });
     document.addEventListener('visibilitychange',()=>{if(!document.hidden){
-      refresh();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
+      refresh();installPersistentPermissionGuards();bindCustomerComplianceUi();installGuidedComplianceRepair();ensureCompanyEInvoiceReadiness();installFinalizedInvoiceLineGuard();installManualSyncGuard();installInvoiceNumberingGuards();snapshotLinkedInvoiceDrafts();
       polishInvoiceUi();scheduleDraftInvoiceClaims(220);scheduleFinalizedInvoiceLineRepair(260);
       scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
     }});
@@ -1718,6 +1852,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
   function boot(){
     stampBuild();
+    installPersistentPermissionGuards();
     ensureCustomerComplianceUi();
     bindCustomerComplianceUi();
     installCustomerComplianceGuards();
@@ -1744,6 +1879,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
     // Späte App-/Cloud-Initialisierung abfangen, ohne dauerhaft renderAll zu pollen.
     [0,250,800,1800].forEach(ms=>setTimeout(()=>{
+      installPersistentPermissionGuards();
       ensureCustomerComplianceUi();
       bindCustomerComplianceUi();
       installCustomerComplianceGuards();
