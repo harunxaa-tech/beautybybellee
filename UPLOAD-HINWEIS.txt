@@ -1,15 +1,20 @@
-AngebotsPilot v11.31.07
+AngebotsPilot v11.31.08 – ROOT Update
 
-Im GitHub-ROOT bitte diese 3 Dateien ersetzen:
-- cloud-sync.js
-- cloud-config.js
-- service-worker.js
+Im ROOT des GitHub-Repositories hochladen/ersetzen:
+1. cloud-config.js                 (ersetzen)
+2. service-worker.js              (ersetzen)
+3. compliance-v113108.js          (NEU hinzufügen)
 
-Vorher nichts loeschen. Keine Geschaeftsdaten werden durch dieses Paket geloescht.
+Nichts anderes löschen oder umbenennen.
+cloud-sync.js bleibt auf dem bereits installierten Stand v11.31.07.
+compliance-v1131.js bleibt ebenfalls bestehen; v11.31.08 lädt den bestehenden Core zuerst
+und legt danach die neue Hardening-Schicht darüber.
 
-v11.31.07:
-- finalisierte Rechnungspositionen werden vom normalen Cloud-Sync nicht mehr geloescht/neu geschrieben
-- Entwurfspositionen werden gezielt per Upsert synchronisiert
-- leere lokale Zwischenstaende loeschen keine Cloud-Positionen
-- Rechnungsbeziehungen werden nicht mehr versehentlich mit NULL ueberschrieben
-- Datenbank-Schutz fuer Positionen ausgestellter Rechnungen wurde separat per Migration aktiviert
+Danach App vollständig schließen und neu öffnen.
+
+Wichtig:
+- v11.31.08 führt einen strengeren lokalen EN16931/XRechnung-Vorabcheck aus.
+- Zielstand für den späteren offiziellen Validator-Handoff:
+  XRechnung 3.0.2 / KoSIT Validator 1.6.3 / Konfiguration 2026-08-31.
+- Die App behauptet weiterhin NICHT, dass eine offizielle KoSIT-/Schematron-Validierung
+  bereits serverseitig ausgeführt wurde. Dieser Schritt wird explizit als "pending" geführt.

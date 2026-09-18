@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.07 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.08 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,10 +12,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.07';
+  const VERSION='11.31.08';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_07__';
+  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_08__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +34,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-07',
+    cacheTag:'angebotspilot-v11-31-08',
     stamp:stampBuild
   });
 
@@ -279,7 +280,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.07',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.08',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -636,11 +637,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.07',
+    version:'11.31.08',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.07',
+      version:'11.31.08',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -903,7 +904,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     invoiceSafetyRepairTimer=setTimeout(()=>repairInvoiceSafety(),delay);
   }
 
-  // v11.31.07: Finalisierte Rechnungspositionen werden aus dem unveränderbaren
+  // v11.31.08: Finalisierte Rechnungspositionen werden aus dem unveränderbaren
   // Finalisierungs-Snapshot rekonstruiert. Der ältere Sync-Pfad löscht Positionen
   // vor dem Neu-Einfügen; bei einem unvollständigen lokalen Zustand konnte dadurch
   // eine ausgestellte Rechnung in der Cloud ohne Positionen enden.
@@ -947,6 +948,9 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     if(!finalized.length)return;
     finalizedLineRepairRunning=true;
     try{
+      // Seit v11.31.07 sind Positionen finalisierter Rechnungen in der Datenbank unveränderbar.
+      // Diese Prüfung ist deshalb bewusst read-only: lokal wird der Finalisierungs-Snapshot
+      // als kanonisch gesetzt; in der Cloud wird nur noch auf Abweichungen geprüft.
       normalizeFinalizedInvoiceLinesLocal();
       const {data:rows,error}=await ctx.client.from('invoices')
         .select('id,local_id,finalized_at,deleted_at')
@@ -958,35 +962,19 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         const cloud=byLocal.get(String(inv.id));if(!cloud)continue;
         const canonical=snapshotLinesForFinalized(inv);
         const {data:existing,error:lineError}=await ctx.client.from('invoice_lines')
-          .select('id,position,name,qty,unit,price,workers,hours_per_worker')
+          .select('position,name,qty,unit,price,workers,hours_per_worker')
           .eq('invoice_id',cloud.id).order('position');
         if(lineError)throw lineError;
         const sig=list=>JSON.stringify((list||[]).map(line=>({
           name:String(line?.name||''),qty:Number(line?.qty)||0,unit:String(line?.unit||''),price:Number(line?.price)||0,
           workers:line?.workers==null?null:Number(line.workers),hoursPerWorker:(line?.hours_per_worker??line?.hoursPerWorker)==null?null:Number(line?.hours_per_worker??line?.hoursPerWorker)
         })));
-        if(sig(existing)===sig(canonical))continue;
-
-        const {error:delError}=await ctx.client.from('invoice_lines').delete().eq('invoice_id',cloud.id);
-        if(delError)throw delError;
-        const payload=canonical.map((line,i)=>({
-          invoice_id:cloud.id,
-          local_id:String(line.id||`${inv.id}:line:${i}`),
-          position:i+1,
-          name:String(line.name||''),
-          qty:Number(line.qty)||1,
-          unit:String(line.unit||'Stk.'),
-          price:Number(line.price)||0,
-          workers:line.workers==null?null:Number(line.workers),
-          hours_per_worker:line.hoursPerWorker==null?null:Number(line.hoursPerWorker)
-        }));
-        if(payload.length){
-          const {error:insertError}=await ctx.client.from('invoice_lines').insert(payload);
-          if(insertError)throw insertError;
+        if(sig(existing)!==sig(canonical)){
+          console.error(`Integritätswarnung: finalisierte Rechnungspositionen weichen ab (${inv.number||inv.id}). Cloud bleibt wegen Unveränderbarkeit unangetastet.`);
         }
       }
     }catch(error){
-      console.warn('Finalisierte Rechnungspositionen konnten noch nicht vollständig geprüft werden',error);
+      console.warn('Finalisierte Rechnungspositionen konnten noch nicht vollständig read-only geprüft werden',error);
     }finally{
       finalizedLineRepairRunning=false;
     }
@@ -1414,13 +1402,34 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
   function ensureComplianceLoaded(){
     if(globalThis.APCompliance?.runtimeVersion===VERSION)return;
-    const existing=[...document.scripts].find(s=>/compliance-v1131\.js(?:\?|$)/.test(s.src||''));
-    if(existing)return;
+
+    // 1) Basis-Core 11.31.0 sicherstellen. Er enthält Länder-/Rechtsrouting und
+    //    die Korrektur der XRechnung-CIUS-ID.
+    const core=[...document.scripts].find(s=>/compliance-v1131\.js(?:\?|$)/.test(s.src||''));
+    if(globalThis.APCompliance?.runtimeVersion!=='11.31.0'){
+      if(!core){
+        const script=document.createElement('script');
+        script.src=COMPLIANCE_SRC;
+        script.defer=true;
+        script.dataset.apRuntimeLoader='compliance-v1131';
+        script.onload=()=>setTimeout(ensureComplianceLoaded,0);
+        script.onerror=()=>console.error('AngebotsPilot Rechnungs-Compliance-Core konnte nicht geladen werden.');
+        document.head.appendChild(script);
+      }else{
+        setTimeout(ensureComplianceLoaded,80);
+      }
+      return;
+    }
+
+    // 2) v11.31.08-Hardening darüberlegen. Diese Schicht macht einen strengeren
+    //    EN16931/XRechnung-Vorabcheck und bereitet den offiziellen KoSIT-Handoff vor.
+    const hardening=[...document.scripts].find(s=>/compliance-v113108\.js(?:\?|$)/.test(s.src||''));
+    if(hardening)return;
     const script=document.createElement('script');
-    script.src=COMPLIANCE_SRC;
+    script.src=COMPLIANCE_HARDENING_SRC;
     script.defer=true;
-    script.dataset.apRuntimeLoader='compliance-v1131';
-    script.onerror=()=>console.error('AngebotsPilot Rechnungs-Compliance konnte nicht geladen werden.');
+    script.dataset.apRuntimeLoader='compliance-v113108';
+    script.onerror=()=>console.error('AngebotsPilot v11.31.08 Compliance-Hardening konnte nicht geladen werden.');
     document.head.appendChild(script);
   }
 
