@@ -1,15 +1,16 @@
-AngebotsPilot v11.31.21 – ROOT Upload
+AngebotsPilot v11.31.22
 
-Diese Dateien ins Repository-Root hochladen/ersetzen:
+Im GitHub-Repository im Root ersetzen/hochladen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113121.js
+- compliance-v113122.js (neu)
 
-Wichtig nach dem Upload:
-Safari-Tab von AngebotsPilot komplett schließen und neu öffnen, damit keine alte Compliance-Schicht in der laufenden Seite bleibt.
+Wichtig:
+- Keine anderen Dateien löschen.
+- Nach dem Upload den AngebotsPilot-Tab einmal komplett schließen und neu öffnen.
 
-Fix v11.31.21:
-- rekursiver Fehler im lokalen XRechnungs-Check aus v11.31.20 behoben
-- fehlende Steuernummer/USt-ID und ungültige IBAN werden VOR KoSIT erkannt
-- geführte Fehlerbehebung springt direkt zum passenden Feld
-- keine Geschäftsdaten werden verändert
+Änderungen:
+- XRechnung: BT-29 Verkäuferkennung wird bei Einzelunternehmern automatisch aus der bereits hinterlegten Steuer-/USt-Kennung erzeugt.
+- KoSIT BR-CO-26 führt nicht mehr fälschlich zurück zum Steuernummer-Feld.
+- Eingaben in Steuernummer/USt-ID/IBAN/Bank werden beim Feldwechsel lokal als Entwurf gepuffert, bis Speichern gedrückt wird.
+- Keine Geschäftsdaten werden durch das Update verändert.
