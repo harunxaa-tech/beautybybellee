@@ -1,14 +1,15 @@
-AngebotsPilot v11.31.20
+AngebotsPilot v11.31.21 – ROOT Upload
 
-Im GitHub-Root ersetzen/hochladen:
+Diese Dateien ins Repository-Root hochladen/ersetzen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113120.js (neu)
+- compliance-v113121.js
 
-Keine anderen Dateien löschen.
+Wichtig nach dem Upload:
+Safari-Tab von AngebotsPilot komplett schließen und neu öffnen, damit keine alte Compliance-Schicht in der laufenden Seite bleibt.
 
-Neu:
-- fehlende Steuerkennung/ungültige IBAN werden vor KoSIT erkannt
-- App führt automatisch zum richtigen Feld
-- IBAN-Prüfung mit Länder-Länge + Mod-97
-- bekannte KoSIT-Regeln BR-E-02 / BR-CO-26 / BR-DE-16 / BR-DE-19 werden als korrigierbare Eingabefehler behandelt
+Fix v11.31.21:
+- rekursiver Fehler im lokalen XRechnungs-Check aus v11.31.20 behoben
+- fehlende Steuernummer/USt-ID und ungültige IBAN werden VOR KoSIT erkannt
+- geführte Fehlerbehebung springt direkt zum passenden Feld
+- keine Geschäftsdaten werden verändert
