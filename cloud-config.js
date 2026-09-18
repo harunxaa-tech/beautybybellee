@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.08 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.09 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,11 +12,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.08';
+  const VERSION='11.31.09';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
   const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_08__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_09__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -34,13 +34,84 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-08',
+    cacheTag:'angebotspilot-v11-31-09',
     stamp:stampBuild
   });
 
   let wrappersInstalled=false;
   let settingsObserver=null;
   let refreshTimer=null;
+
+  // v11.31.09: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
+  // der alte statische Kundeneditor zeigte sie aber noch nicht an. Diese UI wird bewusst
+  // kompakt ergänzt: Kundentyp + Land sichtbar, Spezialfelder in einem optionalen Bereich.
+  function ensureCustomerComplianceUi(){
+    const editor=document.getElementById('customerEditor');
+    const card=editor?.querySelector?.('.card');
+    if(!editor||!card)return false;
+    if(document.getElementById('custCustomerType')&&document.getElementById('custCountryCode'))return true;
+
+    const notes=document.getElementById('custNotes')?.closest?.('.field');
+    const save=card.querySelector('button[onclick="saveCustomer()"]');
+    const anchor=notes||save;
+    if(!anchor)return false;
+
+    const block=document.createElement('div');
+    block.id='customerComplianceFields';
+    block.className='apCustomerComplianceFields';
+    block.innerHTML=`
+      <div class="row">
+        <div class="field">
+          <label>Kundentyp</label>
+          <select id="custCustomerType" class="input">
+            <option value="auto">Automatisch erkennen</option>
+            <option value="private">Privatkunde</option>
+            <option value="business">Unternehmen</option>
+            <option value="public">Behörde / öffentlich</option>
+          </select>
+          <small>Wichtig für die passende Rechnungs- und E-Rechnungsart.</small>
+        </div>
+        <div class="field">
+          <label>Land</label>
+          <select id="custCountryCode" class="input">
+            <option value="DE">Deutschland</option>
+            <option value="AT">Österreich</option>
+            <option value="CH">Schweiz</option>
+          </select>
+        </div>
+      </div>
+      <details class="apCustomerEInvoiceDetails" style="margin:6px 0 18px">
+        <summary style="cursor:pointer;font-weight:700;padding:10px 0">E-Rechnung & Steuerdaten <span class="mini">(optional)</span></summary>
+        <div class="field"><label>USt-ID / UID / MWST-Nr.</label><input class="input" id="custVatId" autocomplete="off" placeholder="z. B. DE123456789"></div>
+        <div class="field"><label>Käuferreferenz / Leitweg-ID</label><input class="input" id="custBuyerReference" autocomplete="off" placeholder="Bei Behörden bzw. wenn vom Kunden vorgegeben"><small>Für XRechnung entspricht dies typischerweise der Käuferreferenz (BT-10).</small></div>
+        <div class="field"><label>E-Rechnungsadresse</label><input class="input" id="custEInvoiceAddress" autocomplete="off" placeholder="z. B. Leitweg-ID / Peppol-ID"><small>Nur ausfüllen, wenn der Empfänger eine spezielle elektronische Adresse vorgibt.</small></div>
+        <div class="field"><label>Lieferantennummer</label><input class="input" id="custSupplierNumber" autocomplete="off" placeholder="Optional / vom Auftraggeber vergeben"></div>
+        <label style="display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px">
+          <input type="checkbox" id="custEInvoiceRequired" style="margin-top:3px">
+          <span><b>E-Rechnung für diesen Kunden erzwingen</b><small style="display:block">Nur aktivieren, wenn der Empfänger ausdrücklich eine strukturierte E-Rechnung verlangt.</small></span>
+        </label>
+      </details>`;
+    anchor.insertAdjacentElement('beforebegin',block);
+
+    const country=document.getElementById('custCountryCode');
+    if(country&&!country.value)country.value=globalThis.data?.settings?.countryCode||'DE';
+    return true;
+  }
+
+  function installCustomerComplianceGuards(){
+    ensureCustomerComplianceUi();
+    for(const name of ['newCustomer','editCustomer','saveCustomer']){
+      const fn=globalThis[name];
+      if(typeof fn!=='function'||fn.__apCustomerComplianceGuard)continue;
+      const wrapped=function(){
+        ensureCustomerComplianceUi();
+        return fn.apply(this,arguments);
+      };
+      wrapped.__apCustomerComplianceGuard=true;
+      wrapped.__apOriginal=fn;
+      globalThis[name]=wrapped;
+    }
+  }
 
   // v11.31.0-r3: Rechnungseditor robust gegen fehlende/alte HTML-Felder machen.
   function ensureInvoiceEditorUi(){
@@ -280,7 +351,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.08',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.09',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -637,11 +708,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.08',
+    version:'11.31.09',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.08',
+      version:'11.31.09',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -1401,7 +1472,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function ensureComplianceLoaded(){
-    if(globalThis.APCompliance?.runtimeVersion===VERSION)return;
+    // v11.31.09 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
+    if(globalThis.APCompliance?.runtimeVersion==='11.31.08')return;
 
     // 1) Basis-Core 11.31.0 sicherstellen. Er enthält Länder-/Rechtsrouting und
     //    die Korrektur der XRechnung-CIUS-ID.
@@ -1472,6 +1544,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
   function boot(){
     stampBuild();
+    ensureCustomerComplianceUi();
+    installCustomerComplianceGuards();
     ensureInvoiceEditorUi();
     installInvoiceActionGuards();
     installInvoiceNumberingGuards();
@@ -1493,6 +1567,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
     // Späte App-/Cloud-Initialisierung abfangen, ohne dauerhaft renderAll zu pollen.
     [0,250,800,1800].forEach(ms=>setTimeout(()=>{
+      ensureCustomerComplianceUi();
+      installCustomerComplianceGuards();
       ensureInvoiceEditorUi();
       installInvoiceActionGuards();
       installInvoiceNumberingGuards();

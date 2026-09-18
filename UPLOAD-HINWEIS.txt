@@ -1,20 +1,17 @@
-AngebotsPilot v11.31.08 – ROOT Update
+AngebotsPilot v11.31.09 – Kundenstamm / E-Rechnungsfelder
 
-Im ROOT des GitHub-Repositories hochladen/ersetzen:
-1. cloud-config.js                 (ersetzen)
-2. service-worker.js              (ersetzen)
-3. compliance-v113108.js          (NEU hinzufügen)
+Im GitHub-Repository im ROOT ersetzen:
+- cloud-config.js
+- service-worker.js
 
-Nichts anderes löschen oder umbenennen.
-cloud-sync.js bleibt auf dem bereits installierten Stand v11.31.07.
-compliance-v1131.js bleibt ebenfalls bestehen; v11.31.08 lädt den bestehenden Core zuerst
-und legt danach die neue Hardening-Schicht darüber.
+Nichts löschen. compliance-v113108.js und cloud-sync.js bleiben unverändert bestehen.
 
-Danach App vollständig schließen und neu öffnen.
+Neu in 11.31.09:
+- Kundentyp (Automatisch / Privat / Unternehmen / Behörde) im Kundeneditor
+- Land (DE / AT / CH) im Kundeneditor
+- aufklappbarer Bereich für USt-ID, Käuferreferenz/Leitweg-ID, E-Rechnungsadresse, Lieferantennummer
+- Option, strukturierte E-Rechnung für einen Kunden explizit zu erzwingen
+- bestehende gespeicherte Kundendaten werden beim Bearbeiten in diese Felder übernommen
+- Compliance-Engine bleibt bewusst auf 11.31.08; 11.31.09 ändert keine Rechnungs-/Cloud-Datenlogik
 
-Wichtig:
-- v11.31.08 führt einen strengeren lokalen EN16931/XRechnung-Vorabcheck aus.
-- Zielstand für den späteren offiziellen Validator-Handoff:
-  XRechnung 3.0.2 / KoSIT Validator 1.6.3 / Konfiguration 2026-08-31.
-- Die App behauptet weiterhin NICHT, dass eine offizielle KoSIT-/Schematron-Validierung
-  bereits serverseitig ausgeführt wurde. Dieser Schritt wird explizit als "pending" geführt.
+Nach Upload App einmal komplett schließen und neu öffnen.
