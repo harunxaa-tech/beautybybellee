@@ -1,16 +1,13 @@
-AngebotsPilot v11.31.0 – Rechnungsbeziehungen Hotfix r4
+AngebotsPilot v11.31.02
 
-Upload ins GitHub-Root (main):
-- cloud-config.js
-- service-worker.js
+Upload ins GitHub-Repository harunxaa-tech/beautybybellee, Branch main, direkt ins ROOT:
+- cloud-config.js überschreiben
+- service-worker.js überschreiben
 
-Vorher nichts löschen. Vorhandene Dateien mit gleichem Namen überschreiben.
+Vorher nichts löschen. Keine Geschäftsdaten werden durch dieses Paket verändert.
 
-Fix:
-- Korrektur/Storno-Beziehungen werden nach dem Cloud-Sync robust nachgezogen.
-- Nur vorhandene lokale Beziehungen werden gesetzt.
-- Leere lokale Werte löschen niemals eine bestehende Cloud-Verknüpfung.
-- Keine Geschäftsdaten, Rechnungsbeträge oder Supabase-Tabellen werden gelöscht.
-
-Cache: angebotspilot-v11-31-0-r4
-App-Version bleibt 11.31.0.
+Fixes:
+- manueller Cloud-Sync pusht jetzt zuerst und lädt danach die Cloud
+- Korrektur-/Stornoentwürfe erhalten eine lokale Sicherheitskopie
+- fehlende Positionsdaten/Original-Verknüpfungen werden bei einem unvollständigen Cloud-Zwischenstand geschützt
+- interne/sichtbare Version auf 11.31.02 angehoben

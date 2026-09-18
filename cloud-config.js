@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.0 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.02 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,10 +12,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.0';
+  const VERSION='11.31.02';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC=`./compliance-v1131.js?v=${VERSION}`;
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_0_R4__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_02__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -33,7 +33,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-0-r4',
+    cacheTag:'angebotspilot-v11-31-02',
     stamp:stampBuild
   });
 
@@ -79,14 +79,31 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
   function installInvoiceActionGuards(){
     ensureInvoiceEditorUi();
-    const names=['newInvoice','editInvoice','createCorrectionDraft','createCancellationDraft'];
+    const names=['newInvoice','editInvoice','createCorrectionDraft','createCancellationDraft','saveInvoice','autoSaveInvoiceAndClose'];
     for(const name of names){
       const fn=globalThis[name];
       if(typeof fn!=='function'||fn.__apInvoiceUiGuard)continue;
       const wrapped=function(){
         ensureInvoiceEditorUi();
+        snapshotLinkedInvoiceDrafts();
         try{
-          return fn.apply(this,arguments);
+          const result=fn.apply(this,arguments);
+          if(result&&typeof result.then==='function'){
+            return result.then(value=>{
+              snapshotLinkedInvoiceDrafts();
+              scheduleInvoiceSafetyRepair(250);
+              return value;
+            }).catch(error=>{
+              console.error(`AngebotsPilot Rechnungsaktion ${name} fehlgeschlagen`,error);
+              const message='Rechnungsaktion konnte nicht abgeschlossen werden. Bitte App einmal neu laden.';
+              if(globalThis.toast)globalThis.toast(message,'error');
+              else if(globalThis.showToast)globalThis.showToast(message,'error');
+              return undefined;
+            });
+          }
+          snapshotLinkedInvoiceDrafts();
+          scheduleInvoiceSafetyRepair(250);
+          return result;
         }catch(error){
           console.error(`AngebotsPilot Rechnungsaktion ${name} fehlgeschlagen`,error);
           const message='Rechnungsansicht konnte nicht geöffnet werden. Bitte App einmal neu laden.';
@@ -113,7 +130,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.0-r3',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APInvoiceUI={version:'11.31.02',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
 
   // v11.31.0-r4: Rechnungsbeziehungen nach dem Cloud-Push robust nachziehen.
   // Wichtig: Nur vorhandene lokale Beziehungen werden gesetzt; bestehende Cloud-Beziehungen
@@ -171,6 +188,232 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   function scheduleInvoiceRelationRepair(delay=450){
     clearTimeout(invoiceRelationRepairTimer);
     invoiceRelationRepairTimer=setTimeout(()=>repairInvoiceCloudRelations(),delay);
+  }
+
+  // v11.31.02: Schutzschicht für Korrektur-/Stornoentwürfe.
+  // Sie verhindert, dass ein unvollständiger Cloud-Zwischenstand Positionen oder
+  // die Verknüpfung zur Originalrechnung vernichtet.
+  const INVOICE_SAFETY_KEY='angebotspilot_invoice_safety_v113102';
+  let invoiceSafetyRepairTimer=null;
+  let invoiceSafetyRepairRunning=false;
+  let manualSyncInstalled=false;
+
+  const cloneInvoiceSafety=value=>{
+    try{return structuredClone(value)}catch(e){return JSON.parse(JSON.stringify(value))}
+  };
+
+  function readInvoiceSafetyShadow(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(INVOICE_SAFETY_KEY)||'{}');
+      return raw&&typeof raw==='object'?raw:{};
+    }catch(e){return {}}
+  }
+
+  function writeInvoiceSafetyShadow(shadow){
+    try{localStorage.setItem(INVOICE_SAFETY_KEY,JSON.stringify(shadow));return true}
+    catch(e){console.warn('Rechnungs-Sicherheitskopie konnte lokal nicht gespeichert werden',e);return false}
+  }
+
+  function meaningfulInvoiceLines(inv){
+    return (inv?.lines||[]).filter(line=>String(line?.name||'').trim());
+  }
+
+  function isProtectedInvoiceDraft(inv){
+    return !!inv && inv.status==='draft' && !!(
+      inv.correctionOf ||
+      inv.originalInvoiceId ||
+      inv.documentType==='correction' ||
+      inv.documentType==='cancellation'
+    );
+  }
+
+  function snapshotLinkedInvoiceDrafts(){
+    const invoices=globalThis.data?.invoices||[];
+    const shadow=readInvoiceSafetyShadow();
+    let changed=false;
+    for(const inv of invoices){
+      if(!isProtectedInvoiceDraft(inv))continue;
+      const lines=meaningfulInvoiceLines(inv);
+      const old=shadow[String(inv.id)]?.invoice;
+      // Einen bereits reicheren Snapshot niemals mit einem leeren Zwischenstand überschreiben.
+      if(!lines.length && old && meaningfulInvoiceLines(old).length)continue;
+      shadow[String(inv.id)]={
+        capturedAt:new Date().toISOString(),
+        number:inv.number||'',
+        invoice:cloneInvoiceSafety(inv)
+      };
+      changed=true;
+    }
+    if(changed)writeInvoiceSafetyShadow(shadow);
+    return shadow;
+  }
+
+  function restoreLocalInvoiceFromShadow(current,saved){
+    if(!current||!saved||current.status!=='draft')return false;
+    let changed=false;
+    if(!current.correctionOf && saved.correctionOf){current.correctionOf=saved.correctionOf;changed=true}
+    if(!current.originalInvoiceId && saved.originalInvoiceId){current.originalInvoiceId=saved.originalInvoiceId;changed=true}
+    if(!current.cancelledByInvoiceId && saved.cancelledByInvoiceId){current.cancelledByInvoiceId=saved.cancelledByInvoiceId;changed=true}
+
+    const currentLines=meaningfulInvoiceLines(current),savedLines=meaningfulInvoiceLines(saved);
+    if(!currentLines.length && savedLines.length){
+      current.lines=cloneInvoiceSafety(saved.lines||[]);
+      for(const key of ['baseSubtotal','subtotal','total','discount','discountType','discountValue','tax']){
+        if(saved[key]!==undefined)current[key]=cloneInvoiceSafety(saved[key]);
+      }
+      if(!String(current.subject||'').trim()&&saved.subject)current.subject=saved.subject;
+      if(!String(current.notes||'').trim()&&saved.notes)current.notes=saved.notes;
+      changed=true;
+    }
+    return changed;
+  }
+
+  async function repairInvoiceSafety(){
+    if(invoiceSafetyRepairRunning)return;
+    const shadow=readInvoiceSafetyShadow();
+    const entries=Object.values(shadow||{}).filter(x=>x?.invoice&&isProtectedInvoiceDraft(x.invoice));
+    if(!entries.length)return;
+
+    invoiceSafetyRepairRunning=true;
+    try{
+      const invoices=globalThis.data?.invoices||[];
+      let localChanged=false;
+      for(const entry of entries){
+        const saved=entry.invoice;
+        const current=invoices.find(x=>String(x.id)===String(saved.id));
+        if(current && restoreLocalInvoiceFromShadow(current,saved))localChanged=true;
+      }
+      if(localChanged){
+        try{
+          if(globalThis.safePersistCloudIdentity)globalThis.safePersistCloudIdentity(globalThis.data);
+          else localStorage.setItem('digitaler_handwerker_v3',JSON.stringify(globalThis.data));
+        }catch(e){console.warn('Lokaler Rechnungsentwurf konnte nicht geschützt werden',e)}
+        globalThis.renderAll?.();
+      }
+
+      let ctx=null;
+      try{ctx=globalThis.APCloudContext?.()||null}catch(e){ctx=null}
+      if(!ctx?.client||!ctx?.company?.id)return;
+
+      const {data:rows,error}=await ctx.client.from('invoices')
+        .select('id,local_id,status,total,subtotal,correction_of_id,original_invoice_id,cancelled_by_invoice_id,finalized_at')
+        .eq('company_id',ctx.company.id)
+        .is('deleted_at',null);
+      if(error)throw error;
+      const byLocal=new Map((rows||[]).filter(r=>r?.local_id).map(r=>[String(r.local_id),r]));
+      const protectedCloudIds=[];
+
+      for(const entry of entries){
+        const saved=entry.invoice;
+        const current=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(saved.id));
+        const source=(current&&meaningfulInvoiceLines(current).length)?current:saved;
+        const cloud=byLocal.get(String(saved.id));
+        if(!cloud||cloud.finalized_at||cloud.status!=='draft')continue;
+        protectedCloudIds.push(cloud.id);
+
+        const patch={};
+        if(source.correctionOf){
+          const original=byLocal.get(String(source.correctionOf));
+          if(original?.id&&cloud.correction_of_id!==original.id)patch.correction_of_id=original.id;
+        }
+        if(source.originalInvoiceId){
+          const original=byLocal.get(String(source.originalInvoiceId));
+          if(original?.id&&cloud.original_invoice_id!==original.id)patch.original_invoice_id=original.id;
+        }
+        if(source.cancelledByInvoiceId){
+          const cancellation=byLocal.get(String(source.cancelledByInvoiceId));
+          if(cancellation?.id&&cloud.cancelled_by_invoice_id!==cancellation.id)patch.cancelled_by_invoice_id=cancellation.id;
+        }
+        if(Object.keys(patch).length){
+          const {error:updateError}=await ctx.client.from('invoices')
+            .update(patch).eq('company_id',ctx.company.id).eq('id',cloud.id);
+          if(updateError)throw updateError;
+        }
+      }
+
+      if(protectedCloudIds.length){
+        const {data:cloudLines,error:lineReadError}=await ctx.client.from('invoice_lines')
+          .select('id,invoice_id').in('invoice_id',protectedCloudIds);
+        if(lineReadError)throw lineReadError;
+        const countByInvoice=new Map();
+        for(const line of cloudLines||[])countByInvoice.set(line.invoice_id,(countByInvoice.get(line.invoice_id)||0)+1);
+
+        for(const entry of entries){
+          const saved=entry.invoice;
+          const current=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(saved.id));
+          const source=(current&&meaningfulInvoiceLines(current).length)?current:saved;
+          const cloud=byLocal.get(String(saved.id));
+          if(!cloud||cloud.finalized_at||cloud.status!=='draft')continue;
+          const lines=meaningfulInvoiceLines(source);
+          if(!lines.length || (countByInvoice.get(cloud.id)||0)>0)continue;
+
+          const payload=lines.map((line,index)=>({
+            invoice_id:cloud.id,
+            local_id:String(line.id||`${source.id}:line:${index}`),
+            position:index+1,
+            name:String(line.name||'').trim(),
+            qty:Number(line.qty)||1,
+            unit:line.unit||'Stk.',
+            price:Number(line.price)||0,
+            workers:line.workers?Number(line.workers):null,
+            hours_per_worker:line.hoursPerWorker?Number(line.hoursPerWorker):null
+          }));
+          const {error:insertError}=await ctx.client.from('invoice_lines').insert(payload);
+          if(insertError)throw insertError;
+
+          // Nur einen eindeutig beschädigten Entwurf (keine Cloud-Positionen) wieder auf
+          // den bereits lokal gesicherten Betrag bringen. Finalisierte Rechnungen werden nie angefasst.
+          const amountPatch={};
+          for(const [localKey,cloudKey] of [['subtotal','subtotal'],['total','total']]){
+            if(source[localKey]!==undefined)amountPatch[cloudKey]=Number(source[localKey])||0;
+          }
+          if(Object.keys(amountPatch).length){
+            const {error:amountError}=await ctx.client.from('invoices')
+              .update(amountPatch).eq('company_id',ctx.company.id).eq('id',cloud.id).is('finalized_at',null);
+            if(amountError)throw amountError;
+          }
+        }
+      }
+    }catch(error){
+      console.warn('Rechnungs-Sicherheitsprüfung konnte noch nicht vollständig abgeschlossen werden',error);
+    }finally{
+      invoiceSafetyRepairRunning=false;
+    }
+  }
+
+  function scheduleInvoiceSafetyRepair(delay=300){
+    clearTimeout(invoiceSafetyRepairTimer);
+    invoiceSafetyRepairTimer=setTimeout(()=>repairInvoiceSafety(),delay);
+  }
+
+  function installManualSyncGuard(){
+    const sync=globalThis.CloudSync;
+    if(!sync||manualSyncInstalled||typeof sync.pushSnapshot!=='function'||typeof sync.pullCloud!=='function')return;
+    manualSyncInstalled=true;
+
+    const safeManual=async()=>{
+      // Der alte CloudSync.manual()-Pfad setzt "syncing" vor pushSnapshot auf true.
+      // pushSnapshot interpretiert das als bereits laufenden Sync und überspringt den Push.
+      // Deshalb hier bewusst: erst pushen, danach pullen.
+      snapshotLinkedInvoiceDrafts();
+      await sync.pushSnapshot();
+      await repairInvoiceSafety();
+      await sync.pullCloud();
+      await repairInvoiceSafety();
+      snapshotLinkedInvoiceDrafts();
+      return true;
+    };
+
+    sync.manual=safeManual;
+    globalThis.manualCloudSync=async()=>{
+      try{
+        await safeManual();
+        globalThis.toast?.('☁️ Synchronisiert');
+      }catch(error){
+        console.error(error);
+        globalThis.toast?.('Cloud-Sync fehlgeschlagen');
+      }
+    };
   }
 
   function dataSafetyCardIsCurrent(){
@@ -542,11 +785,25 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     const refresh=()=>scheduleDataSafetyRefresh(true);
     window.addEventListener('angebotspilot:syncstate',event=>{
       refresh();
-      if(event?.detail?.syncing===false)scheduleInvoiceRelationRepair(350);
+      installManualSyncGuard();
+      if(event?.detail?.syncing===true)snapshotLinkedInvoiceDrafts();
+      if(event?.detail?.syncing===false){
+        scheduleInvoiceRelationRepair(250);
+        scheduleInvoiceSafetyRepair(300);
+      }
     });
-    window.addEventListener('focus',()=>{refresh();scheduleInvoiceRelationRepair(500)});
-    window.addEventListener('pageshow',()=>{refresh();scheduleInvoiceRelationRepair(500)});
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();scheduleInvoiceRelationRepair(500)}});
+    window.addEventListener('focus',()=>{
+      refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
+    });
+    window.addEventListener('pageshow',()=>{
+      refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
+    });
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden){
+      refresh();installManualSyncGuard();snapshotLinkedInvoiceDrafts();
+      scheduleInvoiceRelationRepair(450);scheduleInvoiceSafetyRepair(500);
+    }});
   }
 
   function forceServiceWorkerCheck(){
@@ -563,6 +820,9 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     ensureDataSafetyLoaded();
     ensureComplianceLoaded();
     installRefreshHooks();
+    installManualSyncGuard();
+    snapshotLinkedInvoiceDrafts();
+    scheduleInvoiceSafetyRepair(600);
     forceServiceWorkerCheck();
 
     // Späte App-/Cloud-Initialisierung abfangen, ohne dauerhaft renderAll zu pollen.
@@ -574,7 +834,10 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       ensureDataSafetyLoaded();
       ensureComplianceLoaded();
       scheduleDataSafetyRefresh(true);
-      scheduleInvoiceRelationRepair(300);
+      installManualSyncGuard();
+      snapshotLinkedInvoiceDrafts();
+      scheduleInvoiceRelationRepair(250);
+      scheduleInvoiceSafetyRepair(350);
     },ms));
   }
 
