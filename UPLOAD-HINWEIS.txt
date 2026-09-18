@@ -1,14 +1,14 @@
-AngebotsPilot v11.31.17 – ROOT-Update
+AngebotsPilot v11.31.18
 
-Im GitHub-Repository im ROOT ersetzen/hochladen:
+ROOT-Upload: Diese Dateien in das Repository-Root hochladen/ersetzen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113117.js (neu)
+- compliance-v113118.js (neu)
 
-Die bisherige compliance-v113116.js muss nicht gelöscht werden; sie wird von 11.31.17 nicht mehr geladen.
+Nichts löschen. Geschäftsdaten bleiben unverändert.
 
-Neu in 11.31.17:
-- technische KoSIT-/Serverfehler werden NICHT mehr als fehlendes Eingabefeld dargestellt
-- kein automatischer Sprung zu falschen Formularfeldern bei Validator-/Netzwerkfehlern
-- echte KoSIT-Ablehnungen bleiben klar von technischen Ausfällen getrennt
-- bei technischen Fehlern bleibt die Rechnung sicher Entwurf und die App erklärt das direkt im Rechnungseditor
+Fix: Offizieller KoSIT-Test hat erstmals die echte XML-Schemaabweichung gefunden.
+LegalMonetaryTotal wird nun in UBL-Schema-Reihenfolge erzeugt:
+LineExtensionAmount → TaxExclusiveAmount → TaxInclusiveAmount → AllowanceTotalAmount → ... → PayableAmount.
+
+Die Rechnung bleibt bei jeder fehlgeschlagenen KoSIT-Prüfung Entwurf.
