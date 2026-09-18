@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.18 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.19 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,12 +12,12 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.18';
+  const VERSION='11.31.19';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
   const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const COMPLIANCE_SERVER_SRC='./compliance-v113118.js?v=11.31.18';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_18__';
+  const COMPLIANCE_SERVER_SRC='./compliance-v113119.js?v=11.31.19';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_19__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -35,7 +35,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-18',
+    cacheTag:'angebotspilot-v11-31-19',
     stamp:stampBuild
   });
 
@@ -44,7 +44,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   let refreshTimer=null;
 
 
-  // v11.31.18: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
+  // v11.31.19: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
   // Fix: auch direkte Wetterdialoge sichern, die updateConsent bisher umgangen haben.
   // Der Browser/iOS behält seine eigene Systemberechtigung separat; hier speichern wir
   // ausschließlich die bereits vom Nutzer in AngebotsPilot bestätigte Auswahl.
@@ -312,7 +312,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APPermissionPrefs={
-    version:'11.31.18',
+    version:'11.31.19',
     restore:restoreDevicePermissionPrefs,
     restoreCloud:loadCloudPermissionPrefs,
     persist:persistCurrentDevicePermissionPrefs,
@@ -320,7 +320,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     state:()=>readDevicePermissionPrefs()
   };
 
-  // v11.31.18: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
+  // v11.31.19: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
   // der alte statische Kundeneditor zeigte sie aber noch nicht an. Diese UI wird bewusst
   // kompakt ergänzt: Kundentyp + Land sichtbar, Spezialfelder in einem optionalen Bereich.
   function ensureCustomerComplianceUi(){
@@ -376,7 +376,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
-  // v11.31.18: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld und automatisch zum nächsten offenen Punkt.
+  // v11.31.19: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld und automatisch zum nächsten offenen Punkt.
   let complianceRepairState=null;
 
   function customerComplianceRequirement(){
@@ -711,7 +711,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function resumeInvoiceAfterComplianceRepair(kind){
-    // Kompatibilitätsname für ältere Hooks; v11.31.18 führt jetzt Schritt für Schritt
+    // Kompatibilitätsname für ältere Hooks; v11.31.19 führt jetzt Schritt für Schritt
     // durch alle noch fehlenden Angaben und kehrt erst am Ende zur Rechnung zurück.
     advanceComplianceRepairAfterSave(kind);
   }
@@ -1012,8 +1012,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.18',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
-  globalThis.APComplianceUX={version:'11.31.18',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
+  globalThis.APInvoiceUI={version:'11.31.19',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APComplianceUX={version:'11.31.19',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -1370,11 +1370,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.18',
+    version:'11.31.19',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.18',
+      version:'11.31.19',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -2134,15 +2134,18 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function ensureComplianceLoaded(){
-    // v11.31.18 erweitert den lokalen 11.31.08-Check um eine authentifizierte
-    // serverseitige Prüfung. Ein offizieller KoSIT-Erfolg wird nur angezeigt, wenn
-    // der Server tatsächlich einen verbundenen KoSIT-Daemon bestätigt.
+    // v11.31.19: immer die AKTUELLE Server-Schicht laden. Frühere Versionen
+    // 11.31.16–18 dürfen die neue XML-Korrektur nicht durch einen alten
+    // <script>-Knoten blockieren.
     const runtime=globalThis.APCompliance?.runtimeVersion||'';
-    if(runtime==='11.31.18')return;
+    if(runtime==='11.31.19')return;
 
-    // 1) Basis-Core 11.31.0 sicherstellen.
     const core=[...document.scripts].find(s=>/compliance-v1131\.js(?:\?|$)/.test(s.src||''));
-    if(!['11.31.0','11.31.08'].includes(runtime)){
+    const hardening=[...document.scripts].find(s=>/compliance-v113108\.js(?:\?|$)/.test(s.src||''));
+    const currentServer=[...document.scripts].find(s=>/compliance-v113119\.js(?:\?|$)/.test(s.src||''));
+
+    // 1) Core sicherstellen.
+    if(!runtime){
       if(!core){
         const script=document.createElement('script');
         script.src=COMPLIANCE_SRC;
@@ -2151,15 +2154,12 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         script.onload=()=>setTimeout(ensureComplianceLoaded,0);
         script.onerror=()=>console.error('AngebotsPilot Rechnungs-Compliance-Core konnte nicht geladen werden.');
         document.head.appendChild(script);
-      }else{
-        setTimeout(ensureComplianceLoaded,80);
-      }
+      }else setTimeout(ensureComplianceLoaded,80);
       return;
     }
 
-    // 2) v11.31.08-Hardening darüberlegen.
+    // 2) Hardening 11.31.08 sicherstellen.
     if(runtime==='11.31.0'){
-      const hardening=[...document.scripts].find(s=>/compliance-v113108\.js(?:\?|$)/.test(s.src||''));
       if(!hardening){
         const script=document.createElement('script');
         script.src=COMPLIANCE_HARDENING_SRC;
@@ -2172,15 +2172,23 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       return;
     }
 
-    // 3) v11.31.18 Server-Härtung darüberlegen.
-    const serverLayer=[...document.scripts].find(s=>/compliance-v113117\.js(?:\?|$)/.test(s.src||''));
-    if(serverLayer)return;
-    const script=document.createElement('script');
-    script.src=COMPLIANCE_SERVER_SRC;
-    script.defer=true;
-    script.dataset.apRuntimeLoader='compliance-v113117';
-    script.onerror=()=>console.error('AngebotsPilot v11.31.18 Server-Validierung konnte nicht geladen werden.');
-    document.head.appendChild(script);
+    // 3) Jede bekannte ältere Server-Schicht wird gezielt auf 11.31.19 aktualisiert.
+    if(['11.31.08','11.31.16','11.31.17','11.31.18'].includes(runtime)){
+      if(currentServer){
+        setTimeout(ensureComplianceLoaded,80);
+        return;
+      }
+      const script=document.createElement('script');
+      script.src=COMPLIANCE_SERVER_SRC;
+      script.defer=true;
+      script.dataset.apRuntimeLoader='compliance-v113119';
+      script.onload=()=>setTimeout(ensureComplianceLoaded,0);
+      script.onerror=()=>console.error('AngebotsPilot v11.31.19 Server-Validierung konnte nicht geladen werden.');
+      document.head.appendChild(script);
+      return;
+    }
+
+    console.warn('Unbekannte Compliance-Runtime:',runtime);
   }
 
   function installRefreshHooks(){

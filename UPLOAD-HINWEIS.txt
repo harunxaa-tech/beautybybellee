@@ -1,14 +1,12 @@
-AngebotsPilot v11.31.18
+AngebotsPilot v11.31.19 – ROOT-Upload
 
-ROOT-Upload: Diese Dateien in das Repository-Root hochladen/ersetzen:
+Bitte diese Dateien im GitHub-Repo im Root ersetzen/hochladen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113118.js (neu)
+- compliance-v113119.js (neu)
 
-Nichts löschen. Geschäftsdaten bleiben unverändert.
-
-Fix: Offizieller KoSIT-Test hat erstmals die echte XML-Schemaabweichung gefunden.
-LegalMonetaryTotal wird nun in UBL-Schema-Reihenfolge erzeugt:
-LineExtensionAmount → TaxExclusiveAmount → TaxInclusiveAmount → AllowanceTotalAmount → ... → PayableAmount.
-
-Die Rechnung bleibt bei jeder fehlgeschlagenen KoSIT-Prüfung Entwurf.
+Wichtig:
+- Keine anderen Dateien löschen.
+- Keine Geschäfts-/Produktionsdaten ändern.
+- v11.31.19 behebt den Loader, der trotz 11.31.18 noch die alte Compliance-Schicht 11.31.17 aktiv ließ.
+- Dadurch wird die korrigierte UBL-Reihenfolge nun tatsächlich an KoSIT gesendet.
