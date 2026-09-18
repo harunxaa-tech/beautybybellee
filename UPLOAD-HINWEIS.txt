@@ -1,14 +1,14 @@
-AngebotsPilot v11.31.13 – ROOT Update
+AngebotsPilot v11.31.14 – Upload-Hinweis
 
-Bitte im GitHub-Repository im ROOT ersetzen:
+Im GitHub-Repository im ROOT ersetzen:
 - cloud-config.js
 - service-worker.js
 
-Nichts löschen und keine Geschäftsdaten verändern.
+Keine anderen Dateien löschen oder ersetzen.
 
-Fix v11.31.13:
-- Wetter-/Standort-Einwilligung wird zusätzlich pro Benutzer + Betrieb in der Cloud gespeichert.
-- Nach Safari-Neustart bzw. gelöschtem Privatmodus-Speicher wird die Entscheidung nach dem Login wiederhergestellt.
-- Automatisches Wetter wartet kurz auf den Cloud-Kontext, bevor ein eigener AngebotsPilot-Dialog erscheint.
-- Widerruf unter Datenschutz bleibt möglich und wird ebenfalls synchronisiert.
-- 11.31.10 Guided Compliance UX und alle Rechnungs-/Sync-Schutzschichten bleiben erhalten.
+Neu in 11.31.14:
+- XRechnungsfehler erklären direkt am betroffenen Feld, was fehlt.
+- Nach dem Speichern geht AngebotsPilot automatisch zum nächsten fehlenden Pflichtfeld.
+- Erst wenn alle Pflichtangaben erledigt sind, geht es zurück zur Rechnung und prüft erneut.
+- Firmenadresse erklärt ausdrücklich Straße + Hausnummer + PLZ + Ort; Wetter-Standort bleibt getrennt.
+- Alle bisherigen Sync-, Rechnungs-, Compliance- und Wetter-Fixes bleiben erhalten.

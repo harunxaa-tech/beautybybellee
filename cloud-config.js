@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.13 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.14 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,11 +12,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.13';
+  const VERSION='11.31.14';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
   const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_13__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_14__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -34,7 +34,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-13',
+    cacheTag:'angebotspilot-v11-31-14',
     stamp:stampBuild
   });
 
@@ -43,7 +43,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   let refreshTimer=null;
 
 
-  // v11.31.13: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
+  // v11.31.14: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
   // Fix: auch direkte Wetterdialoge sichern, die updateConsent bisher umgangen haben.
   // Der Browser/iOS behält seine eigene Systemberechtigung separat; hier speichern wir
   // ausschließlich die bereits vom Nutzer in AngebotsPilot bestätigte Auswahl.
@@ -311,7 +311,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APPermissionPrefs={
-    version:'11.31.13',
+    version:'11.31.14',
     restore:restoreDevicePermissionPrefs,
     restoreCloud:loadCloudPermissionPrefs,
     persist:persistCurrentDevicePermissionPrefs,
@@ -319,7 +319,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     state:()=>readDevicePermissionPrefs()
   };
 
-  // v11.31.13: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
+  // v11.31.14: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
   // der alte statische Kundeneditor zeigte sie aber noch nicht an. Diese UI wird bewusst
   // kompakt ergänzt: Kundentyp + Land sichtbar, Spezialfelder in einem optionalen Bereich.
   function ensureCustomerComplianceUi(){
@@ -375,7 +375,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
-  // v11.31.13: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
+  // v11.31.14: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld und automatisch zum nächsten offenen Punkt.
   let complianceRepairState=null;
 
   function customerComplianceRequirement(){
@@ -457,12 +457,95 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{missing};
   }
 
-  function focusComplianceField(id){
+  function complianceGuidance(target){
+    const id=target?.id||'';
+    const map={
+      companyAddress:{
+        title:'Vollständige Firmenadresse fehlt',
+        text:'Für die XRechnung braucht AngebotsPilot hier Straße, Hausnummer, PLZ und Ort – z. B. „Musterstraße 12, 85579 Neubiberg“. Der Wetter-Standort kann weiterhin nur „München“ sein.'
+      },
+      companyEmail:{
+        title:'Firmen-E-Mail ergänzen',
+        text:'Trage hier eine gültige E-Mail-Adresse deines Betriebs ein. Sie wird als Kontaktangabe der Rechnung verwendet.'
+      },
+      iban:{
+        title:'IBAN ergänzen',
+        text:'Für eine zahlbare strukturierte E-Rechnung muss ein plausibles Zahlungskonto hinterlegt sein. Trage hier deine echte Geschäfts-IBAN ein.'
+      },
+      taxNumber:{
+        title:'Steuerangabe ergänzen',
+        text:'Trage hier die für deinen Betrieb passende Steuernummer ein. Falls stattdessen eine USt-ID erforderlich ist, führt dich AngebotsPilot anschließend dorthin.'
+      },
+      vatId:{
+        title:'USt-ID / UID ergänzen',
+        text:'Trage hier die für dein Land gültige Umsatzsteuer-/UID-Nummer ein.'
+      },
+      custBuyerReference:{
+        title:'Käuferreferenz / Leitweg-ID fehlt',
+        text:'Bei einer deutschen Behördenrechnung wird hier normalerweise die vom Auftraggeber mitgeteilte Leitweg-ID bzw. Käuferreferenz eingetragen.'
+      },
+      custEInvoiceAddress:{
+        title:'E-Rechnungsadresse fehlt',
+        text:'Trage die elektronische Adresse ein, die dir der Empfänger für die E-Rechnung vorgegeben hat, z. B. Leitweg-ID oder Peppol-ID.'
+      },
+      custSupplierNumber:{
+        title:'Lieferantennummer fehlt',
+        text:'Wenn der öffentliche Auftraggeber dir eine Lieferantennummer zugeteilt hat, trage sie hier ein.'
+      },
+      custVatId:{
+        title:'USt-ID / UID des Kunden fehlt',
+        text:'Trage die vom Kunden angegebene Umsatzsteuer-/UID-Nummer ein.'
+      },
+      custAddress:{
+        title:'Kundenadresse unvollständig',
+        text:'Für die strukturierte Rechnung braucht die Kundenadresse Straße, Hausnummer, PLZ und Ort.'
+      },
+      invoiceServiceDate:{
+        title:'Leistungsdatum fehlt',
+        text:'Trage das Datum ein, an dem die Leistung ausgeführt oder abgeschlossen wurde.'
+      },
+      invoiceDueDate:{
+        title:'Fälligkeit fehlt',
+        text:'Lege fest, bis wann die Rechnung bezahlt werden soll.'
+      },
+      invoiceSubject:{
+        title:'Betreff fehlt',
+        text:'Gib der Rechnung einen kurzen eindeutigen Betreff.'
+      }
+    };
+    return map[id]||{
+      title:'Diese Angabe fehlt noch',
+      text:target?.message||'Bitte ergänze oder korrigiere dieses Feld. AngebotsPilot prüft danach automatisch erneut.'
+    };
+  }
+
+  function clearComplianceGuidance(){
+    document.querySelectorAll('.apComplianceGuidance').forEach(el=>el.remove());
+  }
+
+  function showComplianceGuidance(target,position=0,total=0){
+    const el=document.getElementById(target?.id||'');if(!el)return false;
+    clearComplianceGuidance();
+    const g=complianceGuidance(target);
+    const box=document.createElement('div');
+    box.className='apComplianceGuidance';
+    box.style.cssText='margin:10px 0 4px;padding:12px 14px;border:1px solid rgba(215,255,45,.45);border-radius:12px;background:rgba(215,255,45,.07);line-height:1.45';
+    box.innerHTML=`<b style="display:block;margin-bottom:4px">💡 ${g.title}</b><span class="mini">${g.text}</span>${total>1?`<div class="mini" style="margin-top:7px;font-weight:800">Schritt ${Math.max(1,position)} von ${total}</div>`:''}`;
+    const field=el.closest?.('.field')||el.parentElement;
+    (field||el).insertAdjacentElement('afterend',box);
+    return true;
+  }
+
+  function focusComplianceField(id,target=null,position=0,total=0){
     const el=document.getElementById(id);if(!el)return false;
     const details=el.closest?.('details');if(details)details.open=true;
-    el.style.outline='3px solid rgba(215,255,45,.9)';el.style.outlineOffset='3px';el.style.scrollMarginTop='120px';
-    setTimeout(()=>{try{el.scrollIntoView({behavior:'smooth',block:'center'});el.focus({preventScroll:true})}catch(e){el.focus?.()}},90);
-    setTimeout(()=>{el.style.outline='';el.style.outlineOffset=''},5000);
+    el.style.outline='3px solid rgba(215,255,45,.9)';el.style.outlineOffset='3px';el.style.scrollMarginTop='145px';
+    if(target)showComplianceGuidance(target,position,total);
+    setTimeout(()=>{
+      try{el.scrollIntoView({behavior:'smooth',block:'center'});el.focus({preventScroll:true})}
+      catch(e){el.focus?.()}
+    },120);
+    setTimeout(()=>{el.style.outline='';el.style.outlineOffset=''},6000);
     return true;
   }
 
@@ -477,7 +560,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     card.innerHTML=r.missing.length
       ?`<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px">🧾</span><div style="flex:1"><b style="font-size:18px">E-Rechnung noch nicht startklar</b><p class="mini" style="margin:5px 0 10px">${r.missing.map(x=>x.label).join(' · ')}</p><button type="button" class="btn small" id="apFixCompanyEInvoice">Fehlende Angabe öffnen →</button></div></div>`
       :'<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px">✅</span><div><b style="font-size:18px">E-Rechnung bereit</b><p class="mini" style="margin:5px 0 0">Firmenadresse, E-Mail und Zahlungskonto sind vollständig hinterlegt.</p></div></div>';
-    const btn=document.getElementById('apFixCompanyEInvoice');if(btn)btn.onclick=()=>focusComplianceField(r.missing[0]?.id);
+    const btn=document.getElementById('apFixCompanyEInvoice');if(btn)btn.onclick=()=>{const first=r.missing[0];if(first)focusComplianceField(first.id,{scope:'settings',id:first.id,message:first.label},1,r.missing.length)};
     ['companyAddress','companyEmail','iban'].forEach(id=>{const el=document.getElementById(id);if(el&&el.dataset.apReadinessBound!=='1'){el.dataset.apReadinessBound='1';el.addEventListener('input',ensureCompanyEInvoiceReadiness);el.addEventListener('change',ensureCompanyEInvoiceReadiness)}});
     return true;
   }
@@ -493,33 +576,110 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{scope:'invoice',id:'invoiceComplianceBox',message:m};
   }
 
-  function openComplianceRepair(inv,result){
-    const errors=result?.errors||[],target=classifyComplianceError(errors[0]||'');
-    complianceRepairState={invoiceId:inv?.id||document.getElementById('invoiceId')?.value||'',customerId:inv?.customerId||'',target,errors:[...errors]};
+  function openComplianceRepair(inv,result,options={}){
+    const errors=result?.errors||[];
+    if(!errors.length){
+      clearComplianceGuidance();
+      complianceRepairState=null;globalThis.__apComplianceRepair=null;
+      if(inv&&typeof globalThis.editInvoice==='function'){
+        globalThis.editInvoice(inv.id);
+        setTimeout(()=>globalThis.refreshInvoiceComplianceUI?.(inv),150);
+      }
+      (globalThis.toast||globalThis.showToast)?.('✓ Alle Pflichtangaben vollständig · Rechnung erneut geprüft','success');
+      return;
+    }
+
+    const target=classifyComplianceError(errors[0]||'');
+    const previous=complianceRepairState||globalThis.__apComplianceRepair||{};
+    const invoiceId=inv?.id||previous.invoiceId||document.getElementById('invoiceId')?.value||'';
+    const customerId=inv?.customerId||previous.customerId||'';
+    const total=errors.length;
+    const position=Math.max(1,Number(options.position)||1);
+
+    complianceRepairState={invoiceId,customerId,target,errors:[...errors],position,total};
     globalThis.__apComplianceRepair=complianceRepairState;
-    (globalThis.toast||globalThis.showToast)?.('Fehlende Angabe gefunden – ich öffne direkt das richtige Feld.','warning');
-    if(target.scope==='customer'&&complianceRepairState.customerId){
-      globalThis.editCustomer?.(complianceRepairState.customerId);
-      setTimeout(()=>{ensureCustomerComplianceUi();bindCustomerComplianceUi();const details=document.querySelector('#customerEditor .apCustomerEInvoiceDetails');if(details){details.dataset.apForceOpen='1';details.open=true}updateCustomerComplianceUi();focusComplianceField(target.id)},140);
+
+    const guidance=complianceGuidance(target);
+    (globalThis.toast||globalThis.showToast)?.(`${guidance.title} – ich öffne direkt das richtige Feld.`,'warning');
+
+    if(target.scope==='customer'&&customerId){
+      globalThis.editCustomer?.(customerId);
+      setTimeout(()=>{
+        ensureCustomerComplianceUi();bindCustomerComplianceUi();
+        const details=document.querySelector('#customerEditor .apCustomerEInvoiceDetails');
+        if(details){details.dataset.apForceOpen='1';details.open=true}
+        updateCustomerComplianceUi();
+        focusComplianceField(target.id,target,position,total);
+      },180);
       return;
     }
     if(target.scope==='settings'){
-      globalThis.showScreen?.('settings');setTimeout(()=>{ensureCompanyEInvoiceReadiness();focusComplianceField(target.id)},160);return;
+      globalThis.showScreen?.('settings');
+      setTimeout(()=>{
+        ensureCompanyEInvoiceReadiness();
+        focusComplianceField(target.id,target,position,total);
+      },200);
+      return;
     }
-    focusComplianceField(target.id);
+    focusComplianceField(target.id,target,position,total);
+  }
+
+  function complianceCheckForInvoice(invoiceId){
+    const inv=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(invoiceId));
+    if(!inv||!globalThis.APCompliance)return{inv,result:null};
+    try{
+      globalThis.APCompliance.prepareInvoice?.(inv);
+      const result=globalThis.APCompliance.check(inv);
+      globalThis.refreshInvoiceComplianceUI?.(inv);
+      return{inv,result};
+    }catch(e){
+      console.warn('Rechnungsprüfung nach Korrektur fehlgeschlagen',e);
+      return{inv,result:null};
+    }
+  }
+
+  function advanceComplianceRepairAfterSave(kind){
+    const state=complianceRepairState||globalThis.__apComplianceRepair;
+    if(!state||state.target?.scope!==kind)return;
+    const invoiceId=state.invoiceId;if(!invoiceId)return;
+
+    setTimeout(()=>{
+      const checked=complianceCheckForInvoice(invoiceId);
+      const inv=checked.inv,result=checked.result;
+      if(!inv||!result){
+        (globalThis.toast||globalThis.showToast)?.('Angabe gespeichert. Bitte Rechnung erneut prüfen.','success');
+        return;
+      }
+
+      const remaining=result.errors||[];
+      if(!remaining.length){
+        complianceRepairState=null;globalThis.__apComplianceRepair=null;
+        clearComplianceGuidance();
+        if(typeof globalThis.editInvoice==='function')globalThis.editInvoice(invoiceId);
+        setTimeout(()=>globalThis.refreshInvoiceComplianceUI?.(inv),160);
+        (globalThis.toast||globalThis.showToast)?.('✓ Alle Pflichtangaben vollständig · zurück zur Rechnung','success');
+        return;
+      }
+
+      const next=classifyComplianceError(remaining[0]||'');
+      const sameTarget=next.scope===state.target?.scope&&next.id===state.target?.id;
+      if(sameTarget){
+        complianceRepairState={...state,target:next,errors:[...remaining],total:remaining.length};
+        globalThis.__apComplianceRepair=complianceRepairState;
+        focusComplianceField(next.id,next,1,remaining.length);
+        (globalThis.toast||globalThis.showToast)?.('Die Angabe ist noch nicht vollständig – bitte direkt hier korrigieren.','warning');
+        return;
+      }
+
+      // Nicht erst zurück zur Rechnung: automatisch zum nächsten fehlenden Feld weiterführen.
+      openComplianceRepair(inv,result,{position:Math.min((state.position||1)+1,Math.max(1,remaining.length))});
+    },260);
   }
 
   function resumeInvoiceAfterComplianceRepair(kind){
-    const state=complianceRepairState||globalThis.__apComplianceRepair;if(!state||state.target?.scope!==kind)return;
-    complianceRepairState=null;globalThis.__apComplianceRepair=null;
-    const invoiceId=state.invoiceId;if(!invoiceId)return;
-    setTimeout(()=>{
-      const inv=(globalThis.data?.invoices||[]).find(x=>String(x.id)===String(invoiceId));
-      if(inv&&typeof globalThis.editInvoice==='function'){
-        globalThis.editInvoice(invoiceId);
-        setTimeout(()=>{const check=globalThis.refreshInvoiceComplianceUI?.(inv),remaining=check?.errors?.length||0;(globalThis.toast||globalThis.showToast)?.(remaining?`Angabe gespeichert · noch ${remaining} Punkt${remaining===1?'':'e'} zu ergänzen`:'✓ Angabe gespeichert · Rechnung erneut geprüft',remaining?'warning':'success')},180);
-      }
-    },120);
+    // Kompatibilitätsname für ältere Hooks; v11.31.14 führt jetzt Schritt für Schritt
+    // durch alle noch fehlenden Angaben und kehrt erst am Ende zur Rechnung zurück.
+    advanceComplianceRepairAfterSave(kind);
   }
 
   function installGuidedComplianceRepair(){
@@ -801,8 +961,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.13',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
-  globalThis.APComplianceUX={version:'11.31.13',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
+  globalThis.APInvoiceUI={version:'11.31.14',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APComplianceUX={version:'11.31.14',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -1159,11 +1319,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.13',
+    version:'11.31.14',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.13',
+      version:'11.31.14',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -1923,7 +2083,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function ensureComplianceLoaded(){
-    // v11.31.13 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
+    // v11.31.14 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
     if(globalThis.APCompliance?.runtimeVersion==='11.31.08')return;
 
     // 1) Basis-Core 11.31.0 sicherstellen. Er enthält Länder-/Rechtsrouting und
