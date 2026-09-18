@@ -1,12 +1,14 @@
-AngebotsPilot v11.31.19 – ROOT-Upload
+AngebotsPilot v11.31.20
 
-Bitte diese Dateien im GitHub-Repo im Root ersetzen/hochladen:
+Im GitHub-Root ersetzen/hochladen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113119.js (neu)
+- compliance-v113120.js (neu)
 
-Wichtig:
-- Keine anderen Dateien löschen.
-- Keine Geschäfts-/Produktionsdaten ändern.
-- v11.31.19 behebt den Loader, der trotz 11.31.18 noch die alte Compliance-Schicht 11.31.17 aktiv ließ.
-- Dadurch wird die korrigierte UBL-Reihenfolge nun tatsächlich an KoSIT gesendet.
+Keine anderen Dateien löschen.
+
+Neu:
+- fehlende Steuerkennung/ungültige IBAN werden vor KoSIT erkannt
+- App führt automatisch zum richtigen Feld
+- IBAN-Prüfung mit Länder-Länge + Mod-97
+- bekannte KoSIT-Regeln BR-E-02 / BR-CO-26 / BR-DE-16 / BR-DE-19 werden als korrigierbare Eingabefehler behandelt
