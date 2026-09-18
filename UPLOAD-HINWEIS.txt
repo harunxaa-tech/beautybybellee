@@ -1,15 +1,12 @@
-AngebotsPilot v11.31.11 – ROOT Update
+AngebotsPilot v11.31.12 – ROOT Update
 
 Bitte im GitHub-Repository im ROOT ersetzen:
 - cloud-config.js
 - service-worker.js
 
-Nichts löschen. Geschäftsdaten bleiben unverändert.
+Nichts löschen und keine Geschäftsdaten verändern.
 
-Neu in 11.31.11:
-- Wetter-/Standort-Einwilligung wird pro angemeldetem Konto auf diesem Gerät dauerhaft gemerkt.
-- Nach erneutem Login erscheint die AngebotsPilot-Abfrage nicht erneut, wenn sie bereits bestätigt wurde.
-- Kontowechsel bleiben getrennt: Eine Zustimmung eines anderen Kontos wird nicht übernommen.
-- Die iOS/Safari-Systemberechtigung bleibt davon unabhängig und wird nicht umgangen.
-
-Außerdem bleiben alle 11.31.10-Verbesserungen zur geführten Fehlerbehebung bei E-Rechnungen erhalten.
+Fix v11.31.12:
+- Wetter-/Standort-Einwilligung bleibt nach Login erhalten.
+- Auch die direkten Wetterdialoge (automatisches Wetter, manuelle Ortssuche und Gerätestandort) schreiben die einmal erteilte Auswahl dauerhaft pro Konto und Gerät.
+- 11.31.10 Guided Compliance UX und alle bisherigen Rechnungs-/Sync-Schutzschichten bleiben erhalten.

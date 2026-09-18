@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.11 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.12 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,11 +12,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.11';
+  const VERSION='11.31.12';
   const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
   const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
   const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_11__';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_12__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -34,7 +34,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-11',
+    cacheTag:'angebotspilot-v11-31-12',
     stamp:stampBuild
   });
 
@@ -43,7 +43,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   let refreshTimer=null;
 
 
-  // v11.31.11: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
+  // v11.31.12: Wetter-/Standort-Einwilligung pro Konto und Gerät dauerhaft merken.
+  // Fix: auch direkte Wetterdialoge sichern, die updateConsent bisher umgangen haben.
   // Der Browser/iOS behält seine eigene Systemberechtigung separat; hier speichern wir
   // ausschließlich die bereits vom Nutzer in AngebotsPilot bestätigte Auswahl.
   const DEVICE_PERMISSION_PREFIX='angebotspilot_device_permissions_v1';
@@ -140,15 +141,39 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       globalThis.updateConsent=wrapped;
     }
 
-    const locationFn=globalThis.useDeviceLocation;
-    if(typeof locationFn==='function'&&!locationFn.__apPersistentPermissions){
-      const wrapped=async function(){
-        restoreDevicePermissionPrefs();
-        return locationFn.apply(this,arguments);
+    // Auch die Wetterdialoge in refreshWeather/loadWeatherFromForm/useDeviceLocation
+    // speichern die Auswahl direkt und umgehen updateConsent. Deshalb sichern wir jede
+    // echte Einwilligungsänderung zusätzlich an der gemeinsamen saveData-Stelle.
+    const saveFn=globalThis.saveData;
+    if(typeof saveFn==='function'&&!saveFn.__apPersistentPermissions){
+      const wrapped=function(action,details){
+        const result=saveFn.apply(this,arguments);
+        if(String(action||'')==='Einwilligung geändert'){
+          persistCurrentDevicePermissionPrefs();
+        }
+        return result;
       };
       wrapped.__apPersistentPermissions=true;
-      wrapped.__apOriginal=locationFn;
-      globalThis.useDeviceLocation=wrapped;
+      wrapped.__apOriginal=saveFn;
+      globalThis.saveData=wrapped;
+    }
+
+    for(const name of ['refreshWeather','loadWeatherFromForm','useDeviceLocation']){
+      const fn=globalThis[name];
+      if(typeof fn!=='function'||fn.__apPersistentPermissions)continue;
+      const wrapped=async function(){
+        // Vor jeder Wetteraktion zuerst die gerätegebundene Entscheidung wiederherstellen.
+        restoreDevicePermissionPrefs();
+        try{
+          return await fn.apply(this,arguments);
+        }finally{
+          // Direkte Dialogpfade setzen data.privacy.consents selbst; danach dauerhaft sichern.
+          persistCurrentDevicePermissionPrefs();
+        }
+      };
+      wrapped.__apPersistentPermissions=true;
+      wrapped.__apOriginal=fn;
+      globalThis[name]=wrapped;
     }
 
     const workspaceFn=globalThis.ensureWorkspaceForCloudAccount;
@@ -170,13 +195,13 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APPermissionPrefs={
-    version:'11.31.11',
+    version:'11.31.12',
     restore:restoreDevicePermissionPrefs,
     persist:persistCurrentDevicePermissionPrefs,
     state:()=>readDevicePermissionPrefs()
   };
 
-  // v11.31.11: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
+  // v11.31.12: Die Datenmodelle konnten E-Rechnungs-/Kundentyp-Felder bereits speichern,
   // der alte statische Kundeneditor zeigte sie aber noch nicht an. Diese UI wird bewusst
   // kompakt ergänzt: Kundentyp + Land sichtbar, Spezialfelder in einem optionalen Bereich.
   function ensureCustomerComplianceUi(){
@@ -232,7 +257,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return true;
   }
 
-  // v11.31.11: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
+  // v11.31.12: Geführte Fehlerbehebung – fehlende Angaben führen direkt zum richtigen Feld.
   let complianceRepairState=null;
 
   function customerComplianceRequirement(){
@@ -658,8 +683,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     return{ok:missing.length===0&&missingIds.length===0,missingFunctions:missing,missingElements:missingIds};
   }
 
-  globalThis.APInvoiceUI={version:'11.31.11',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
-  globalThis.APComplianceUX={version:'11.31.11',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
+  globalThis.APInvoiceUI={version:'11.31.12',ensure:ensureInvoiceEditorUi,diagnostics:invoiceButtonDiagnostics};
+  globalThis.APComplianceUX={version:'11.31.12',updateCustomer:updateCustomerComplianceUi,companyReadiness,openFirstCompanyMissing:()=>{const x=companyReadiness().missing[0];if(x)focusComplianceField(x.id)},focus:focusComplianceField};
 
 
   // v11.31.04: Rechnungsnummern werden serverseitig atomar reserviert.
@@ -1016,11 +1041,11 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   globalThis.APInvoiceNumbering={
-    version:'11.31.11',
+    version:'11.31.12',
     reserve:reserveInvoiceNumber,
     prepareLocalDrafts:prepareAllDraftInvoiceNumbers,
     diagnostics:()=>({
-      version:'11.31.11',
+      version:'11.31.12',
       cloudReady:!!invoiceNumberingContext()?.client,
       companyId:invoiceNumberingContext()?.company?.id||'',
       localDrafts:(globalThis.data?.invoices||[]).filter(inv=>inv?.status==='draft').length,
@@ -1780,7 +1805,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function ensureComplianceLoaded(){
-    // v11.31.11 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
+    // v11.31.12 ist ein UI-/Kundenstammdaten-Update. Die Compliance-Engine bleibt bewusst 11.31.08.
     if(globalThis.APCompliance?.runtimeVersion==='11.31.08')return;
 
     // 1) Basis-Core 11.31.0 sicherstellen. Er enthält Länder-/Rechtsrouting und
