@@ -160,3 +160,228 @@
   globalThis.APCustomSelect={init,scan,sync:()=>document.querySelectorAll('select[data-app-select-enhanced="1"]').forEach(syncButton),openById:id=>open(document.getElementById(id))};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
 })();
+
+
+/* AngebotsPilot v11.31.29 – durable invoice finalization recovery.
+   Deliberately isolated from the proven KoSIT/compliance runtime. */
+(function installAPInvoiceRecovery113129(){
+  'use strict';
+
+  const VERSION='11.31.29';
+  const FLAG='__AP_INVOICE_RECOVERY_11_31_29__';
+  if(globalThis[FLAG])return;
+  globalThis[FLAG]=true;
+  globalThis.AP_RELEASE_VERSION=VERSION;
+
+  const companyRoleCanFinalize=membership=>['owner','office'].includes(String(membership?.role||''));
+  let attachedCloud=null;
+
+  function stampRelease(){
+    document.querySelectorAll('[data-app-build]').forEach(el=>{
+      if(el.textContent!==VERSION)el.textContent=VERSION;
+    });
+  }
+
+  function cloudContext(){
+    try{return globalThis.APCloudContext?.()||null}catch(e){return null}
+  }
+
+  function finalizationPayload(inv,ctx){
+    if(!ctx?.company?.id||!inv?.id||!inv?.number||!inv?.finalizedAt||!inv?.finalizedSnapshot)return null;
+    return{
+      p_company_id:ctx.company.id,
+      p_local_id:String(inv.id),
+      p_number:String(inv.number||'').trim(),
+      p_finalized_at:inv.finalizedAt,
+      p_status:inv.status==='paid'?'paid':'open',
+      p_finalized_snapshot:inv.finalizedSnapshot,
+      p_structured_storage_path:inv.structuredStoragePath||'',
+      p_structured_sha256:inv.structuredSha256||'',
+      p_compliance_status:inv.complianceStatus||null,
+      p_compliance_report:inv.complianceReport||null,
+      p_compliance_checked_at:inv.complianceCheckedAt||null
+    };
+  }
+
+  async function prepareFinalization(inv,clientOverride=null,companyOverride=null){
+    const ctx=cloudContext();
+    const client=clientOverride||ctx?.client;
+    const company=companyOverride||ctx?.company;
+    if(!client||!company?.id)return null;
+
+    const payload=finalizationPayload(inv,{company});
+    if(!payload)return null;
+
+    const {data,error}=await client.rpc('prepare_invoice_finalization',payload);
+    if(error)throw error;
+    if(!data?.ok)throw new Error('Die Cloud konnte die Ausstellung nicht sicher vorbereiten.');
+    return data;
+  }
+
+  function newlyFinalized(before){
+    return (globalThis.data?.invoices||[]).filter(inv=>{
+      if(!inv?.id||!inv?.finalizedAt)return false;
+      return !before.has(String(inv.id));
+    });
+  }
+
+  function wrapLocalFinalizer(name){
+    const original=globalThis[name];
+    if(typeof original!=='function'||original.__apRecovery113129)return;
+
+    const wrapped=async function(){
+      const before=new Set(
+        (globalThis.data?.invoices||[])
+          .filter(inv=>inv?.finalizedAt)
+          .map(inv=>String(inv.id))
+      );
+
+      const result=await original.apply(this,arguments);
+
+      for(const inv of newlyFinalized(before)){
+        try{
+          await prepareFinalization(inv);
+        }catch(error){
+          // Do not suppress the existing v11.31.28 commit fallback. Mark the
+          // invoice pending and let the outer atomic guard retry immediately.
+          inv.finalizationCloudPending=true;
+          try{globalThis.persistAppState?.()}catch(e){}
+          console.warn('Serverseitige Finalisierungs-Vorbereitung wird beim Commit erneut versucht',error);
+        }
+      }
+      return result;
+    };
+
+    wrapped.__apRecovery113129=true;
+    wrapped.__apOriginal=original;
+    globalThis[name]=wrapped;
+  }
+
+  function installRpcPrepareGuard(client){
+    if(!client||client.__apInvoicePrepare113129)return;
+    const originalRpc=client.rpc?.bind(client);
+    if(typeof originalRpc!=='function')return;
+
+    client.rpc=async function(fn,args,options){
+      if(fn==='commit_invoice_finalization'){
+        const {data:prepared,error:prepareError}=await originalRpc('prepare_invoice_finalization',args,options);
+        if(prepareError)return{data:null,error:prepareError};
+        if(!prepared?.ok)return{
+          data:null,
+          error:new Error('Die Cloud konnte die Ausstellung nicht sicher vorbereiten.')
+        };
+      }
+      return originalRpc(fn,args,options);
+    };
+
+    try{
+      Object.defineProperty(client,'__apInvoicePrepare113129',{
+        value:true,configurable:false,enumerable:false,writable:false
+      });
+    }catch(e){client.__apInvoicePrepare113129=true}
+  }
+
+  async function recoverPrepared(client,company,membership){
+    if(!client||!company?.id||!companyRoleCanFinalize(membership))return{ok:true,recovered:0,results:[]};
+
+    const {data,error}=await client.rpc('recover_prepared_invoice_finalizations',{
+      p_company_id:company.id
+    });
+    if(error)throw error;
+
+    const failed=(data?.results||[]).filter(row=>row?.ok===false);
+    if(failed.length){
+      const numbers=failed.map(row=>row?.number).filter(Boolean).join(', ');
+      throw new Error(
+        'Eine vorbereitete Rechnung konnte nicht sicher wiederhergestellt werden'+
+        (numbers?`: ${numbers}`:'.')
+      );
+    }
+
+    if(Number(data?.recovered||0)>0){
+      console.info('AngebotsPilot: vorbereitete Rechnungsfinalisierungen wiederhergestellt',data.recovered);
+    }
+    return data||{ok:true,recovered:0,results:[]};
+  }
+
+  function wrapCloudAttach(){
+    const sync=globalThis.CloudSync;
+    if(!sync||typeof sync.attach!=='function'||sync.attach.__apRecovery113129)return false;
+
+    const originalAttach=sync.attach.bind(sync);
+    const wrapped=async function(client,session,company,membership){
+      attachedCloud={client,session,company,membership};
+      installRpcPrepareGuard(client);
+
+      // Critical ordering: durable server recovery MUST complete before the
+      // existing initialSync can perform its normal Cloud pull.
+      await recoverPrepared(client,company,membership);
+
+      return originalAttach(client,session,company,membership);
+    };
+
+    wrapped.__apRecovery113129=true;
+    wrapped.__apOriginal=originalAttach;
+    sync.attach=wrapped;
+    sync.version=VERSION;
+    return true;
+  }
+
+  function wrapManualSync(){
+    const sync=globalThis.CloudSync;
+
+    if(sync&&typeof sync.manual==='function'&&!sync.manual.__apRecovery113129){
+      const originalManual=sync.manual.bind(sync);
+      const wrappedManual=async function(){
+        if(attachedCloud){
+          await recoverPrepared(attachedCloud.client,attachedCloud.company,attachedCloud.membership);
+        }
+        return originalManual.apply(this,arguments);
+      };
+      wrappedManual.__apRecovery113129=true;
+      sync.manual=wrappedManual;
+    }
+
+    const globalManual=globalThis.manualCloudSync;
+    if(typeof globalManual==='function'&&!globalManual.__apRecovery113129){
+      const wrappedGlobalManual=async function(){
+        try{
+          if(attachedCloud){
+            await recoverPrepared(attachedCloud.client,attachedCloud.company,attachedCloud.membership);
+          }
+        }catch(error){
+          console.error('Cloud-Sync vor Pull gestoppt: vorbereitete Rechnungsfinalisierung offen',error);
+          globalThis.toast?.('Cloud-Sync gestoppt · vorbereitete Rechnung zuerst sicher abschließen');
+          return false;
+        }
+        return globalManual.apply(this,arguments);
+      };
+      wrappedGlobalManual.__apRecovery113129=true;
+      globalThis.manualCloudSync=wrappedGlobalManual;
+    }
+  }
+
+  function install(){
+    // This file is loaded after script.js/cloud-sync.js but before cloud-auth.js.
+    // Wrapping now means the existing v11.31.28 numbering guard will later wrap
+    // these functions from the outside, preserving its proven behavior.
+    wrapLocalFinalizer('saveInvoice');
+    wrapLocalFinalizer('finalizeInvoiceById');
+    wrapCloudAttach();
+    wrapManualSync();
+    stampRelease();
+
+    // cloud-config still stamps its base-runtime number during startup. Keep the
+    // visible release badge on the actual patch release without changing the
+    // internal v11.31.28 compliance diagnostic contract.
+    [250,900,2200].forEach(ms=>setTimeout(stampRelease,ms));
+  }
+
+  install();
+  globalThis.APInvoiceRecovery113129=Object.freeze({
+    version:VERSION,
+    prepareFinalization,
+    recoverPrepared,
+    installRpcPrepareGuard
+  });
+})();
