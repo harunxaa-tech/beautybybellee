@@ -1,4 +1,4 @@
-AngebotsPilot v11.31.26 – Stabilitäts-/Aufräumrelease
+AngebotsPilot v11.31.27 – Stabilitäts-/Aufräumrelease
 
 Im Repository-ROOT ersetzen/hochladen:
 - cloud-config.js
@@ -12,7 +12,7 @@ Bereinigt/gehärtet:
   (kein Pull mehr, bevor der lokale Push wirklich abgeschlossen ist)
 - Compliance-Loader leitet Dateinamen zentral aus der aktuellen Quelle ab; keine
   veraltete Versions-Regex mehr, die neue KoSIT-Fixes blockieren kann
-- Service-Worker-Cache auf einen konsistenten v11.31.26-Stand gebracht und
+- Service-Worker-Cache auf einen konsistenten v11.31.27-Stand gebracht und
   Offline-Fallback query-unabhängig gemacht
 - Runtime-Diagnose AP Runtime Diagnostics ergänzt
 - validierter KoSIT/XRechnung-Pfad aus v11.31.25 unverändert erhalten
@@ -32,4 +32,10 @@ Zusätzlich: veraltete Versions-/Stripe-Testbeschreibung aus dem PWA-Manifest en
 Zusätzlich im eigentlichen Sync-Kern behoben:
 - der alte manual()-Pfad setzt syncing nicht mehr vor pushSnapshot(); der Fix steckt jetzt
   direkt in cloud-sync.js und nicht nur in einer Runtime-Umleitung
-- CloudSync meldet die aktuelle Kernversion 11.31.26 für Diagnose/QA
+- CloudSync meldet die aktuelle Kernversion 11.31.27 für Diagnose/QA
+
+
+v11.31.27 zusätzlich:
+- XRechnung-Storno/Gutschrift erhält BG-16 Zahlungsanweisung (KoSIT BR-DE-1).
+- KoSIT-Validierung läuft vor der unveränderbaren Archivierung; abgelehnte XML wird nicht archiviert.
+- Lokaler Vorabcheck erkennt fehlende Zahlungsanweisung/IBAN vor dem Serverlauf.
