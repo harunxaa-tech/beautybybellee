@@ -9,9 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.31.31">
-<link rel="stylesheet" href="subscription.css?v=11.31.31">
-<link rel="manifest" href="manifest.json?v=11.31.31">
+<link rel="stylesheet" href="style.css?v=11.32.1">
+<link rel="stylesheet" href="subscription.css?v=11.32.1">
+<link rel="manifest" href="manifest.json?v=11.32.1">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -194,7 +194,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.31.31</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.32.1</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -265,7 +265,7 @@
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.31.31</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.32.1</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -599,7 +599,7 @@
 
 
 <section class="screen" id="privacy">
-<div class="sectionTitle"><h2>Datenschutz & Sicherheit</h2><span>Version 1.0</span></div>
+<div class="sectionTitle"><h2>Datenschutz & Sicherheit</h2><span>Version 1.2</span></div>
 <div class="card roleDemoCard">
   <div class="roleDemoTop"><div><span class="securityBadge">👥 ECHTE ROLLE</span><h3 id="realRoleTitle">Rolle wird geladen …</h3><p class="mini" id="realRoleDescription">Die Berechtigungen kommen direkt aus deinem Betriebskonto und können nicht lokal umgeschaltet werden.</p></div></div>
   <div id="rolePermissionText" class="rolePermissionText"></div>
@@ -616,7 +616,7 @@
 <div class="sectionTitle"><h2>Rolle & Zugriff</h2><span>Durch Betriebskonto geschützt</span></div>
 <div class="card"><div class="itemTop"><div><b id="privacyRoleName">Rolle wird geladen …</b><p class="mini" id="roleDescription">Die Rolle wird vom Betriebskonto vorgegeben und kann auf diesem Gerät nicht selbst geändert werden.</p></div><span class="securityBadge">GESCHÜTZT</span></div></div>
 <div class="sectionTitle"><h2>Deine Daten</h2><span>Auskunft & Löschung</span></div>
-<div class="card"><div class="actions"><button class="btn" onclick="exportPrivacyData()">Datenkopie exportieren</button><button class="btn" onclick="exportBackup()">Vollständiges Backup</button></div><button class="btn danger" style="width:100%;margin-top:10px" onclick="resetAppPrivacy()">Alle App-Daten dauerhaft löschen</button></div>
+<div class="card"><div class="actions"><button class="btn" onclick="exportPrivacyData()">Datenkopie exportieren</button><button class="btn" onclick="exportBackup()">Vollständiges Backup</button></div><button class="btn danger" style="width:100%;margin-top:10px" onclick="resetAppPrivacy()">Lokale Daten auf diesem Gerät löschen</button></div>
 <div class="sectionTitle"><h2>Aktivitätsprotokoll</h2><span>Nur lokal</span></div><div class="card audit" id="auditLog"></div>
 <div class="sectionTitle"><h2>Rechtliches</h2><span>Entwürfe</span></div><div class="quickGrid"><button class="quick" onclick="openLegal('privacyPolicy')"><span class="emoji">📄</span><b>Datenschutz</b><small>Entwurf anzeigen</small></button><button class="quick" onclick="openLegal('imprint')"><span class="emoji">🏢</span><b>Impressum</b><small>Firmendaten prüfen</small></button><button class="quick" onclick="openLegal('terms')"><span class="emoji">⚖️</span><b>Nutzung</b><small>Regeln der App</small></button><button class="quick" onclick="openLegal('architecture')"><span class="emoji">🛡️</span><b>Sicherheitsplan</b><small>Technische Architektur</small></button></div>
 <div class="notice" style="margin-top:14px">Diese Seiten sind technische Arbeitsentwürfe und keine anwaltliche Prüfung oder DSGVO-Zertifizierung. Vor dem kommerziellen Start müssen sie an den tatsächlichen Betrieb und alle eingesetzten Dienstleister angepasst und rechtlich geprüft werden.</div>
@@ -1007,8 +1007,8 @@
 <div id="deleteDataModal" class="appModalBackdrop hidden" onclick="closeDeleteDataModal(event)">
   <div class="appModal" onclick="event.stopPropagation()">
     <div class="confirmIcon dangerIcon">🗑️</div>
-    <h3>Alle App-Daten löschen?</h3>
-    <p class="appConfirmText">Kunden, Angebote, Rechnungen und Einstellungen auf diesem Gerät werden dauerhaft entfernt.</p>
+    <h3>Lokale App-Daten löschen?</h3>
+    <p class="appConfirmText">Der Offline-Stand auf diesem Gerät wird entfernt. Dein AngebotsPilot-Konto und Cloud-Daten werden dadurch nicht gelöscht.</p>
     <div class="field"><label>Zur Bestätigung <b>LÖSCHEN</b> eingeben</label><input id="deleteDataPhrase" class="input modalInput" autocomplete="off"></div>
     <div class="modalActions">
       <button class="btn" onclick="closeDeleteDataModal()">Abbrechen</button>
@@ -1429,26 +1429,28 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.31.31" defer></script>
-<script src="country-config.js?v=11.31.31" defer></script>
-<script src="data-repository.js?v=11.31.31" defer></script>
-<script src="einvoice.js?v=11.31.31" defer></script>
-<script src="script.js?v=11.31.31" defer></script>
-<script src="customer-import.js?v=11.31.31" defer></script>
-<script src="cloud-files.js?v=11.31.31" defer></script>
-<script src="cloud-sync.js?v=11.31.31" defer></script>
-<script src="team.js?v=11.31.31" defer></script>
-<script src="assignments.js?v=11.31.31" defer></script>
-<script src="time-tracking.js?v=11.31.31" defer></script>
-<script src="notifications.js?v=11.31.31" defer></script>
-<script src="mail-hub.js?v=11.31.31" defer></script>
-<script src="email-assistant.js?v=11.31.31" defer></script>
-<script src="acceptance.js?v=11.31.31" defer></script>
-<script src="custom-selects.js?v=11.31.31" defer></script>
-<script src="security.js?v=11.31.31" defer></script>
-<script src="onboarding-setup.js?v=11.31.31" defer></script>
-<script src="cloud-auth.js?v=11.31.31" defer></script>
-<script src="subscription.js?v=11.31.31" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.31.31").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.32.1" defer></script>
+<script src="country-config.js?v=11.32.1" defer></script>
+<script src="data-repository.js?v=11.32.1" defer></script>
+<script src="einvoice.js?v=11.32.1" defer></script>
+<script src="script.js?v=11.32.1" defer></script>
+<script src="customer-import.js?v=11.32.1" defer></script>
+<script src="cloud-files.js?v=11.32.1" defer></script>
+<script src="cloud-sync.js?v=11.32.1" defer></script>
+<script src="team.js?v=11.32.1" defer></script>
+<script src="assignments.js?v=11.32.1" defer></script>
+<script src="time-tracking.js?v=11.32.1" defer></script>
+<script src="notifications.js?v=11.32.1" defer></script>
+<script src="mail-hub.js?v=11.32.1" defer></script>
+<script src="email-assistant.js?v=11.32.1" defer></script>
+<script src="acceptance.js?v=11.32.1" defer></script>
+<script src="privacy-ops.js?v=11.32.1" defer></script>
+<script src="account-deletion.js?v=11.32.1" defer></script>
+<script src="custom-selects.js?v=11.32.1" defer></script>
+<script src="security.js?v=11.32.1" defer></script>
+<script src="onboarding-setup.js?v=11.32.1" defer></script>
+<script src="cloud-auth.js?v=11.32.1" defer></script>
+<script src="subscription.js?v=11.32.1" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.32.1").catch(()=>{}));}</script>
 </body>
 </html>

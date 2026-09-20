@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-31-31';
+const CACHE='angebotspilot-v11-32-1';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.31.31','./subscription.css?v=11.31.31','./cloud-config.js?v=11.31.31',
-  './country-config.js?v=11.31.31','./data-repository.js?v=11.31.31','./einvoice.js?v=11.31.31','./compliance-v1131.js?v=11.31.31','./compliance-v113108.js?v=11.31.31','./compliance-v113128.js?v=11.31.31','./compliance-v113131.js?v=11.31.31','./script.js?v=11.31.31','./customer-import.js?v=11.31.31','./cloud-files.js?v=11.31.31','./cloud-sync.js?v=11.31.31',
-  './team.js?v=11.31.31','./assignments.js?v=11.31.31','./time-tracking.js?v=11.31.31','./notifications.js?v=11.31.31','./mail-hub.js?v=11.31.31','./email-assistant.js?v=11.31.31','./acceptance.js?v=11.31.31','./custom-selects.js?v=11.31.31',
-  './security.js?v=11.31.31','./onboarding-setup.js?v=11.31.31','./cloud-auth.js?v=11.31.31','./subscription.js?v=11.31.31','./data-safety.js?v=11.31.31','./manifest.json?v=11.31.31','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.32.1','./subscription.css?v=11.32.1','./cloud-config.js?v=11.32.1',
+  './country-config.js?v=11.32.1','./data-repository.js?v=11.32.1','./einvoice.js?v=11.32.1','./compliance-v1131.js?v=11.32.1','./compliance-v113108.js?v=11.32.1','./compliance-v113128.js?v=11.32.1','./compliance-v113131.js?v=11.32.1','./script.js?v=11.32.1','./customer-import.js?v=11.32.1','./cloud-files.js?v=11.32.1','./cloud-sync.js?v=11.32.1',
+  './team.js?v=11.32.1','./assignments.js?v=11.32.1','./time-tracking.js?v=11.32.1','./notifications.js?v=11.32.1','./mail-hub.js?v=11.32.1','./email-assistant.js?v=11.32.1','./acceptance.js?v=11.32.1','./privacy-ops.js?v=11.32.1','./account-deletion.js?v=11.32.1','./account-deletion.html','./custom-selects.js?v=11.32.1',
+  './security.js?v=11.32.1','./onboarding-setup.js?v=11.32.1','./cloud-auth.js?v=11.32.1','./subscription.js?v=11.32.1','./data-safety.js?v=11.32.1','./manifest.json?v=11.32.1','./icon-192.svg','./icon-512.svg'
 ];
 
 self.addEventListener('install',event=>{
@@ -30,18 +30,20 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  // HTML immer zuerst frisch anfordern. Keine HTML-/Script-Injektion mehr.
+  // HTML immer zuerst frisch anfordern. Die öffentliche Kontolöschseite bekommt einen eigenen Cache-Eintrag.
   if(event.request.mode==='navigate'){
+    const accountDeletionPage=url.pathname.endsWith('/account-deletion.html');
+    const fallback=accountDeletionPage?'./account-deletion.html':'./index.html';
     event.respondWith(
       fetch(event.request,{cache:'no-store'})
         .then(response=>{
           if(response?.ok){
             const copy=response.clone();
-            caches.open(CACHE).then(cache=>cache.put('./index.html',copy));
+            caches.open(CACHE).then(cache=>cache.put(fallback,copy));
           }
           return response;
         })
-        .catch(()=>caches.match('./index.html'))
+        .catch(()=>caches.match(fallback))
     );
     return;
   }
