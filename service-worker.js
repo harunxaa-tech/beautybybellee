@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-31-30';
+const CACHE='angebotspilot-v11-31-31';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.31.30','./subscription.css?v=11.31.30','./cloud-config.js?v=11.31.30',
-  './country-config.js?v=11.31.30','./data-repository.js?v=11.31.30','./einvoice.js?v=11.31.30','./compliance-v1131.js?v=11.31.30','./compliance-v113108.js?v=11.31.30','./compliance-v113128.js?v=11.31.30','./script.js?v=11.31.30','./customer-import.js?v=11.31.30','./cloud-files.js?v=11.31.30','./cloud-sync.js?v=11.31.30',
-  './team.js?v=11.31.30','./assignments.js?v=11.31.30','./time-tracking.js?v=11.31.30','./notifications.js?v=11.31.30','./mail-hub.js?v=11.31.30','./email-assistant.js?v=11.31.30','./acceptance.js?v=11.31.30','./custom-selects.js?v=11.31.30',
-  './security.js?v=11.31.30','./onboarding-setup.js?v=11.31.30','./cloud-auth.js?v=11.31.30','./subscription.js?v=11.31.30','./data-safety.js?v=11.31.30','./manifest.json?v=11.31.30','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.31.31','./subscription.css?v=11.31.31','./cloud-config.js?v=11.31.31',
+  './country-config.js?v=11.31.31','./data-repository.js?v=11.31.31','./einvoice.js?v=11.31.31','./compliance-v1131.js?v=11.31.31','./compliance-v113108.js?v=11.31.31','./compliance-v113128.js?v=11.31.31','./compliance-v113131.js?v=11.31.31','./script.js?v=11.31.31','./customer-import.js?v=11.31.31','./cloud-files.js?v=11.31.31','./cloud-sync.js?v=11.31.31',
+  './team.js?v=11.31.31','./assignments.js?v=11.31.31','./time-tracking.js?v=11.31.31','./notifications.js?v=11.31.31','./mail-hub.js?v=11.31.31','./email-assistant.js?v=11.31.31','./acceptance.js?v=11.31.31','./custom-selects.js?v=11.31.31',
+  './security.js?v=11.31.31','./onboarding-setup.js?v=11.31.31','./cloud-auth.js?v=11.31.31','./subscription.js?v=11.31.31','./data-safety.js?v=11.31.31','./manifest.json?v=11.31.31','./icon-192.svg','./icon-512.svg'
 ];
 
 self.addEventListener('install',event=>{

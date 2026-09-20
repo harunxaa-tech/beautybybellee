@@ -168,7 +168,7 @@
   'use strict';
 
   const RECOVERY_VERSION='11.31.29';
-  const BUILD_VERSION=globalThis.AP_BUILD_VERSION||'11.31.30';
+  const BUILD_VERSION=globalThis.AP_BUILD_VERSION||'11.31.31';
   const FLAG='__AP_INVOICE_RECOVERY_11_31_29__';
   if(globalThis[FLAG])return;
   globalThis[FLAG]=true;

@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.30 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.31 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,13 +12,15 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.30';
-  const COMPLIANCE_RUNTIME_VERSION='11.31.28';
-  const DATA_SAFETY_SRC='./data-safety.js?v=11.31.30';
-  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.30';
-  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.30';
-  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.31.30';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_30__';
+  const VERSION='11.31.31';
+  const COMPLIANCE_RUNTIME_VERSION='11.31.31';
+  const COMPLIANCE_SERVER_RUNTIME_VERSION='11.31.28';
+  const DATA_SAFETY_SRC='./data-safety.js?v=11.31.31';
+  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.31';
+  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.31';
+  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.31.31';
+  const COMPLIANCE_ZUGFERD_SRC='./compliance-v113131.js?v=11.31.31';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_31__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -36,7 +38,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-30',
+    cacheTag:'angebotspilot-v11-31-31',
     stamp:stampBuild
   });
 
@@ -1965,7 +1967,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function claimCentralBuildVersion(){
-    // v11.31.30: cloud-config ist die einzige Build-Versionsquelle.
+    // cloud-config ist die einzige Build-Versionsquelle.
     // script.js übernimmt AP_BUILD_VERSION und die sichtbare Anzeige bleibt zentral.
     if(typeof globalThis.syncVisibleBuildVersion==='function'){
       globalThis.syncVisibleBuildVersion=stampBuild;
@@ -2337,6 +2339,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     const core=findScript(COMPLIANCE_SRC);
     const hardening=findScript(COMPLIANCE_HARDENING_SRC);
     const currentServer=findScript(COMPLIANCE_SERVER_SRC);
+    const currentZugferd=findScript(COMPLIANCE_ZUGFERD_SRC);
 
     if(!runtime){
       if(!core)loadScript(COMPLIANCE_SRC,'compliance-core','AngebotsPilot Rechnungs-Compliance-Core konnte nicht geladen werden.');
@@ -2347,6 +2350,21 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     if(runtime==='11.31.0'){
       if(!hardening)loadScript(COMPLIANCE_HARDENING_SRC,'compliance-hardening','AngebotsPilot Compliance-Hardening konnte nicht geladen werden.');
       else setTimeout(ensureComplianceLoaded,80);
+      return;
+    }
+
+    if(runtime===COMPLIANCE_SERVER_RUNTIME_VERSION){
+      if(currentZugferd){
+        try{
+          if(globalThis.APComplianceUpgradeTo113131?.(globalThis.APCompliance)){
+            setTimeout(ensureComplianceLoaded,0);
+            return;
+          }
+        }catch(error){console.warn('ZUGFeRD-Upgrade '+VERSION+' wird erneut versucht.',error)}
+        setTimeout(ensureComplianceLoaded,80);
+        return;
+      }
+      loadScript(COMPLIANCE_ZUGFERD_SRC,'compliance-zugferd','AngebotsPilot '+VERSION+' ZUGFeRD-Layer konnte nicht geladen werden.');
       return;
     }
 
