@@ -1,16 +1,16 @@
-AngebotsPilot v11.31.23 – ROOT UPDATE
+AngebotsPilot v11.31.24 – ROOT Upload
 
-Im GitHub-Repository im Root ersetzen/hochladen:
+Bitte im GitHub-Repository im ROOT ersetzen/hochladen:
 - cloud-config.js
 - service-worker.js
-- compliance-v113123.js (neu)
+- compliance-v113124.js
 
-Nichts löschen. Keine Geschäftsdaten ändern.
+Wichtig:
+- keine anderen Dateien löschen
+- danach Safari-Tab vollständig schließen und neu öffnen
+- Test: RE-2026-0011 -> Ausstellen; bei Bestätigungsfenster ABBRECHEN
 
-Fix v11.31.23:
-- Compliance-Loader erkennt jetzt ausschließlich die aktuelle Server-Schicht.
-- Alte 11.31.21/11.31.22 Script-Tags blockieren das Update nicht mehr.
-- BT-29 Verkäuferkennung wird vor KoSIT technisch verifiziert.
-- BR-CO-26 wird nicht mehr fälschlich als fehlende Steuernummer behandelt.
-
-Nach Upload den AngebotsPilot-Tab komplett schließen und neu öffnen.
+Fix v11.31.24:
+- BT-29 Verkäuferkennung wird UBL-konform NACH EndpointID eingefügt
+- lokaler Guard verhindert erneut eine falsche Party-Reihenfolge
+- klarere Meldung bei technischen XML-/KoSIT-Ablehnungen
