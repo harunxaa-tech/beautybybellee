@@ -9,9 +9,30 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
-<link rel="stylesheet" href="style.css?v=11.32.1">
-<link rel="stylesheet" href="subscription.css?v=11.32.1">
-<link rel="manifest" href="manifest.json?v=11.32.1">
+<script>try{const saved=localStorage.getItem('dh_theme');const light=saved?saved==='light':window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches;document.documentElement.classList.toggle('light',!!light)}catch(e){}</script>
+<style id="v11322UxFixes">
+/* v11.32.2 – gezielte Mobile-/Angebots-UX-Fixes */
+#offerDate{width:100%;min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none}
+.offerPlanningRow,.offerPlanningRow>.field,.offerDetailField{min-width:0}
+body.offerEditing .bottomNav{display:none!important}
+body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+#offerEditor .stickyOfferActions{position:fixed;z-index:95;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1.25fr;gap:10px;padding:10px;background:color-mix(in srgb,var(--panel,#12161d) 94%,transparent);border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 42px rgba(0,0,0,.28);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+#offerEditor .stickyOfferActions .btn{min-height:46px;margin:0}
+.offerPriceModeCompact{display:flex;align-items:center;gap:8px;padding:8px 10px;margin:10px 0 12px;border-radius:12px}
+.offerPriceModeCompact .offerPriceModeIcon{width:auto;height:auto;background:none;border:0;font-size:1rem}
+.offerPriceModeCompact>div{min-width:0;flex:1}.offerPriceModeCompact small{display:block;line-height:1.3}.offerPriceModeCompact em{font-size:.63rem;white-space:nowrap}
+.offerSummaryHead{align-items:center}.offerSummaryCard .offerSummaryTaxBadge{display:none!important}
+.offerCompactCard{padding:12px 13px!important}.offerCompactCard .itemTop{align-items:center;gap:10px}.offerCompactMain{min-width:0;flex:1}.offerCompactMain h3{font-size:1rem;margin:3px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.offerCompactMain p{margin:0;font-size:.73rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.offerCompactAmount{text-align:right;white-space:nowrap}.offerCompactAmount strong{display:block}.offerCompactAmount small{display:block;margin-top:4px}
+.offerCardMenu{position:relative}.offerCardMenu>summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:10px;min-width:38px;min-height:38px;display:grid;place-items:center;font-size:1.15rem;background:var(--panel2,rgba(255,255,255,.04))}.offerCardMenu>summary::-webkit-details-marker{display:none}.offerCardMenu[open] .offerMenuPopover{display:grid}.offerMenuPopover{position:absolute;right:0;top:43px;z-index:45;width:190px;padding:6px;border:1px solid var(--line);border-radius:14px;background:var(--panel,#12161d);box-shadow:0 16px 40px rgba(0,0,0,.3);gap:3px}.offerMenuPopover button{border:0;background:transparent;color:var(--text);text-align:left;padding:10px 11px;border-radius:9px;font:inherit}.offerMenuPopover button:active{background:rgba(127,127,127,.13)}
+.calendarLegend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:11px;color:var(--muted);font-size:.72rem}.calendarLegend span{display:flex;align-items:center;gap:6px}.calendarLegendCount{display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--accent,#1f7a4d);color:#fff;font-style:normal;font-size:.66rem;font-weight:800}.calendarLegendToday{width:16px;height:16px;border:2px solid var(--accent,#1f7a4d);border-radius:5px}.calendarGrid .day.hasEvent::after{display:none!important}.calEventCount{display:grid!important;place-items:center!important;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--accent,#1f7a4d)!important;color:#fff!important;font-size:.62rem!important;font-weight:800!important;line-height:1!important}
+#themeBtn{border:1px solid var(--line);background:var(--panel2,rgba(255,255,255,.05));font-size:1.05rem;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.addressSplitRow{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:10px}.addressCityRow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px}@media(max-width:430px){.addressSplitRow{grid-template-columns:minmax(0,1fr) 96px}.addressCityRow{grid-template-columns:105px minmax(0,1fr)}}
+.offerAcceptanceBlock{margin-top:22px;padding-top:16px;border-top:1px solid rgba(127,127,127,.25)}.offerAcceptanceBlock>p{margin:5px 0;line-height:1.45}.offerSignatureGrid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px}.offerSignatureLine{border-top:1px solid currentColor;padding-top:6px;font-size:.7rem;color:#666}
+@media print{.paperTable tr,.paperTable tbody tr,.proSummary,.offerAcceptanceBlock,.offerSignatureGrid,.proTotals{break-inside:avoid!important;page-break-inside:avoid!important}.paperTable{break-inside:auto!important;page-break-inside:auto!important}.offerPaper{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
+<link rel="stylesheet" href="style.css?v=11.32.2">
+<link rel="stylesheet" href="subscription.css?v=11.32.2">
+<link rel="manifest" href="manifest.json?v=11.32.2">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -23,7 +44,7 @@
 <div id="secretariatHome" data-feature="secretariat" class="secretariatHome owner-office-only" aria-live="polite">
   <div class="secretariatHomeCard secretariatHomeLoading">
     <div class="secretariatHomeOrb"><span>✦</span></div>
-    <div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Wichtige Kundenmails werden im Hintergrund vorbereitet …</p></div>
+    <div><span class="secretariatEyebrow">DEIN BÜRO HEUTE</span><h2>Sekretariat</h2><p>Postfachstatus wird geprüft …</p></div>
   </div>
 </div>
 <div id="invoiceFollowupDashboard" class="invoiceFollowupDashboard owner-office-only"></div>
@@ -172,7 +193,7 @@
 
 <section class="screen" id="calendar">
 <div class="sectionTitle"><h2>Kalender</h2><button class="btn primary small owner-office-only" onclick="newEvent()">＋ Termin</button></div>
-<div class="card"><div class="itemTop"><button class="btn small" onclick="changeMonth(-1)">‹</button><h3 id="monthTitle" style="margin:8px 0"></h3><button class="btn small" onclick="changeMonth(1)">›</button></div><div class="calendarGrid" id="calendarGrid" style="margin-top:14px"></div></div>
+<div class="card"><div class="itemTop"><button class="btn small" onclick="changeMonth(-1)">‹</button><h3 id="monthTitle" style="margin:8px 0"></h3><button class="btn small" onclick="changeMonth(1)">›</button></div><div class="calendarGrid" id="calendarGrid" style="margin-top:14px"></div><div class="calendarLegend" aria-label="Kalenderlegende"><span><i class="calendarLegendCount">2</i> Anzahl Termine</span><span><i class="calendarLegendToday"></i> Heute</span></div></div>
 <div class="sectionTitle"><h2>Alle Termine</h2><span>Export möglich</span></div><div id="eventList" class="list"></div>
 </section>
 
@@ -194,7 +215,7 @@
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.32.1</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.32.2</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -265,7 +286,7 @@
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.32.1</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.32.2</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -530,7 +551,7 @@
 
 <section class="screen" id="tasks"><div class="sectionTitle"><h2>Aufgaben</h2><button class="btn primary small owner-office-only" onclick="newTask()">＋ Neu</button></div><div class="tabs" id="taskTabs"><button class="tab active" data-filter="open">Offen</button><button class="tab" data-filter="done">Erledigt</button><button class="tab" data-filter="all">Alle</button></div><div id="taskList" class="list" style="margin-top:10px"></div></section>
 <section class="screen" id="catalog"><div class="sectionTitle"><div><h2>Material & Leistungen</h2><p class="mini">Dein Betriebskatalog</p></div><button class="btn primary small" onclick="addCatalogItem()">＋ Position</button></div><div class="notice">Standardpositionen sind Startvorlagen. Preise und fachliche Eignung bitte selbst prüfen.</div><div class="card catalogTools"><input id="catalogSearch" class="input" placeholder="🔎 Material oder Leistung suchen …" oninput="renderCatalog()"><div class="filterPills"><button class="pill active" data-catfilter="all" onclick="setCatalogFilter('all',this)">Alle</button><button class="pill" data-catfilter="material" onclick="setCatalogFilter('material',this)">Material</button><button class="pill" data-catfilter="service" onclick="setCatalogFilter('service',this)">Leistungen</button></div></div><div id="catalogList" class="list" style="margin-top:12px"></div></section>
-<section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Cloud synchronisiert</span></div><div class="card setupSettingsCard owner-only"><div><span class="securityBadge">✨ EINFACH EINSTELLEN</span><h3>Einrichtung & sichtbare Funktionen</h3><p class="mini">Solo oder Team, Baustellen, Sekretariat und Rechnungsgrundlagen in einem kurzen Assistenten ändern.</p></div><button class="btn" type="button" data-open-business-setup>Einrichtung anpassen →</button></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="field"><label>Adresse</label><input class="input" id="companyAddress"></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div>
+<section class="screen" id="settings"><div class="sectionTitle"><h2>Betrieb</h2><span>Cloud synchronisiert</span></div><div class="card setupSettingsCard owner-only"><div><span class="securityBadge">✨ EINFACH EINSTELLEN</span><h3>Einrichtung & sichtbare Funktionen</h3><p class="mini">Solo oder Team, Baustellen, Sekretariat und Rechnungsgrundlagen in einem kurzen Assistenten ändern.</p></div><button class="btn" type="button" data-open-business-setup>Einrichtung anpassen →</button></div><div class="card"><div class="field"><label>Firmenname</label><input class="input" id="companyName"></div><div class="row"><div class="field"><label>Inhaber</label><input class="input" id="ownerName"></div><div class="field"><label>Telefon</label><input class="input" id="companyPhone"></div></div><div class="addressSplitRow"><div class="field"><label>Straße</label><input class="input" id="companyStreet" autocomplete="address-line1"></div><div class="field"><label>Hausnummer</label><input class="input" id="companyHouseNumber" autocomplete="address-line2"></div></div><div class="addressCityRow"><div class="field"><label>PLZ</label><input class="input" id="companyPostalCode" inputmode="numeric" autocomplete="postal-code"></div><div class="field"><label>Ort</label><input class="input" id="companyCity" autocomplete="address-level2"></div></div><div class="field"><label>Wetter-Standort</label><input class="input" id="weatherLocation" placeholder="z. B. Neubiberg"><small>Wird auf dem Heute-Dashboard verwendet. Kann vom Firmenstandort abweichen.</small></div><div class="field"><label>E-Mail</label><input class="input" id="companyEmail"></div>
 <div class="brandSetupCard">
   <div class="brandSetupHead"><div><span class="securityBadge">✨ AUTOMATISCHES DOKUMENTDESIGN</span><h3>Dein Logo. Fertige Dokumente.</h3><p>Logo hochladen – AngebotsPilot schneidet unnötige Ränder weg, optimiert Größe und Darstellung und wählt automatisch eine passende Akzentfarbe.</p></div><div id="brandQualityBadge" class="brandQualityBadge">Noch kein Logo</div></div>
   <div class="brandSetupGrid">
@@ -664,17 +685,16 @@
       <div class="flowStep" style="margin:0"><span>3</span><div><b>Positionen</b><small id="offerPositionMeta">Material & Leistungen hinzufügen</small></div></div>
       <button class="btn primary small addPositionMain" onclick="openPositionPicker()">＋ Position</button>
     </div>
-    <div class="offerPriceMode" id="offerPriceMode" aria-live="polite">
-      <span class="offerPriceModeIcon">€</span>
-      <div><b id="offerPriceModeTitle">Preisangabe</b><small id="offerPriceModeText">Die Steuer-Einstellung deines Betriebs wird automatisch berücksichtigt.</small></div>
+    <div class="offerPriceMode offerPriceModeCompact" id="offerPriceMode" aria-live="polite">
+      <span class="offerPriceModeIcon" aria-hidden="true">ⓘ</span>
+      <div><small id="offerPriceModeText">Die Steuer-Einstellung deines Betriebs wird automatisch berücksichtigt.</small></div>
       <em id="offerPriceModeBadge">AUTO</em>
     </div>
     <div id="offerLines" class="offerLinesSimple"></div>
-    <button class="btn ghost addFirstPosition" onclick="openPositionPicker()">＋ Position hinzufügen</button>
   </div>
 
   <div class="card compactOfferCard offerSummaryCard" id="offerEditorSummaryCard">
-    <div class="offerSummaryHead"><div><span class="eyebrow appEyebrow">ÜBERSICHT</span><h3>Angebotssumme</h3></div><span class="offerSummaryTaxBadge" id="offerSummaryTaxBadge">AUTO</span></div>
+    <div class="offerSummaryHead"><div><span class="eyebrow appEyebrow">ÜBERSICHT</span><h3>Angebotssumme</h3></div></div>
     <div class="offerEditorSummary" id="offerSummaryBody"></div>
     <div class="offerSummaryNote" id="offerSummaryTaxNote"></div>
   </div>
@@ -725,7 +745,7 @@
 
   <div class="stickyOfferActions">
     <button class="btn" onclick="previewOffer()">Vorschau</button>
-    <button class="btn primary" onclick="saveOffer()">Angebot speichern</button>
+    <button class="btn primary" onclick="saveOffer()">Speichern</button>
   </div>
 </section>
 
@@ -781,7 +801,7 @@
 </section>
 <section class="screen" id="invoicePreview"><div class="sectionTitle"><h2>Rechnungsvorschau</h2><button class="btn small" onclick="showScreen('invoices')">Zurück</button></div><input type="hidden" id="invoicePreviewSource"><div id="invoicePreviewPaper"></div><div class="actions invoiceShareActions"><button class="btn" onclick="printInvoice()">PDF / Drucken</button><button class="btn primary" onclick="shareInvoicePDF()">📤 WhatsApp / Mail</button></div><p class="mini shareHint">Auf dem iPhone öffnet „WhatsApp / Mail“ das normale Teilen-Menü mit der Rechnung als PDF-Datei.</p></section>
 
-<section class="screen" id="customerEditor"><div class="sectionTitle"><h2 id="customerEditorTitle">Neuer Kunde</h2><button class="btn small" onclick="showScreen('customers')">Schließen</button></div><div class="card"><input type="hidden" id="customerId"><div class="row"><div class="field"><label>Name / Firma</label><input class="input" id="custName"></div><div class="field"><label>Ansprechpartner</label><input class="input" id="custContact"></div></div><div class="field"><label>Adresse</label><input class="input" id="custAddress"></div><div class="row"><div class="field"><label>Telefon</label><input class="input" id="custPhone"></div><div class="field"><label>E-Mail</label><input class="input" id="custEmail"></div></div><div class="field"><label>Notizen</label><textarea id="custNotes"></textarea></div><button class="btn primary" style="width:100%" onclick="saveCustomer()">Kunde speichern</button></div></section>
+<section class="screen" id="customerEditor"><div class="sectionTitle"><h2 id="customerEditorTitle">Neuer Kunde</h2><button class="btn small" onclick="showScreen('customers')">Schließen</button></div><div class="card"><input type="hidden" id="customerId"><div class="row"><div class="field"><label>Name / Firma</label><input class="input" id="custName"></div><div class="field"><label>Ansprechpartner</label><input class="input" id="custContact"></div></div><div class="addressSplitRow"><div class="field"><label>Straße</label><input class="input" id="custStreet" autocomplete="address-line1"></div><div class="field"><label>Hausnummer</label><input class="input" id="custHouseNumber" autocomplete="address-line2"></div></div><div class="addressCityRow"><div class="field"><label>PLZ</label><input class="input" id="custPostalCode" inputmode="numeric" autocomplete="postal-code"></div><div class="field"><label>Ort</label><input class="input" id="custCity" autocomplete="address-level2"></div></div><div class="row"><div class="field"><label>Telefon</label><input class="input" id="custPhone"></div><div class="field"><label>E-Mail</label><input class="input" id="custEmail"></div></div><div class="field"><label>Notizen</label><textarea id="custNotes"></textarea></div><button class="btn primary" style="width:100%" onclick="saveCustomer()">Kunde speichern</button></div></section>
 <section class="screen" id="eventEditor">
   <div class="sectionTitle"><h2 id="eventEditorTitle">Neuer Termin</h2><button class="btn small" onclick="showScreen('calendar')">Schließen</button></div>
   <div class="card">
@@ -920,7 +940,7 @@
     <div class="appModalHeader"><div><div class="modalEyebrow">NEUER KUNDE</div><h3>Kunde direkt anlegen</h3></div><button class="modalClose" onclick="closeQuickCustomerModal()">✕</button></div>
     <input type="hidden" id="quickCustomerTarget">
     <div class="field"><label>Name / Firma</label><input id="quickCustName" class="input modalInput" placeholder="z. B. Max Mustermann"></div>
-    <div class="field"><label>Adresse</label><input id="quickCustAddress" class="input modalInput" placeholder="Straße, PLZ, Ort"></div>
+    <div class="addressSplitRow"><div class="field"><label>Straße</label><input id="quickCustStreet" class="input modalInput" autocomplete="address-line1"></div><div class="field"><label>Hausnummer</label><input id="quickCustHouseNumber" class="input modalInput" autocomplete="address-line2"></div></div><div class="addressCityRow"><div class="field"><label>PLZ</label><input id="quickCustPostalCode" class="input modalInput" inputmode="numeric" autocomplete="postal-code"></div><div class="field"><label>Ort</label><input id="quickCustCity" class="input modalInput" autocomplete="address-level2"></div></div>
     <div class="modalGrid">
       <div class="field"><label>Telefon</label><input id="quickCustPhone" class="input modalInput" inputmode="tel"></div>
       <div class="field"><label>E-Mail</label><input id="quickCustEmail" class="input modalInput" inputmode="email"></div>
@@ -1429,28 +1449,28 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.32.1" defer></script>
-<script src="country-config.js?v=11.32.1" defer></script>
-<script src="data-repository.js?v=11.32.1" defer></script>
-<script src="einvoice.js?v=11.32.1" defer></script>
-<script src="script.js?v=11.32.1" defer></script>
-<script src="customer-import.js?v=11.32.1" defer></script>
-<script src="cloud-files.js?v=11.32.1" defer></script>
-<script src="cloud-sync.js?v=11.32.1" defer></script>
-<script src="team.js?v=11.32.1" defer></script>
-<script src="assignments.js?v=11.32.1" defer></script>
-<script src="time-tracking.js?v=11.32.1" defer></script>
-<script src="notifications.js?v=11.32.1" defer></script>
-<script src="mail-hub.js?v=11.32.1" defer></script>
-<script src="email-assistant.js?v=11.32.1" defer></script>
-<script src="acceptance.js?v=11.32.1" defer></script>
-<script src="privacy-ops.js?v=11.32.1" defer></script>
-<script src="account-deletion.js?v=11.32.1" defer></script>
-<script src="custom-selects.js?v=11.32.1" defer></script>
-<script src="security.js?v=11.32.1" defer></script>
-<script src="onboarding-setup.js?v=11.32.1" defer></script>
-<script src="cloud-auth.js?v=11.32.1" defer></script>
-<script src="subscription.js?v=11.32.1" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.32.1").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.32.2" defer></script>
+<script src="country-config.js?v=11.32.2" defer></script>
+<script src="data-repository.js?v=11.32.2" defer></script>
+<script src="einvoice.js?v=11.32.2" defer></script>
+<script src="script.js?v=11.32.2" defer></script>
+<script src="customer-import.js?v=11.32.2" defer></script>
+<script src="cloud-files.js?v=11.32.2" defer></script>
+<script src="cloud-sync.js?v=11.32.2" defer></script>
+<script src="team.js?v=11.32.2" defer></script>
+<script src="assignments.js?v=11.32.2" defer></script>
+<script src="time-tracking.js?v=11.32.2" defer></script>
+<script src="notifications.js?v=11.32.2" defer></script>
+<script src="mail-hub.js?v=11.32.2" defer></script>
+<script src="email-assistant.js?v=11.32.2" defer></script>
+<script src="acceptance.js?v=11.32.2" defer></script>
+<script src="privacy-ops.js?v=11.32.2" defer></script>
+<script src="account-deletion.js?v=11.32.2" defer></script>
+<script src="custom-selects.js?v=11.32.2" defer></script>
+<script src="security.js?v=11.32.2" defer></script>
+<script src="onboarding-setup.js?v=11.32.2" defer></script>
+<script src="cloud-auth.js?v=11.32.2" defer></script>
+<script src="subscription.js?v=11.32.2" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.32.2").catch(()=>{}));}</script>
 </body>
 </html>

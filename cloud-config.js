@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.1 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.32.2 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,15 +12,15 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.32.1';
+  const VERSION='11.32.2';
   const COMPLIANCE_RUNTIME_VERSION='11.31.31';
   const COMPLIANCE_SERVER_RUNTIME_VERSION='11.31.28';
-  const DATA_SAFETY_SRC='./data-safety.js?v=11.32.1';
-  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.32.1';
-  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.32.1';
-  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.32.1';
-  const COMPLIANCE_ZUGFERD_SRC='./compliance-v113131.js?v=11.32.1';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_32_0__';
+  const DATA_SAFETY_SRC='./data-safety.js?v=11.32.2';
+  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.32.2';
+  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.32.2';
+  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.32.2';
+  const COMPLIANCE_ZUGFERD_SRC='./compliance-v113131.js?v=11.32.2';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_32_2__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -448,7 +448,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 
   function companyReadiness(){
     const get=id=>String(document.getElementById(id)?.value??'').trim();
-    const address=get('companyAddress')||String(globalThis.data?.settings?.address||'').trim();
+    const address=[get('companyStreet'),get('companyHouseNumber')].filter(Boolean).join(' ') + ((get('companyPostalCode')||get('companyCity'))?`, ${[get('companyPostalCode'),get('companyCity')].filter(Boolean).join(' ')}`:'');
+    const resolvedAddress=address.trim()||String(globalThis.data?.settings?.address||'').trim();
     const email=get('companyEmail')||String(globalThis.data?.settings?.email||'').trim();
     const iban=(get('iban')||String(globalThis.data?.settings?.iban||'')).replace(/\s+/g,'').toUpperCase();
     const country=document.getElementById('companyCountry')?.value||globalThis.data?.settings?.countryCode||'DE';
@@ -456,9 +457,9 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     const vatId=get('vatId')||String(globalThis.data?.settings?.vatId||'').trim();
     const missing=[];
     let addressOk=false;
-    try{const parsed=globalThis.APCompliance?.parseAddress?.(address,country);addressOk=!!(parsed?.street&&parsed?.postalCode&&parsed?.city)}catch(e){}
-    if(!addressOk)addressOk=/\d{4,5}\s+\S+/.test(address)&&address.length>=8;
-    if(!addressOk)missing.push({id:'companyAddress',label:'vollständige Firmenadresse'});
+    try{const parsed=globalThis.APCompliance?.parseAddress?.(resolvedAddress,country);addressOk=!!(parsed?.street&&parsed?.postalCode&&parsed?.city)}catch(e){}
+    if(!addressOk)addressOk=/\d{4,5}\s+\S+/.test(resolvedAddress)&&resolvedAddress.length>=8;
+    if(!addressOk)missing.push({id:'companyStreet',label:'vollständige Firmenadresse'});
     if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))missing.push({id:'companyEmail',label:'Firmen-E-Mail'});
     const ibanOk=typeof globalThis.APCompliance?.ibanIsValid==='function'
       ?globalThis.APCompliance.ibanIsValid(iban,country)
@@ -471,7 +472,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   function complianceGuidance(target){
     const id=target?.id||'';
     const map={
-      companyAddress:{
+      companyStreet:{
         title:'Vollständige Firmenadresse fehlt',
         text:'Für die XRechnung braucht AngebotsPilot hier Straße, Hausnummer, PLZ und Ort – z. B. „Musterstraße 12, 85579 Neubiberg“. Der Wetter-Standort kann weiterhin nur „München“ sein.'
       },
@@ -507,7 +508,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
         title:'USt-ID / UID des Kunden fehlt',
         text:'Trage die vom Kunden angegebene Umsatzsteuer-/UID-Nummer ein.'
       },
-      custAddress:{
+      custStreet:{
         title:'Kundenadresse unvollständig',
         text:'Für die strukturierte Rechnung braucht die Kundenadresse Straße, Hausnummer, PLZ und Ort.'
       },
@@ -623,14 +624,14 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
       ?`<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px">🧾</span><div style="flex:1"><b style="font-size:18px">E-Rechnung noch nicht startklar</b><p class="mini" style="margin:5px 0 10px">${r.missing.map(x=>x.label).join(' · ')}</p><button type="button" class="btn small" id="apFixCompanyEInvoice">Fehlende Angabe öffnen →</button></div></div>`
       :'<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px">✅</span><div><b style="font-size:18px">E-Rechnung bereit</b><p class="mini" style="margin:5px 0 0">Firmenadresse, E-Mail und Zahlungskonto sind vollständig hinterlegt.</p></div></div>';
     const btn=document.getElementById('apFixCompanyEInvoice');if(btn)btn.onclick=()=>{const first=r.missing[0];if(first)focusComplianceField(first.id,{scope:'settings',id:first.id,message:first.label},1,r.missing.length)};
-    ['companyAddress','companyEmail','iban','taxNumber','vatId'].forEach(id=>{const el=document.getElementById(id);if(el&&el.dataset.apReadinessBound!=='1'){el.dataset.apReadinessBound='1';el.addEventListener('input',ensureCompanyEInvoiceReadiness);el.addEventListener('change',ensureCompanyEInvoiceReadiness)}});
+    ['companyStreet','companyHouseNumber','companyPostalCode','companyCity','companyEmail','iban','taxNumber','vatId'].forEach(id=>{const el=document.getElementById(id);if(el&&el.dataset.apReadinessBound!=='1'){el.dataset.apReadinessBound='1';el.addEventListener('input',ensureCompanyEInvoiceReadiness);el.addEventListener('change',ensureCompanyEInvoiceReadiness)}});
     return true;
   }
 
   function classifyComplianceError(message){
     const m=String(message||'');
-    const customer=[[/Kundentyp/i,'custCustomerType'],[/Kundenname|Kundenname\/Firma/i,'custName'],[/Kundenadresse/i,'custAddress'],[/Leitweg|Käuferreferenz|BuyerReference|BT-10/i,'custBuyerReference'],[/elektronische Adresse des Kunden|E-Rechnungsadresse/i,'custEInvoiceAddress'],[/Lieferantennummer/i,'custSupplierNumber'],[/UID des Kunden|USt-ID.*Kunden|USt-Id.*Kunden/i,'custVatId']];
-    const settings=[[/Firmenname/i,'companyName'],[/Firmenadresse/i,'companyAddress'],[/Firmen-E-Mail/i,'companyEmail'],[/IBAN|Zahlungsweg|Zahlungskonto/i,'iban'],[/Steuernummer|USt-IdNr\. des Betriebs/i,'taxNumber'],[/UID des österreichischen Betriebs|MWST-\/UID-Nummer des schweizerischen Betriebs/i,'vatId']];
+    const customer=[[/Kundentyp/i,'custCustomerType'],[/Kundenname|Kundenname\/Firma/i,'custName'],[/Kundenadresse/i,'custStreet'],[/Leitweg|Käuferreferenz|BuyerReference|BT-10/i,'custBuyerReference'],[/elektronische Adresse des Kunden|E-Rechnungsadresse/i,'custEInvoiceAddress'],[/Lieferantennummer/i,'custSupplierNumber'],[/UID des Kunden|USt-ID.*Kunden|USt-Id.*Kunden/i,'custVatId']];
+    const settings=[[/Firmenname/i,'companyName'],[/Firmenadresse/i,'companyStreet'],[/Firmen-E-Mail/i,'companyEmail'],[/IBAN|Zahlungsweg|Zahlungskonto/i,'iban'],[/Steuernummer|USt-IdNr\. des Betriebs/i,'taxNumber'],[/UID des österreichischen Betriebs|MWST-\/UID-Nummer des schweizerischen Betriebs/i,'vatId']];
     const invoice=[[/Rechnungsnummer/i,'invoiceNumber'],[/Rechnungsdatum/i,'invoiceDate'],[/Leistungsdatum|Lieferdatum/i,'invoiceServiceDate'],[/Fälligkeitsdatum|Fälligkeit/i,'invoiceDueDate'],[/Betreff/i,'invoiceSubject'],[/Rechnungsposition|Position .*Menge|Einheit fehlt/i,'invoiceLines'],[/Steuersatz|Steuerbehandlung/i,'invoiceTaxTreatment']];
     for(const [rx,id] of customer)if(rx.test(m))return{scope:'customer',id,message:m};
     for(const [rx,id] of settings)if(rx.test(m))return{scope:'settings',id,message:m};
