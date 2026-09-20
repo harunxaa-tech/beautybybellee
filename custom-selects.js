@@ -167,18 +167,18 @@
 (function installAPInvoiceRecovery113129(){
   'use strict';
 
-  const VERSION='11.31.29';
+  const RECOVERY_VERSION='11.31.29';
+  const BUILD_VERSION=globalThis.AP_BUILD_VERSION||'11.31.30';
   const FLAG='__AP_INVOICE_RECOVERY_11_31_29__';
   if(globalThis[FLAG])return;
   globalThis[FLAG]=true;
-  globalThis.AP_RELEASE_VERSION=VERSION;
 
   const companyRoleCanFinalize=membership=>['owner','office'].includes(String(membership?.role||''));
   let attachedCloud=null;
 
   function stampRelease(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
-      if(el.textContent!==VERSION)el.textContent=VERSION;
+      if(el.textContent!==BUILD_VERSION)el.textContent=BUILD_VERSION;
     });
   }
 
@@ -323,7 +323,7 @@
     wrapped.__apRecovery113129=true;
     wrapped.__apOriginal=originalAttach;
     sync.attach=wrapped;
-    sync.version=VERSION;
+    sync.version=BUILD_VERSION;
     return true;
   }
 
@@ -371,15 +371,14 @@
     wrapManualSync();
     stampRelease();
 
-    // cloud-config still stamps its base-runtime number during startup. Keep the
-    // visible release badge on the actual patch release without changing the
-    // internal v11.31.28 compliance diagnostic contract.
+    // Visible build version comes from the central cloud-config source.
     [250,900,2200].forEach(ms=>setTimeout(stampRelease,ms));
   }
 
   install();
   globalThis.APInvoiceRecovery113129=Object.freeze({
-    version:VERSION,
+    version:RECOVERY_VERSION,
+    buildVersion:BUILD_VERSION,
     prepareFinalization,
     recoverPrepared,
     installRpcPrepareGuard

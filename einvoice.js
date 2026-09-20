@@ -5,7 +5,7 @@ const XMLNS={
   cac:'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
   cbc:'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
 };
-const XRECHNUNG='urn:cen.eu:en16931:2017#compliant#urn:xoeinkauf.de:kosit:xrechnung_3.0';
+const XRECHNUNG='urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0';
 const PEPPOL='urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0';
 const PROFILE='urn:fdc:peppol.eu:2017:poacc:billing:01:1.0';
 const LEGAL_PROFILE_VERSION='DE-AT-CH-2026-09';

@@ -1,44 +1,38 @@
-AngebotsPilot v11.31.28 – Stabilitäts-/Aufräumrelease
+AngebotsPilot v11.31.30 – ROOT-Update
+====================================
 
-Im Repository-ROOT ersetzen/hochladen:
+UPLOAD
+- ZIP entpacken.
+- Alle enthaltenen Dateien in das GitHub-Root von harunxaa-tech/beautybybellee / main hochladen.
+- Gleichnamige Dateien ersetzen.
+- Keine anderen Dateien löschen.
+- Danach Safari vollständig schließen, erneut öffnen und AngebotsPilot etwa 10 Sekunden laden lassen.
+
+ENTHALTENE ROOT-DATEIEN
+- index.html
+- script.js
+- einvoice.js
 - cloud-config.js
-- cloud-sync.js
+- custom-selects.js
 - service-worker.js
-- compliance-v113126.js
-- manifest.json
 
-Bereinigt/gehärtet:
-- manueller Cloud-Sync wartet jetzt sicher auf laufende/queued Synchronisierungen
-  (kein Pull mehr, bevor der lokale Push wirklich abgeschlossen ist)
-- Compliance-Loader leitet Dateinamen zentral aus der aktuellen Quelle ab; keine
-  veraltete Versions-Regex mehr, die neue KoSIT-Fixes blockieren kann
-- Service-Worker-Cache auf einen konsistenten v11.31.28-Stand gebracht und
-  Offline-Fallback query-unabhängig gemacht
-- Runtime-Diagnose AP Runtime Diagnostics ergänzt
-- validierter KoSIT/XRechnung-Pfad aus v11.31.25 unverändert erhalten
+ÄNDERUNGEN
+- App-/Asset-Versionen auf 11.31.30 vereinheitlicht; alte statische 11.30.1-Referenzen im index entfernt.
+- cloud-config.js ist zentrale Build-Versionsquelle.
+- App-Build 11.31.30 und bewährte Compliance-Runtime 11.31.28 sauber getrennt.
+- Basis-XRechnung-Identifier in einvoice.js von xoeinkauf.de auf xeinkauf.de korrigiert.
+- Bewährte Compliance-/KoSIT-Schichten selbst nicht umgebaut.
+- Korrektur-/Storno-UX eindeutiger: "Korrektur zu RE-…" / "Storno zu RE-…" sowie passende Ausstellen-Buttons.
+- v11.31.29 Recovery-Hardening bleibt aktiv.
+- Service-Worker Cache auf angebotspilot-v11-31-30 erhöht.
 
-Backend wurde separat ohne Geschäftsdatenänderung bereinigt:
-- alle fehlenden Fremdschlüssel-Indizes ergänzt
-- doppelten Rechnungs-Index entfernt
-- fehlerhafte Mandantenprüfung bei Baustellen-Zuweisungen korrigiert
-- RLS-Policies auf performante auth()-Auswertung umgestellt
-- doppelte permissive Team-Einladungs-UPDATE-Policy zusammengeführt
-- Datenintegrität erneut geprüft: keine doppelten Rechnungsnummern, keine
-  ausgestellten Rechnungen ohne Positionen, keine verwaisten Nummernreservierungen
-  und keine mandantenfremden Baustellen-Zuweisungen
+QA
+- JavaScript-Syntax geprüft.
+- Keine doppelten HTML-IDs.
+- Alle versionierten index-/Service-Worker-Referenzen auf 11.31.30.
+- Final erzeugte XRechnung/CreditNote vor/nach Basis-Identifier-Cleanup byte-identisch.
+- Compliance-Runtime bleibt 11.31.28; CreditNote BG-16/PaymentMeans weiterhin vorhanden.
+- RE-2026-0012 Korrekturpfad serverseitig mit Prepare -> Recovery -> Finalisierung -> Reservierungsverbrauch in Transaktion getestet und vollständig ROLLBACK.
+- Produktionsintegrität danach: keine doppelten Rechnungsnummern, keine kaputten Korrektur-/Storno-Beziehungen, keine finalisierten Belege ohne Position/Snapshot, keine Reservierungen auf finalisierten Belegen, XRechnungs-Archiv/KoSIT-Verknüpfungen vollständig.
 
-Zusätzlich: veraltete Versions-/Stripe-Testbeschreibung aus dem PWA-Manifest entfernt.
-
-Zusätzlich im eigentlichen Sync-Kern behoben:
-- der alte manual()-Pfad setzt syncing nicht mehr vor pushSnapshot(); der Fix steckt jetzt
-  direkt in cloud-sync.js und nicht nur in einer Runtime-Umleitung
-- CloudSync meldet die aktuelle Kernversion 11.31.28 für Diagnose/QA
-
-
-v11.31.28 zusätzlich:
-- XRechnung-Storno/Gutschrift erhält BG-16 Zahlungsanweisung (KoSIT BR-DE-1).
-- KoSIT-Validierung läuft vor der unveränderbaren Archivierung; abgelehnte XML wird nicht archiviert.
-- Lokaler Vorabcheck erkennt fehlende Zahlungsanweisung/IBAN vor dem Serverlauf.
-
-
-v11.31.28: Rechnungsfinalisierung wird serverseitig atomar committed. Ein Storno kann die Originalrechnung nicht mehr teilweise markieren, während der Stornobeleg selbst noch Entwurf ist.
+Keine Supabase-Migration für v11.31.30 erforderlich.

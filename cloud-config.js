@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.28 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.31.30 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,12 +12,13 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.31.28';
-  const DATA_SAFETY_SRC='./data-safety.js?v=11.30.6';
-  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.0';
-  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.08';
-  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.31.28';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_28__';
+  const VERSION='11.31.30';
+  const COMPLIANCE_RUNTIME_VERSION='11.31.28';
+  const DATA_SAFETY_SRC='./data-safety.js?v=11.31.30';
+  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.31.30';
+  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.31.30';
+  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.31.30';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_31_30__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -35,7 +36,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-31-28',
+    cacheTag:'angebotspilot-v11-31-30',
     stamp:stampBuild
   });
 
@@ -1964,8 +1965,8 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   }
 
   function claimCentralBuildVersion(){
-    // script.js v11.30.1 enthält noch eine alte interne Stamp-Funktion.
-    // Für die laufende App wird die zentrale Runtime-Quelle verbindlich verwendet.
+    // v11.31.30: cloud-config ist die einzige Build-Versionsquelle.
+    // script.js übernimmt AP_BUILD_VERSION und die sichtbare Anzeige bleibt zentral.
     if(typeof globalThis.syncVisibleBuildVersion==='function'){
       globalThis.syncVisibleBuildVersion=stampBuild;
     }
@@ -2314,7 +2315,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
     // Dadurch kann ein Versionswechsel nicht mehr an einer vergessenen alten
     // Regex/Dateinummer hängen bleiben.
     const runtime=globalThis.APCompliance?.runtimeVersion||'';
-    if(runtime===VERSION)return;
+    if(runtime===COMPLIANCE_RUNTIME_VERSION)return;
 
     const fileOf=src=>String(src||'').split('/').pop().split('?')[0];
     const findScript=src=>{
