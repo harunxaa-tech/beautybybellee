@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-31-25';
+const CACHE='angebotspilot-v11-31-26';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.30.1','./subscription.css?v=11.30.1','./cloud-config.js?v=11.31.25',
-  './country-config.js?v=11.30.1','./data-repository.js?v=11.30.1','./einvoice.js?v=11.30.1','./compliance-v1131.js?v=11.31.0','./compliance-v113108.js?v=11.31.08','./compliance-v113125.js?v=11.31.25','./script.js?v=11.30.1','./customer-import.js?v=11.30.1','./cloud-files.js?v=11.30.1','./cloud-sync.js?v=11.31.07',
-  './team.js?v=11.30.1','./assignments.js?v=11.30.1','./time-tracking.js?v=11.30.1','./notifications.js?v=11.30.1','./mail-hub.js?v=11.30.1','./email-assistant.js?v=11.30.1','./acceptance.js?v=11.30.1','./custom-selects.js?v=11.30.1',
-  './security.js?v=11.30.1','./onboarding-setup.js?v=11.30.1','./cloud-auth.js?v=11.30.1','./subscription.js?v=11.30.6','./data-safety.js?v=11.30.6','./manifest.json?v=11.30.1','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.31.26','./subscription.css?v=11.31.26','./cloud-config.js?v=11.31.26',
+  './country-config.js?v=11.31.26','./data-repository.js?v=11.31.26','./einvoice.js?v=11.31.26','./compliance-v1131.js?v=11.31.26','./compliance-v113108.js?v=11.31.26','./compliance-v113126.js?v=11.31.26','./script.js?v=11.31.26','./customer-import.js?v=11.31.26','./cloud-files.js?v=11.31.26','./cloud-sync.js?v=11.31.26',
+  './team.js?v=11.31.26','./assignments.js?v=11.31.26','./time-tracking.js?v=11.31.26','./notifications.js?v=11.31.26','./mail-hub.js?v=11.31.26','./email-assistant.js?v=11.31.26','./acceptance.js?v=11.31.26','./custom-selects.js?v=11.31.26',
+  './security.js?v=11.31.26','./onboarding-setup.js?v=11.31.26','./cloud-auth.js?v=11.31.26','./subscription.js?v=11.31.26','./data-safety.js?v=11.31.26','./manifest.json?v=11.31.26','./icon-192.svg','./icon-512.svg'
 ];
 
 self.addEventListener('install',event=>{
@@ -56,7 +56,7 @@ self.addEventListener('fetch',event=>{
         }
         return response;
       })
-      .catch(()=>caches.match(event.request))
+      .catch(()=>caches.match(event.request,{ignoreSearch:true}))
   );
 });
 

@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.07 – Kern-Geschäftsdaten Cloud-Synchronisierung */
+/* AngebotsPilot v11.31.26 – Kern-Geschäftsdaten Cloud-Synchronisierung */
 (function(){
   'use strict';
   const KEY='digitaler_handwerker_v3';
@@ -455,7 +455,30 @@
     try{return await attachPromise}finally{attachPromise=null}
   }
   function detach(){try{globalThis.CloudFiles?.detach?.()}catch(e){}client=session=company=membership=null;initializedCompanyId='';globalThis.AppRepository?.setCloudAdapter(null);renderStatus()}
-  async function manual(){if(!client||!company)throw new Error('Nicht mit der Cloud verbunden');showEntrySync(true);syncing=true;emit();try{await pushSnapshot();await pullCloud();lastSuccessAt=new Date().toISOString();lastError=''}finally{syncing=false;emit();setTimeout(()=>{showEntrySync(false);globalThis.requireCloudEntry?.()},450)}}
-  globalThis.CloudSync={attach,detach,pushSnapshot,pullCloud,manual,state,renderStatus};
+  async function waitForIdle(timeoutMs=15000){
+    const started=Date.now();
+    while(syncing){
+      if(Date.now()-started>timeoutMs)throw new Error('Cloud-Synchronisierung läuft noch. Bitte kurz erneut versuchen.');
+      await new Promise(resolve=>setTimeout(resolve,100));
+    }
+  }
+  async function manual(){
+    if(!client||!company)throw new Error('Nicht mit der Cloud verbunden');
+    showEntrySync(true);
+    try{
+      // Niemals pullen, solange ein älterer Push noch läuft/queued ist.
+      // So können lokale Änderungen nicht mehr durch einen unmittelbar folgenden Pull
+      // mit einem älteren Cloud-Stand überschrieben werden.
+      await waitForIdle();
+      await pushSnapshot();
+      await waitForIdle();
+      syncing=true;emit();
+      await pullCloud();
+      lastSuccessAt=new Date().toISOString();lastError='';
+    }finally{
+      syncing=false;emit();setTimeout(()=>{showEntrySync(false);globalThis.requireCloudEntry?.()},450)
+    }
+  }
+  globalThis.CloudSync={version:'11.31.26',attach,detach,pushSnapshot,pullCloud,manual,state,renderStatus};
   globalThis.manualCloudSync=async()=>{try{await manual();globalThis.toast?.('☁️ Synchronisiert')}catch(e){console.error(e);globalThis.toast?.('Cloud-Sync fehlgeschlagen')}};
 })();

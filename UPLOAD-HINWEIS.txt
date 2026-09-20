@@ -1,12 +1,35 @@
-AngebotsPilot v11.31.25 – ROOT Upload
+AngebotsPilot v11.31.26 – Stabilitäts-/Aufräumrelease
 
 Im Repository-ROOT ersetzen/hochladen:
 - cloud-config.js
+- cloud-sync.js
 - service-worker.js
-- compliance-v113125.js
+- compliance-v113126.js
+- manifest.json
 
-Fix:
-- Upgrade aus 11.31.23/11.31.24 funktioniert jetzt wirklich.
-- Eine bereits falsch platzierte BT-29 PartyIdentification wird entfernt und in
-  korrekter UBL-Reihenfolge NACH EndpointID wieder eingesetzt.
-- Bereits geladene 11.31.25-Schicht kann vom Runtime-Loader erneut installiert werden.
+Bereinigt/gehärtet:
+- manueller Cloud-Sync wartet jetzt sicher auf laufende/queued Synchronisierungen
+  (kein Pull mehr, bevor der lokale Push wirklich abgeschlossen ist)
+- Compliance-Loader leitet Dateinamen zentral aus der aktuellen Quelle ab; keine
+  veraltete Versions-Regex mehr, die neue KoSIT-Fixes blockieren kann
+- Service-Worker-Cache auf einen konsistenten v11.31.26-Stand gebracht und
+  Offline-Fallback query-unabhängig gemacht
+- Runtime-Diagnose AP Runtime Diagnostics ergänzt
+- validierter KoSIT/XRechnung-Pfad aus v11.31.25 unverändert erhalten
+
+Backend wurde separat ohne Geschäftsdatenänderung bereinigt:
+- alle fehlenden Fremdschlüssel-Indizes ergänzt
+- doppelten Rechnungs-Index entfernt
+- fehlerhafte Mandantenprüfung bei Baustellen-Zuweisungen korrigiert
+- RLS-Policies auf performante auth()-Auswertung umgestellt
+- doppelte permissive Team-Einladungs-UPDATE-Policy zusammengeführt
+- Datenintegrität erneut geprüft: keine doppelten Rechnungsnummern, keine
+  ausgestellten Rechnungen ohne Positionen, keine verwaisten Nummernreservierungen
+  und keine mandantenfremden Baustellen-Zuweisungen
+
+Zusätzlich: veraltete Versions-/Stripe-Testbeschreibung aus dem PWA-Manifest entfernt.
+
+Zusätzlich im eigentlichen Sync-Kern behoben:
+- der alte manual()-Pfad setzt syncing nicht mehr vor pushSnapshot(); der Fix steckt jetzt
+  direkt in cloud-sync.js und nicht nur in einer Runtime-Umleitung
+- CloudSync meldet die aktuelle Kernversion 11.31.26 für Diagnose/QA
