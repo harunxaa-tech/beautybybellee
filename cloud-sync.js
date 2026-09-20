@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.31.26 – Kern-Geschäftsdaten Cloud-Synchronisierung */
+/* AngebotsPilot v11.31.28 – Kern-Geschäftsdaten Cloud-Synchronisierung */
 (function(){
   'use strict';
   const KEY='digitaler_handwerker_v3';
@@ -253,6 +253,11 @@
   async function pushSnapshot(payload){
     if(!client||!company||!session)return;
 
+    // v11.31.28: Während einer rechtlichen Rechnungsfinalisierung darf der normale
+    // Voll-Sync keinen halbfertigen Zustand schreiben. Der atomare RPC schließt den
+    // Beleg (und bei Storno auch die Originalrechnung) zuerst in einer DB-Transaktion ab.
+    if(globalThis.__AP_INVOICE_FINALIZATION_LOCK__?.active){queued=true;return{deferred:true,reason:'atomic-invoice-finalization'}}
+
     const active=localData();
     const localCompany=active?.meta?.cloudCompanyId||'';
     const localUser=active?.meta?.authUserId||'';
@@ -401,6 +406,11 @@
     const d=localData();
     showEntrySync(!d.meta?.cloudInitialSyncDone);emit();backupLocalOnce();
     try{
+      const pendingFinalization=(d.invoices||[]).some(inv=>inv?.finalizationCloudPending&&inv?.finalizedAt);
+      if(pendingFinalization&&typeof globalThis.APAtomicInvoiceRecovery==='function'){
+        syncing=true;emit();
+        try{await globalThis.APAtomicInvoiceRecovery()}finally{syncing=false;emit()}
+      }
       // Bei jedem App-Start wird die Cloud als gemeinsamer Team-Stand geladen.
       // So sieht der Chef auch Änderungen, die Mitarbeiter auf anderen Geräten gemacht haben.
       if(d.meta?.cloudInitialSyncDone&&d.meta?.cloudCompanyId===company.id){
