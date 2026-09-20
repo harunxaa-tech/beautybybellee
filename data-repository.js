@@ -1,6 +1,6 @@
-/* AngebotsPilot v11.3 – zentrale Datenspeicher-Schicht
-   Heute: lokaler Browser-Speicher.
-   Später: derselbe App-Code kann zusätzlich mit einem Cloud-Adapter synchronisieren. */
+/* AngebotsPilot v11.32.3 – zentrale Datenspeicher-Schicht
+   Lokaler Browser-Speicher + kontrollierter Cloud-Adapter.
+   v11.32.3 verhindert unnötige Cloud-Vollschreibvorgänge ohne fachliche Datenänderung. */
 (function(){
   'use strict';
   const DEFAULT_KEY='digitaler_handwerker_v3';
@@ -23,11 +23,25 @@
       return id||makeId();
     }catch(e){return makeId()}
   }
-  function comparable(entity){
+  function comparableValue(entity){
     if(!entity||typeof entity!=='object')return entity;
     const copy=structuredClone(entity);
-    delete copy.updatedAt;delete copy.syncState;delete copy.lastSyncedAt;
-    return JSON.stringify(copy);
+    // Reine Repository-/Sync-Metadaten sind keine fachliche Änderung.
+    delete copy.updatedAt;
+    delete copy.syncState;
+    delete copy.lastSyncedAt;
+    delete copy.companyId;
+    delete copy.createdBy;
+    delete copy.createdAt;
+    return copy;
+  }
+  function comparable(entity){return JSON.stringify(comparableValue(entity))}
+  function cloudComparable(data){
+    const snapshot={settings:structuredClone(data?.settings||{})};
+    ENTITY_COLLECTIONS.forEach(name=>{
+      snapshot[name]=(Array.isArray(data?.[name])?data[name]:[]).map(comparableValue);
+    });
+    return JSON.stringify(snapshot);
   }
   function ensureUser(data,ctx){
     data.users=Array.isArray(data.users)?data.users:[];
@@ -105,9 +119,11 @@
   }
   function save(data,key=DEFAULT_KEY){
     const previous=loadRaw(key);
+    const beforeCloud=cloudComparable(previous);
     prepare(data,previous);
+    const businessChanged=beforeCloud!==cloudComparable(data);
     writeLocal(key,data);
-    if(cloudAdapter?.pushSnapshot){
+    if(cloudAdapter?.pushSnapshot&&businessChanged){
       Promise.resolve(cloudAdapter.pushSnapshot(toCloudPayload(data)))
         .then(()=>{lastSyncError='';data.meta.lastCloudPushAt=now();data.meta.lastSyncError='';writeLocal(key,data)})
         .catch(err=>{lastSyncError=String(err?.message||err||'Cloud-Sync fehlgeschlagen');data.meta.lastSyncError=lastSyncError;writeLocal(key,data)});

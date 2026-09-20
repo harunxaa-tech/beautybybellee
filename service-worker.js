@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-32-2';
+const CACHE='angebotspilot-v11-32-3';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.32.2','./subscription.css?v=11.32.2','./cloud-config.js?v=11.32.2',
-  './country-config.js?v=11.32.2','./data-repository.js?v=11.32.2','./einvoice.js?v=11.32.2','./compliance-v1131.js?v=11.32.2','./compliance-v113108.js?v=11.32.2','./compliance-v113128.js?v=11.32.2','./compliance-v113131.js?v=11.32.2','./script.js?v=11.32.2','./customer-import.js?v=11.32.2','./cloud-files.js?v=11.32.2','./cloud-sync.js?v=11.32.2',
-  './team.js?v=11.32.2','./assignments.js?v=11.32.2','./time-tracking.js?v=11.32.2','./notifications.js?v=11.32.2','./mail-hub.js?v=11.32.2','./email-assistant.js?v=11.32.2','./acceptance.js?v=11.32.2','./privacy-ops.js?v=11.32.2','./account-deletion.js?v=11.32.2','./account-deletion.html','./custom-selects.js?v=11.32.2',
-  './security.js?v=11.32.2','./onboarding-setup.js?v=11.32.2','./cloud-auth.js?v=11.32.2','./subscription.js?v=11.32.2','./data-safety.js?v=11.32.2','./manifest.json?v=11.32.2','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.32.3','./subscription.css?v=11.32.3','./cloud-config.js?v=11.32.3',
+  './country-config.js?v=11.32.3','./data-repository.js?v=11.32.3','./einvoice.js?v=11.32.3','./compliance-v1131.js?v=11.32.3','./compliance-v113108.js?v=11.32.3','./compliance-v113128.js?v=11.32.3','./compliance-v113131.js?v=11.32.3','./script.js?v=11.32.3','./customer-import.js?v=11.32.3','./cloud-files.js?v=11.32.3','./cloud-sync.js?v=11.32.3',
+  './team.js?v=11.32.3','./assignments.js?v=11.32.3','./time-tracking.js?v=11.32.3','./notifications.js?v=11.32.3','./mail-hub.js?v=11.32.3','./email-assistant.js?v=11.32.3','./acceptance.js?v=11.32.3','./privacy-ops.js?v=11.32.3','./account-deletion.js?v=11.32.3','./account-deletion.html','./custom-selects.js?v=11.32.3',
+  './security.js?v=11.32.3','./onboarding-setup.js?v=11.32.3','./cloud-auth.js?v=11.32.3','./subscription.js?v=11.32.3','./data-safety.js?v=11.32.3','./manifest.json?v=11.32.3','./icon-192.svg','./icon-512.svg'
 ];
 
 self.addEventListener('install',event=>{
