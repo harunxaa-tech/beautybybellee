@@ -1,6 +1,6 @@
-/* AngebotsPilot v11.32.3 – zentrale Datenspeicher-Schicht
+/* AngebotsPilot v11.32.4 – zentrale Datenspeicher-Schicht
    Lokaler Browser-Speicher + kontrollierter Cloud-Adapter.
-   v11.32.3 verhindert unnötige Cloud-Vollschreibvorgänge ohne fachliche Datenänderung. */
+   v11.32.4 verhindert unnötige Cloud-Vollschreibvorgänge ohne fachliche Datenänderung. */
 (function(){
   'use strict';
   const DEFAULT_KEY='digitaler_handwerker_v3';
