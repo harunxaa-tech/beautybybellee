@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.32.5 – Datenschutz-Anfragen, Subprozessoren & Aufbewahrung
+/* AngebotsPilot v11.32.6 – Datenschutz-Anfragen, Subprozessoren & Aufbewahrung
    Technische Unterstützung; keine automatische rechtliche Einzelfallentscheidung. */
 (function installPrivacyOps(){
   'use strict';
 
-  const VERSION='11.32.5';
+  const VERSION='11.32.6';
   const FLAG='__AP_PRIVACY_OPS_11_32_1__';
   if(globalThis[FLAG])return;
   globalThis[FLAG]=true;

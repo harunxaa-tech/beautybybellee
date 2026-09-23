@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
 <script>try{const saved=localStorage.getItem('dh_theme');const light=saved?saved==='light':window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches;document.documentElement.classList.toggle('light',!!light)}catch(e){}</script>
 <style id="v11322UxFixes">
-/* v11.32.5 – gezielte Mobile-/Angebots-UX-Fixes */
+/* v11.32.6 – gezielte Mobile-/Angebots-UX-Fixes */
 #offerDate{width:100%;min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none}
 .offerPlanningRow,.offerPlanningRow>.field,.offerDetailField{min-width:0}
 body.offerEditing .bottomNav{display:none!important}
@@ -30,9 +30,9 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
 .offerAcceptanceBlock{margin-top:22px;padding-top:16px;border-top:1px solid rgba(127,127,127,.25)}.offerAcceptanceBlock>p{margin:5px 0;line-height:1.45}.offerSignatureGrid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px}.offerSignatureLine{border-top:1px solid currentColor;padding-top:6px;font-size:.7rem;color:#666}
 @media print{.paperTable tr,.paperTable tbody tr,.proSummary,.offerAcceptanceBlock,.offerSignatureGrid,.proTotals{break-inside:avoid!important;page-break-inside:avoid!important}.paperTable{break-inside:auto!important;page-break-inside:auto!important}.offerPaper{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 </style>
-<link rel="stylesheet" href="style.css?v=11.32.5">
-<link rel="stylesheet" href="subscription.css?v=11.32.5">
-<link rel="manifest" href="manifest.json?v=11.32.5">
+<link rel="stylesheet" href="style.css?v=11.32.6">
+<link rel="stylesheet" href="subscription.css?v=11.32.6">
+<link rel="manifest" href="manifest.json?v=11.32.6">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -215,7 +215,7 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.32.5</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.32.6</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -286,7 +286,7 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.32.5</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.32.6</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -1449,29 +1449,29 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
 
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.32.5" defer></script>
-<script src="country-config.js?v=11.32.5" defer></script>
-<script src="data-repository.js?v=11.32.5" defer></script>
-<script src="einvoice.js?v=11.32.5" defer></script>
-<script src="script.js?v=11.32.5" defer></script>
-<script src="customer-import.js?v=11.32.5" defer></script>
-<script src="cloud-files.js?v=11.32.5" defer></script>
-<script src="cloud-sync.js?v=11.32.5" defer></script>
-<script src="team.js?v=11.32.5" defer></script>
-<script src="assignments.js?v=11.32.5" defer></script>
-<script src="time-tracking.js?v=11.32.5" defer></script>
-<script src="notifications.js?v=11.32.5" defer></script>
-<script src="mail-hub.js?v=11.32.5" defer></script>
-<script src="email-assistant.js?v=11.32.5" defer></script>
-<script src="acceptance.js?v=11.32.5" defer></script>
-<script src="privacy-ops.js?v=11.32.5" defer></script>
-<script src="account-deletion.js?v=11.32.5" defer></script>
-<script src="custom-selects.js?v=11.32.5" defer></script>
-<script src="security.js?v=11.32.5" defer></script>
-<script src="onboarding-setup.js?v=11.32.5" defer></script>
-<script src="cloud-auth.js?v=11.32.5" defer></script>
-<script src="subscription.js?v=11.32.5" defer></script>
-<script src="store-billing.js?v=11.32.5" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.32.5").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.32.6" defer></script>
+<script src="country-config.js?v=11.32.6" defer></script>
+<script src="data-repository.js?v=11.32.6" defer></script>
+<script src="einvoice.js?v=11.32.6" defer></script>
+<script src="script.js?v=11.32.6" defer></script>
+<script src="customer-import.js?v=11.32.6" defer></script>
+<script src="cloud-files.js?v=11.32.6" defer></script>
+<script src="cloud-sync.js?v=11.32.6" defer></script>
+<script src="team.js?v=11.32.6" defer></script>
+<script src="assignments.js?v=11.32.6" defer></script>
+<script src="time-tracking.js?v=11.32.6" defer></script>
+<script src="notifications.js?v=11.32.6" defer></script>
+<script src="mail-hub.js?v=11.32.6" defer></script>
+<script src="email-assistant.js?v=11.32.6" defer></script>
+<script src="acceptance.js?v=11.32.6" defer></script>
+<script src="privacy-ops.js?v=11.32.6" defer></script>
+<script src="account-deletion.js?v=11.32.6" defer></script>
+<script src="custom-selects.js?v=11.32.6" defer></script>
+<script src="security.js?v=11.32.6" defer></script>
+<script src="onboarding-setup.js?v=11.32.6" defer></script>
+<script src="cloud-auth.js?v=11.32.6" defer></script>
+<script src="subscription.js?v=11.32.6" defer></script>
+<script src="store-billing.js?v=11.32.6" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.32.6").catch(()=>{}));}</script>
 </body>
 </html>

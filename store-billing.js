@@ -1,11 +1,11 @@
-/* AngebotsPilot v11.32.5 – Store-Billing channel guard / provider abstraction
+/* AngebotsPilot v11.32.6 – Store-Billing channel guard / provider abstraction
    Web stays on Stripe. Native iOS/Android never opens Stripe checkout or portal.
    Actual App Store / Play purchases are enabled only after a verified native adapter
    and configured product ids exist. */
 (function(){
   'use strict';
 
-  const BUILD='11.32.5';
+  const BUILD='11.32.6';
   const PLAN_ORDER=['solo','team','pro'];
   const PLAN_NAMES={solo:'Solo',team:'Team',pro:'Pro'};
   let adapter=null;
