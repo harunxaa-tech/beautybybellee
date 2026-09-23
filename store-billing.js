@@ -1,11 +1,11 @@
-/* AngebotsPilot v11.32.7 – Store-Billing channel guard / provider abstraction
+/* AngebotsPilot v11.32.8 – Store-Billing channel guard / provider abstraction
    Web stays on Stripe. Native iOS/Android never opens Stripe checkout or portal.
    Actual App Store / Play purchases are enabled only after a verified native adapter
    and configured product ids exist. */
 (function(){
   'use strict';
 
-  const BUILD='11.32.7';
+  const BUILD='11.32.8';
   const PLAN_ORDER=['solo','team','pro'];
   const PLAN_NAMES={solo:'Solo',team:'Team',pro:'Pro'};
   let adapter=null;
@@ -215,7 +215,7 @@
     let host=q('storeBillingManagementCard');
     if(!host){host=document.createElement('div');host.id='storeBillingManagementCard';host.className='card storeBillingCard';planGrid.insertAdjacentElement('afterend',host)}
     const a=access(),active=hasActiveProviderSubscription(a),same=sameNativeProvider(a);
-    const period=a.current_period_end?new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(a.current_period_end)):'–';
+    const period=a.current_period_end?new Intl.DateTimeFormat(globalThis.API18n?.locale?.()||'de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(a.current_period_end)):'–';
     const label=providerLabel(a.billing_provider);
     const html=`<div class="storeBillingHead"><div><span class="subscriptionEyebrow">STORE & ZUGANG</span><h3>${active?`${PLAN_NAMES[a.plan]||'Abo'} aktiv`:'Abo über den Store'}</h3><p>${active?externalProviderMessage(a):`Neue Käufe in dieser App werden ausschließlich über ${providerLabel()} abgewickelt.`}</p></div><span class="storeBillingBadge">${active?label:providerLabel()}</span></div>${active&&a.current_period_end?`<div class="storeBillingNotice">${a.cancel_at_period_end?'Nutzbar bis':'Aktuelle Periode bis'} <b>${period}</b></div>`:''}<div class="storeBillingActions">${active&&same?'<button class="btn primary" type="button" id="storeBillingManageButton">Abo verwalten</button>':''}<button class="btn" type="button" id="storeBillingRestoreButton" ${catalog.configured&&verificationReady()&&adapterReady()?'':'disabled'}>Käufe wiederherstellen</button></div>${(!catalog.configured||!verificationReady())?`<div class="storeBillingNotice">${nativeUnavailableText()} Bestehende Web-Abos funktionieren weiterhin.</div>`:''}`;
     if(host.innerHTML!==html)host.innerHTML=html;
@@ -237,7 +237,7 @@
     hideStripeBillingForm();
     const status=q('subscriptionStatusCard')?.querySelector('.subscriptionStatusHead p');
     if(status&&hasActiveProviderSubscription(a)&&a.billing_provider!=='test'){
-      const extra=a.current_period_end?` · bis ${new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(a.current_period_end))}`:'';
+      const extra=a.current_period_end?` · bis ${new Intl.DateTimeFormat(globalThis.API18n?.locale?.()||'de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(a.current_period_end))}`:'';
       const label=`${a.billing_provider==='stripe'?'Web-Abo':providerLabel(a.billing_provider)} aktiv${extra}`;if(status.textContent!==label)status.textContent=label;
     }
     const legal=q('subscriptionLegalCard');

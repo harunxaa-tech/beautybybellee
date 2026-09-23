@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.7 – Angebots-Sprachmemos & KI-Diktat
+/* AngebotsPilot v11.32.8 – Angebots-Sprachmemos & KI-Diktat
    Voice notes are private evidence/working notes. AI suggestions never modify or save
    an offer automatically: every suggested field/position requires an explicit user action. */
 (function(){
@@ -100,7 +100,7 @@
     if(error)throw error;state.notes=data||[];await render();
   }
 
-  function fmtDate(v){try{return new Date(v).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return''}}
+  function fmtDate(v){try{return new Date(v).toLocaleString(globalThis.API18n?.locale?.()||'de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return''}}
   async function render(){
     const box=q('offerVoiceNotes');if(!box)return;
     if(!state.notes.length){box.innerHTML='<div class="offerVoiceEmpty"><span>🎙️</span><b>Noch keine Sprachnotiz</b><small>Notiere Gedanken zum Angebot per Sprache. Das Audio bleibt intern.</small></div>';return}

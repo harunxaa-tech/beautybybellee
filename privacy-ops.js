@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.32.7 – Datenschutz-Anfragen, Subprozessoren & Aufbewahrung
+/* AngebotsPilot v11.32.8 – Datenschutz-Anfragen, Subprozessoren & Aufbewahrung
    Technische Unterstützung; keine automatische rechtliche Einzelfallentscheidung. */
 (function installPrivacyOps(){
   'use strict';
 
-  const VERSION='11.32.7';
+  const VERSION='11.32.8';
   const FLAG='__AP_PRIVACY_OPS_11_32_1__';
   if(globalThis[FLAG])return;
   globalThis[FLAG]=true;
@@ -43,7 +43,7 @@
   const notify=(text,tone='info')=>{try{globalThis.toast?.(text,tone)}catch(e){console.log(text)}};
   const country=()=>String(globalThis.data?.settings?.countryCode||ctx()?.company?.country_code||'DE').toUpperCase();
   const safeFile=v=>String(v||'kunde').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,80)||'kunde';
-  const isoDateTime=v=>{try{return new Date(v).toLocaleString('de-DE')}catch(e){return String(v||'')}};
+  const isoDateTime=v=>{try{return new Date(v).toLocaleString(globalThis.API18n?.locale?.()||'de-DE')}catch(e){return String(v||'')}};
 
   function ensureStyles(){
     if(q('privacyOpsStyles'))return;
@@ -177,7 +177,7 @@
       const retention=r.request_type==='erasure'||r.legal_hold;
       return `<div class="privacyOpsRow">
         <div class="privacyOpsRowTop"><div><b>${esc(r.subject_name_snapshot||'Betroffene Person')}</b><div class="privacyOpsBadges"><span class="privacyOpsBadge">${esc(TYPES[r.request_type]||r.request_type)}</span><span class="privacyOpsBadge">${esc(STATUS[r.status]||r.status)}</span>${r.legal_hold?'<span class="privacyOpsBadge">Aufbewahrungsvorbehalt</span>':''}</div></div><small>${esc(isoDateTime(r.requested_at))}</small></div>
-        <p>${r.target_at?`Zieldatum: ${esc(new Date(r.target_at).toLocaleDateString('de-DE'))} · `:''}${retention?'Gesetzliche Aufbewahrung wird vor Löschung geprüft.':'Keine automatische Löschung.'}${r.resolution_note?` · Notiz: ${esc(r.resolution_note)}`:''}</p>
+        <p>${r.target_at?`Zieldatum: ${esc(new Date(r.target_at).toLocaleDateString(globalThis.API18n?.locale?.()||'de-DE'))} · `:''}${retention?'Gesetzliche Aufbewahrung wird vor Löschung geprüft.':'Keine automatische Löschung.'}${r.resolution_note?` · Notiz: ${esc(r.resolution_note)}`:''}</p>
         <div class="privacyOpsRowActions">
           <button class="btn small" type="button" onclick="PrivacyOps.exportSubject('${r.id}')">Datenkopie</button>
           <button class="btn small" type="button" onclick="PrivacyOps.setStatus('${r.id}','in_review')">In Prüfung</button>

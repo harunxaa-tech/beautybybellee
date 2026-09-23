@@ -1,0 +1,21 @@
+/* AngebotsPilot v11.32.8 – global Smart Search */
+#globalSearchBtn{position:relative}
+.smartSearchOpen{overflow:hidden}
+.apSmartSearch{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-start;justify-content:center;padding:clamp(64px,10vh,110px) 14px 24px}
+.apSmartSearch.hidden,.apSmartSearch[hidden]{display:none!important}
+.apSearchBackdrop{position:absolute;inset:0;background:rgba(4,7,11,.68);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.apSearchSheet{position:relative;width:min(680px,100%);max-height:min(720px,calc(100vh - 90px));display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line);border-radius:22px;background:var(--panel,#12161d);box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.apSearchHead{display:grid;grid-template-columns:44px minmax(0,1fr) 40px;align-items:center;gap:8px;padding:12px 12px 10px;border-bottom:1px solid var(--line)}
+.apSearchLead{font-size:1.35rem;text-align:center;color:var(--muted)}
+.apSearchInputWrap{min-width:0}.apSearchInputWrap b{display:block;font-size:.72rem;color:var(--muted);margin:0 0 2px}.apSearchInput{width:100%;min-width:0;border:0!important;background:transparent!important;box-shadow:none!important;padding:4px 0!important;font:inherit;font-size:1.06rem;color:var(--text);outline:0}.apSearchInput::placeholder{color:var(--muted)}
+.apSearchClose{width:36px;height:36px;border:1px solid var(--line);border-radius:11px;background:var(--panel2,rgba(255,255,255,.04));color:var(--text);font:inherit;font-size:1.05rem;display:grid;place-items:center;cursor:pointer}
+.apSearchHint{padding:8px 16px 10px;font-size:.69rem;color:var(--muted);border-bottom:1px solid var(--line)}
+.apSearchResults{overflow:auto;padding:8px;overscroll-behavior:contain}
+.apSearchGroupLabel{padding:6px 8px 7px;color:var(--muted);font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.apSearchResult{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--text);text-align:left;padding:9px 10px;cursor:pointer;font:inherit}
+.apSearchResult:hover,.apSearchResult.selected{background:var(--panel2,rgba(255,255,255,.055));border-color:var(--line)}
+.apSearchIcon{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:color-mix(in srgb,var(--accent,#1f7a4d) 12%,var(--panel2,#171c24));font-size:1.05rem}
+.apSearchBody{min-width:0;display:block}.apSearchTitle{display:block;font-weight:800;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.apSearchSubtitle{display:block;margin-top:2px;color:var(--muted);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.apSearchMeta{align-self:center;color:var(--muted);font-size:.62rem;border:1px solid var(--line);border-radius:999px;padding:4px 7px;white-space:nowrap}
+.apSearchEmpty{min-height:170px;display:grid;place-content:center;text-align:center;padding:30px 18px;color:var(--muted)}.apSearchEmpty b{color:var(--text);font-size:.96rem}.apSearchEmpty span{font-size:.72rem;margin-top:5px}
+@media(max-width:600px){.apSmartSearch{padding:env(safe-area-inset-top) 0 0;align-items:flex-end}.apSearchSheet{width:100%;max-height:86vh;border-radius:24px 24px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom)}.apSearchHead{grid-template-columns:40px minmax(0,1fr) 40px;padding-top:14px}.apSearchMeta{display:none}.apSearchResult{grid-template-columns:42px minmax(0,1fr)}.apSearchHint{font-size:.65rem}.apSearchResults{padding-bottom:16px}}
+@media(max-width:430px){.topActions{gap:5px}.topActions .iconBtn{width:41px;min-height:41px}.brand h1{font-size:22px}.brand small{font-size:8px}}

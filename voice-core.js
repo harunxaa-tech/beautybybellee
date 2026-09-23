@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.7 – Shared Voice Core
+/* AngebotsPilot v11.32.8 – Shared Voice Core
    Recording stays local/private until the user sends it. AI calls are server-side only
    and remain disabled until the server integration is explicitly enabled. */
 (function(){
@@ -63,6 +63,9 @@
     const {error}=await client.from('user_preferences').upsert(row,{onConflict:'company_id,user_id'});
     if(error)throw error;
     prefsCache={...current,...row};prefsKey=`${company.id}:${session.user.id}`;
+    if(patch.preferred_language!==undefined&&globalThis.API18n?.language?.()!==row.preferred_language){
+      globalThis.API18n?.setLanguage?.(row.preferred_language,{persist:false});
+    }
     globalThis.JobChat?.syncVoicePreferenceUI?.();
     globalThis.OfferVoice?.syncVoicePreferenceUI?.();
     return{...prefsCache};
