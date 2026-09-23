@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.9 – Baustellenchat */
+/* AngebotsPilot v11.32.10 – Baustellenchat */
 (function(){
   'use strict';
   const q=id=>document.getElementById(id);
@@ -33,7 +33,7 @@
       const role=membership?.role||myRole();
       const {data:participantRows,error:pErr}=await client.from('job_chat_participants').select('job_id,joined_at').eq('company_id',company.id).eq('user_id',session.user.id);if(pErr)throw pErr;
       const joinedIds=new Set((participantRows||[]).map(x=>x.job_id));
-      let jq=client.from('jobs').select('id,local_id,title,start,status').eq('company_id',company.id).is('deleted_at',null);
+      let jq=client.from('jobs').select('id,local_id,title,start_date,status').eq('company_id',company.id).is('deleted_at',null);
       if(role==='worker'){
         const ids=[...joinedIds];if(!ids.length){if(list)list.innerHTML='<div class="empty">Noch kein Baustellenchat. Du wirst automatisch hinzugefügt, sobald dir eine Baustelle zugewiesen wird.</div>';return}
         jq=jq.in('id',ids);
@@ -50,8 +50,14 @@
         for(const m of messages||[]){if(m.sender_user_id===session.user.id)continue;const last=readMap.get(m.job_id)||0;if(new Date(m.created_at).getTime()>last)counts.set(m.job_id,(counts.get(m.job_id)||0)+1)}
       }
       const rows=jobs||[];if(!rows.length){if(list)list.innerHTML='<div class="empty">Noch keine Baustellen vorhanden.</div>';return}
-      if(list)list.innerHTML=rows.map(j=>{const joined=joinedIds.has(j.id),unread=counts.get(j.id)||0,localId=String(j.local_id||'');const meta=joined?`${quickDate(j.start)} · Im Chat${unread?` · ${unread} ungelesen`:''}`:`${quickDate(j.start)} · Nicht im Chat · öffnen und beitreten`;return `<button type="button" class="jobChatQuickItem ${joined?'joined':'notJoined'}" data-chat-quick-job="${esc(localId)}" ${localId?'':'disabled'}><span class="jobChatQuickIcon">💬</span><span class="jobChatQuickText"><b>${esc(j.title||'Baustelle')}</b><small>${esc(meta)}</small></span>${unread?`<strong class="jobChatListBadge">${unread>99?'99+':unread}</strong>`:'<span class="jobChatQuickArrow">›</span>'}</button>`}).join('');
-    }catch(e){console.error('Chat quick picker',e);if(list)list.innerHTML='<div class="empty">Baustellenchats konnten nicht geladen werden. Bitte Verbindung prüfen.</div>'}
+      if(list)list.innerHTML=rows.map(j=>{const joined=joinedIds.has(j.id),unread=counts.get(j.id)||0,localId=String(j.local_id||'');const meta=joined?`${quickDate(j.start_date)} · Im Chat${unread?` · ${unread} ungelesen`:''}`:`${quickDate(j.start_date)} · Nicht im Chat · öffnen und beitreten`;return `<button type="button" class="jobChatQuickItem ${joined?'joined':'notJoined'}" data-chat-quick-job="${esc(localId)}" ${localId?'':'disabled'}><span class="jobChatQuickIcon">💬</span><span class="jobChatQuickText"><b>${esc(j.title||'Baustelle')}</b><small>${esc(meta)}</small></span>${unread?`<strong class="jobChatListBadge">${unread>99?'99+':unread}</strong>`:'<span class="jobChatQuickArrow">›</span>'}</button>`}).join('');
+    }catch(e){
+      console.error('Chat quick picker',e);
+      const localJobs=(globalThis.data?.jobs||[]).map(j=>({local_id:String(j.id||''),title:j.title||'Baustelle',start_date:j.start||'',status:j.status||''}));
+      if(localJobs.length&&list){
+        list.innerHTML=`<div class="jobChatQuickFallback">Cloud-Aktualisierung gerade nicht möglich · geladene Baustellen werden angezeigt.</div>`+localJobs.map(j=>`<button type="button" class="jobChatQuickItem" data-chat-quick-job="${esc(j.local_id)}"><span class="jobChatQuickIcon">💬</span><span class="jobChatQuickText"><b>${esc(j.title)}</b><small>${esc(quickDate(j.start_date))} · Chat öffnen</small></span><span class="jobChatQuickArrow">›</span></button>`).join('');
+      }else if(list) list.innerHTML='<div class="empty">Baustellenchats konnten gerade nicht aktualisiert werden. Bitte erneut versuchen.</div>';
+    }
   }
 
   function inject(){
@@ -84,7 +90,7 @@
           <div class="jobChatRecorder hidden" id="jobChatRecorder" hidden><span class="jobChatRecDot"></span><b>Aufnahme läuft</b><strong id="jobChatRecordTime">0:00</strong><button type="button" class="btn small danger" id="jobChatRecordStop">Senden</button></div>
           <div class="jobChatComposer">
             <button type="button" class="jobChatIconBtn" id="jobChatAttachBtn" aria-label="Datei anhängen">＋</button>
-            <textarea id="jobChatInput" rows="1" maxlength="4000" placeholder="Nachricht an die Baustelle …"></textarea>
+            <textarea id="jobChatInput" rows="1" maxlength="4000" placeholder="Nachricht …"></textarea>
             <button type="button" class="jobChatIconBtn" id="jobChatMicBtn" aria-label="Sprachmemo aufnehmen">🎙️</button>
             <button type="button" class="jobChatSend" id="jobChatSendBtn">Senden</button>
             <input id="jobChatFileInput" type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" multiple hidden>
