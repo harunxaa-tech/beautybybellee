@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.32.6 – Store-konformer Kontolöschauftrag.
+/* AngebotsPilot v11.32.7 – Store-konformer Kontolöschauftrag.
    Die endgültige Löschung wird serverseitig verarbeitet; gesetzliche Aufbewahrung bleibt vorbehalten. */
 (function installAccountDeletion(){
   'use strict';
 
-  const VERSION='11.32.6';
+  const VERSION='11.32.7';
   const FLAG='__AP_ACCOUNT_DELETION_11_32_1__';
   if(globalThis[FLAG])return;
   globalThis[FLAG]=true;
