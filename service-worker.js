@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-32-4';
+const CACHE='angebotspilot-v11-32-5';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.32.4','./subscription.css?v=11.32.4','./cloud-config.js?v=11.32.4',
-  './country-config.js?v=11.32.4','./data-repository.js?v=11.32.4','./einvoice.js?v=11.32.4','./compliance-v1131.js?v=11.32.4','./compliance-v113108.js?v=11.32.4','./compliance-v113128.js?v=11.32.4','./compliance-v113131.js?v=11.32.4','./script.js?v=11.32.4','./customer-import.js?v=11.32.4','./cloud-files.js?v=11.32.4','./cloud-sync.js?v=11.32.4',
-  './team.js?v=11.32.4','./assignments.js?v=11.32.4','./time-tracking.js?v=11.32.4','./notifications.js?v=11.32.4','./mail-hub.js?v=11.32.4','./email-assistant.js?v=11.32.4','./acceptance.js?v=11.32.4','./privacy-ops.js?v=11.32.4','./account-deletion.js?v=11.32.4','./account-deletion.html','./custom-selects.js?v=11.32.4',
-  './security.js?v=11.32.4','./onboarding-setup.js?v=11.32.4','./cloud-auth.js?v=11.32.4','./subscription.js?v=11.32.4','./store-billing.js?v=11.32.4','./data-safety.js?v=11.32.4','./manifest.json?v=11.32.4','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.32.5','./subscription.css?v=11.32.5','./cloud-config.js?v=11.32.5',
+  './country-config.js?v=11.32.5','./data-repository.js?v=11.32.5','./einvoice.js?v=11.32.5','./compliance-v1131.js?v=11.32.5','./compliance-v113108.js?v=11.32.5','./compliance-v113128.js?v=11.32.5','./compliance-v113131.js?v=11.32.5','./script.js?v=11.32.5','./customer-import.js?v=11.32.5','./cloud-files.js?v=11.32.5','./cloud-sync.js?v=11.32.5',
+  './team.js?v=11.32.5','./assignments.js?v=11.32.5','./time-tracking.js?v=11.32.5','./notifications.js?v=11.32.5','./mail-hub.js?v=11.32.5','./email-assistant.js?v=11.32.5','./acceptance.js?v=11.32.5','./privacy-ops.js?v=11.32.5','./account-deletion.js?v=11.32.5','./account-deletion.html','./custom-selects.js?v=11.32.5',
+  './security.js?v=11.32.5','./onboarding-setup.js?v=11.32.5','./cloud-auth.js?v=11.32.5','./subscription.js?v=11.32.5','./store-billing.js?v=11.32.5','./data-safety.js?v=11.32.5','./manifest.json?v=11.32.5','./icon-192.svg','./icon-512.svg'
 ];
 
 self.addEventListener('install',event=>{

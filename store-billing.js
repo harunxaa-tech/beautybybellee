@@ -1,18 +1,20 @@
-/* AngebotsPilot v11.32.4 – Store-Billing channel guard / provider abstraction
+/* AngebotsPilot v11.32.5 – Store-Billing channel guard / provider abstraction
    Web stays on Stripe. Native iOS/Android never opens Stripe checkout or portal.
    Actual App Store / Play purchases are enabled only after a verified native adapter
    and configured product ids exist. */
 (function(){
   'use strict';
 
-  const BUILD='11.32.4';
+  const BUILD='11.32.5';
   const PLAN_ORDER=['solo','team','pro'];
   const PLAN_NAMES={solo:'Solo',team:'Team',pro:'Pro'};
   let adapter=null;
   let applying=false;
   let applyTimer=0;
-  let catalog={provider:'',environment:'production',configured:false,products:[]};
+  let catalog={provider:'',environment:'production',configured:false,verification_ready:false,verification_mode:'disabled',products:[]};
   let catalogPromise=null;
+  let storeProducts=[];
+  let storeProductsPromise=null;
 
   const q=id=>document.getElementById(id);
   const cloud=()=>{try{return globalThis.APCloudContext?.()||null}catch{return null}};
@@ -52,18 +54,45 @@
   function nativeAdapter(){return adapter||globalThis.APNativeStoreBilling||null}
   function adapterReady(){const a=nativeAdapter();return !!(a&&typeof a.purchase==='function'&&typeof a.restore==='function')}
   function productFor(plan){return (catalog.products||[]).find(p=>p.plan===plan)||null}
+  function storeProductFor(plan){return (storeProducts||[]).find(p=>p.plan===plan)||null}
+  function expectedVerificationMode(){return providerFor()==='apple'?'app_store_server_api':providerFor()==='google'?'google_play_developer_api':'disabled'}
+  function verificationReady(){return !!(catalog.verification_ready&&catalog.verification_mode===expectedVerificationMode())}
+
+  async function loadStoreProducts(force=false){
+    if(!isNative()||!catalog.configured||!verificationReady()||!adapterReady()||!(catalog.products||[]).length){storeProducts=[];return storeProducts}
+    if(storeProductsPromise&&!force)return storeProductsPromise;
+    const bridge=nativeAdapter();
+    if(typeof bridge?.loadProducts!=='function'){storeProducts=[];return storeProducts}
+    storeProductsPromise=(async()=>{
+      try{
+        const items=await bridge.loadProducts({provider:providerFor(),environment:catalog.environment,products:catalog.products});
+        storeProducts=Array.isArray(items)?items.filter(x=>PLAN_ORDER.includes(x?.plan)):[];
+      }catch(e){console.warn('Store-Produkte konnten nicht geladen werden',e);storeProducts=[]}
+      return storeProducts;
+    })().finally(()=>{storeProductsPromise=null;scheduleApply()});
+    return storeProductsPromise;
+  }
 
   async function loadCatalog(force=false){
     if(!isNative())return catalog;
     if(catalogPromise&&!force)return catalogPromise;
     catalogPromise=(async()=>{
       const ctx=cloud(),provider=providerFor(),environment=storeEnvironment();
-      catalog={provider,environment,configured:false,products:[]};
+      catalog={provider,environment,configured:false,verification_ready:false,verification_mode:'disabled',products:[]};
+      storeProducts=[];
       if(!ctx?.client||!ctx?.session)return catalog;
       try{
         const {data,error}=await ctx.client.rpc('get_store_billing_catalog',{target_provider:provider,target_environment:environment});
         if(error)throw error;
-        catalog={provider:data?.provider||provider,environment:data?.environment||environment,configured:!!data?.configured,products:Array.isArray(data?.products)?data.products:[]};
+        catalog={
+          provider:data?.provider||provider,
+          environment:data?.environment||environment,
+          configured:!!data?.configured,
+          verification_ready:!!data?.verification_ready,
+          verification_mode:String(data?.verification_mode||'disabled'),
+          products:Array.isArray(data?.products)?data.products:[]
+        };
+        if(catalog.configured&&verificationReady()&&adapterReady())await loadStoreProducts(true);
       }catch(e){
         console.warn('Store-Billing-Katalog konnte nicht geladen werden',e);
       }
@@ -73,6 +102,7 @@
   }
 
   function nativeUnavailableText(){
+    if(!verificationReady())return providerFor()==='apple'?'App-Store-Verifikation wird eingerichtet.':'Google-Play-Verifikation wird eingerichtet.';
     return providerFor()==='apple'?'App-Store-Abos werden eingerichtet.':'Google-Play-Abos werden eingerichtet.';
   }
   function externalProviderMessage(a=access()){
@@ -90,11 +120,13 @@
     if(hasActiveProviderSubscription(a)&&!sameNativeProvider(a))return toast(externalProviderMessage(a),'info');
     await loadCatalog();
     const product=productFor(plan);
-    if(!catalog.configured||!product)return toast(nativeUnavailableText(),'info');
+    if(!catalog.configured||!verificationReady()||!product)return toast(nativeUnavailableText(),'info');
     const bridge=nativeAdapter();
     if(!adapterReady())return toast('Store-Kauf ist in diesem Build noch nicht freigeschaltet.','info');
+    await loadStoreProducts();
+    if(!storeProductFor(plan))return toast('Der Store-Tarif konnte nicht sicher geladen werden. Bitte später erneut versuchen.','error');
     try{
-      const result=await bridge.purchase({provider:providerFor(),environment:catalog.environment,plan,productId:product.product_id,companyId:cloud()?.company?.id||''});
+      const result=await bridge.purchase({provider:providerFor(),environment:catalog.environment,plan,productId:product.product_id,planIdentifier:product.plan_identifier||'',companyId:cloud()?.company?.id||''});
       if(result?.cancelled)return;
       toast('Store-Kauf wurde übermittelt. Der Abo-Status wird serverseitig geprüft.','success');
       setTimeout(()=>globalThis.SubscriptionBilling?.refresh?.({silent:true}),900);
@@ -105,10 +137,11 @@
     if(!isNative())return;
     if(!owner())return toast('Nur der Inhaber kann Käufe wiederherstellen.','error');
     await loadCatalog();
+    if(!catalog.configured||!verificationReady())return toast(nativeUnavailableText(),'info');
     const bridge=nativeAdapter();
     if(!adapterReady())return toast('Käufe wiederherstellen ist in diesem Build noch nicht freigeschaltet.','info');
     try{
-      await bridge.restore({provider:providerFor(),environment:catalog.environment,companyId:cloud()?.company?.id||''});
+      await bridge.restore({provider:providerFor(),environment:catalog.environment,companyId:cloud()?.company?.id||'',products:catalog.products});
       toast('Käufe wurden geprüft. Der Abo-Status wird aktualisiert.','success');
       setTimeout(()=>globalThis.SubscriptionBilling?.refresh?.({silent:true}),700);
     }catch(e){console.error(e);toast(String(e?.message||'Käufe konnten nicht wiederhergestellt werden.'),'error')}
@@ -153,18 +186,25 @@
     const a=access(),active=hasActiveProviderSubscription(a),nativeProvider=sameNativeProvider(a);
     [...host.querySelectorAll('.subscriptionPlanCard')].forEach((card,index)=>{
       const plan=PLAN_ORDER[index];if(!plan)return;
+      const product=productFor(plan),storeProduct=storeProductFor(plan);
+      const priceBox=card.querySelector('.subscriptionPricePending');
+      if(priceBox&&(!active||nativeProvider)){
+        priceBox.replaceChildren();
+        const strong=document.createElement('strong');
+        strong.textContent=storeProduct?.priceString||(!catalog.configured?'Store-Preis folgt':'Preis wird geladen …');
+        priceBox.append(strong);
+        if(storeProduct?.priceString)priceBox.append(document.createTextNode(' / Monat'));
+      }
       let btn=card.querySelector('.subscriptionPlanAction');
       if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn small subscriptionPlanAction';card.appendChild(btn)}
-      if(btn.disabled)btn.disabled=false;
-      btn.removeAttribute('onclick');
-      if(!owner()){if(!btn.hidden)btn.hidden=true;return}
-      if(btn.hidden)btn.hidden=false;
-      if(active&&!nativeProvider){if(btn.textContent!=='Externes Abo aktiv')btn.textContent='Externes Abo aktiv';btn.disabled=true;btn.onclick=null;return}
-      if(active&&nativeProvider&&plan===a.plan){if(btn.textContent!=='Abo verwalten')btn.textContent='Abo verwalten';btn.onclick=()=>manage();return}
-      if(active&&nativeProvider){const label=`Zu ${PLAN_NAMES[plan]} wechseln`;if(btn.textContent!==label)btn.textContent=label;btn.onclick=()=>purchase(plan);return}
-      const product=productFor(plan);
-      const ready=!!(catalog.configured&&product&&adapterReady());
-      const label=ready?(providerFor()==='apple'?'Im App Store wählen':'Bei Google Play wählen'):'Store-Billing folgt';if(btn.textContent!==label)btn.textContent=label;
+      btn.onclick=null;btn.removeAttribute('onclick');btn.disabled=false;
+      if(!owner()){btn.hidden=true;return}
+      btn.hidden=false;
+      if(active&&!nativeProvider){btn.textContent='Externes Abo aktiv';btn.disabled=true;return}
+      if(active&&nativeProvider&&plan===a.plan){btn.textContent='Abo verwalten';btn.onclick=()=>manage();return}
+      const ready=!!(catalog.configured&&verificationReady()&&product&&storeProduct&&adapterReady());
+      if(active&&nativeProvider){btn.textContent=ready?`Zu ${PLAN_NAMES[plan]} wechseln`:'Store-Tarif nicht verfügbar';btn.disabled=!ready;if(ready)btn.onclick=()=>purchase(plan);return}
+      btn.textContent=ready?(providerFor()==='apple'?'Im App Store wählen':'Bei Google Play wählen'):'Store-Billing folgt';
       btn.disabled=!ready;
       if(ready)btn.onclick=()=>purchase(plan);
     });
@@ -177,7 +217,7 @@
     const a=access(),active=hasActiveProviderSubscription(a),same=sameNativeProvider(a);
     const period=a.current_period_end?new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(a.current_period_end)):'–';
     const label=providerLabel(a.billing_provider);
-    const html=`<div class="storeBillingHead"><div><span class="subscriptionEyebrow">STORE & ZUGANG</span><h3>${active?`${PLAN_NAMES[a.plan]||'Abo'} aktiv`:'Abo über den Store'}</h3><p>${active?externalProviderMessage(a):`Neue Käufe in dieser App werden ausschließlich über ${providerLabel()} abgewickelt.`}</p></div><span class="storeBillingBadge">${active?label:providerLabel()}</span></div>${active&&a.current_period_end?`<div class="storeBillingNotice">${a.cancel_at_period_end?'Nutzbar bis':'Aktuelle Periode bis'} <b>${period}</b></div>`:''}<div class="storeBillingActions">${active&&same?'<button class="btn primary" type="button" id="storeBillingManageButton">Abo verwalten</button>':''}<button class="btn" type="button" id="storeBillingRestoreButton">Käufe wiederherstellen</button></div>${!catalog.configured?`<div class="storeBillingNotice">${nativeUnavailableText()} Bestehende Web-Abos funktionieren weiterhin.</div>`:''}`;
+    const html=`<div class="storeBillingHead"><div><span class="subscriptionEyebrow">STORE & ZUGANG</span><h3>${active?`${PLAN_NAMES[a.plan]||'Abo'} aktiv`:'Abo über den Store'}</h3><p>${active?externalProviderMessage(a):`Neue Käufe in dieser App werden ausschließlich über ${providerLabel()} abgewickelt.`}</p></div><span class="storeBillingBadge">${active?label:providerLabel()}</span></div>${active&&a.current_period_end?`<div class="storeBillingNotice">${a.cancel_at_period_end?'Nutzbar bis':'Aktuelle Periode bis'} <b>${period}</b></div>`:''}<div class="storeBillingActions">${active&&same?'<button class="btn primary" type="button" id="storeBillingManageButton">Abo verwalten</button>':''}<button class="btn" type="button" id="storeBillingRestoreButton" ${catalog.configured&&verificationReady()&&adapterReady()?'':'disabled'}>Käufe wiederherstellen</button></div>${(!catalog.configured||!verificationReady())?`<div class="storeBillingNotice">${nativeUnavailableText()} Bestehende Web-Abos funktionieren weiterhin.</div>`:''}`;
     if(host.innerHTML!==html)host.innerHTML=html;
     q('storeBillingManageButton')?.addEventListener('click',manage);
     q('storeBillingRestoreButton')?.addEventListener('click',restore);
@@ -247,9 +287,9 @@
     return true;
   }
 
-  function registerAdapter(next){adapter=next||null;loadCatalog(true);scheduleApply()}
+  function registerAdapter(next){adapter=next||null;storeProducts=[];loadCatalog(true);scheduleApply()}
 
-  globalThis.StoreBilling={BUILD,detectPlatform,isNative,providerFor,providerLabel,storeEnvironment,loadCatalog,purchase,restore,manage,registerAdapter,applyUI,_state:()=>({platform:detectPlatform(),provider:providerFor(),environment:storeEnvironment(),catalog:{...catalog},adapterReady:adapterReady()})};
+  globalThis.StoreBilling={BUILD,detectPlatform,isNative,providerFor,providerLabel,storeEnvironment,loadCatalog,loadStoreProducts,purchase,restore,manage,registerAdapter,applyUI,_state:()=>({platform:detectPlatform(),provider:providerFor(),environment:storeEnvironment(),catalog:{...catalog},storeProducts:[...storeProducts],adapterReady:adapterReady()})};
 
   document.addEventListener('DOMContentLoaded',()=>{
     const boot=setInterval(()=>{if(installGuards()){clearInterval(boot);loadCatalog();scheduleApply()}},80);
