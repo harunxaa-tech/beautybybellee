@@ -1,49 +1,114 @@
-/* AngebotsPilot v11.32.8 – Baustellenchat */
+/* AngebotsPilot v11.32.9 – Baustellenchat */
 (function(){
   'use strict';
   const q=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  const state={localJobId:'',cloudJobId:'',messages:[],participants:[],members:[],archiveLinks:new Map(),isParticipant:false,channel:null,prefs:null,ai:null,recording:null,recordTick:0,busy:false,autoProcessing:new Set()};
+  const state={localJobId:'',cloudJobId:'',messages:[],participants:[],members:[],archiveLinks:new Map(),isParticipant:false,channel:null,prefs:null,ai:null,recording:null,recordTick:0,busy:false,autoProcessing:new Set(),viewOpen:false};
   const cloud=()=>globalThis.getCloudState?.()||{};
   const tr=(key,fallback)=>globalThis.API18n?.t?.(key)||fallback;
-  const isActive=()=>q('jobEditor')?.classList.contains('active')&&!!state.localJobId;
+  const isActive=()=>state.viewOpen&&!!state.localJobId&&!q('jobChatView')?.hidden;
+
+  function injectQuickPicker(){
+    if(q('jobChatQuickPicker'))return;
+    document.body.insertAdjacentHTML('beforeend',`<div id="jobChatQuickPicker" class="miniModalBackdrop hidden" hidden>
+      <div class="miniModal jobChatQuickModal" role="dialog" aria-modal="true" aria-labelledby="jobChatQuickTitle">
+        <div class="jobChatQuickHead"><div><span class="securityBadge">💬 TEAM</span><h3 id="jobChatQuickTitle">Baustellenchats</h3><small>Direkt zum Chat einer Baustelle</small></div><button type="button" class="sheetClose" id="jobChatQuickClose" aria-label="Schließen">×</button></div>
+        <div id="jobChatQuickList" class="jobChatQuickList"><div class="empty">Chats werden geladen …</div></div>
+      </div>
+    </div>`);
+    q('jobChatQuickClose')?.addEventListener('click',closeQuickPicker);
+    q('jobChatQuickPicker')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeQuickPicker()});
+    q('jobChatQuickList')?.addEventListener('click',e=>{
+      const btn=e.target.closest('[data-chat-quick-job]');if(!btn||btn.disabled)return;
+      const localId=String(btn.dataset.chatQuickJob||'');if(!localId)return;
+      closeQuickPicker();open(localId);
+    });
+  }
+  function closeQuickPicker(){const modal=q('jobChatQuickPicker');if(modal){modal.hidden=true;modal.classList.add('hidden')}}
+  function quickDate(v){try{return new Date(String(v||'')+'T12:00:00').toLocaleDateString(globalThis.API18n?.locale?.()||'de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}catch{return''}}
+  async function openQuickPicker(){
+    injectQuickPicker();const modal=q('jobChatQuickPicker'),list=q('jobChatQuickList');if(modal){modal.hidden=false;modal.classList.remove('hidden')}if(list)list.innerHTML='<div class="empty">Chats werden geladen …</div>';
+    const {client,company,session,membership}=cloud();if(!client||!company||!session?.user){if(list)list.innerHTML='<div class="empty">Bitte zuerst mit dem Betriebskonto anmelden.</div>';return}
+    try{
+      const role=membership?.role||myRole();
+      const {data:participantRows,error:pErr}=await client.from('job_chat_participants').select('job_id,joined_at').eq('company_id',company.id).eq('user_id',session.user.id);if(pErr)throw pErr;
+      const joinedIds=new Set((participantRows||[]).map(x=>x.job_id));
+      let jq=client.from('jobs').select('id,local_id,title,start,status').eq('company_id',company.id).is('deleted_at',null);
+      if(role==='worker'){
+        const ids=[...joinedIds];if(!ids.length){if(list)list.innerHTML='<div class="empty">Noch kein Baustellenchat. Du wirst automatisch hinzugefügt, sobald dir eine Baustelle zugewiesen wird.</div>';return}
+        jq=jq.in('id',ids);
+      }
+      const {data:jobs,error:jErr}=await jq.order('start',{ascending:false});if(jErr)throw jErr;
+      const readableIds=(jobs||[]).filter(j=>joinedIds.has(j.id)).map(j=>j.id);
+      let counts=new Map();
+      if(readableIds.length){
+        const [{data:messages,error:mErr},{data:reads,error:rErr}]=await Promise.all([
+          client.from('job_chat_messages').select('job_id,sender_user_id,created_at').eq('company_id',company.id).in('job_id',readableIds).order('created_at',{ascending:false}).limit(500),
+          client.from('job_chat_reads').select('job_id,last_read_at').eq('company_id',company.id).eq('user_id',session.user.id)
+        ]);if(mErr||rErr)throw mErr||rErr;
+        const readMap=new Map((reads||[]).map(r=>[r.job_id,new Date(r.last_read_at||0).getTime()]));
+        for(const m of messages||[]){if(m.sender_user_id===session.user.id)continue;const last=readMap.get(m.job_id)||0;if(new Date(m.created_at).getTime()>last)counts.set(m.job_id,(counts.get(m.job_id)||0)+1)}
+      }
+      const rows=jobs||[];if(!rows.length){if(list)list.innerHTML='<div class="empty">Noch keine Baustellen vorhanden.</div>';return}
+      if(list)list.innerHTML=rows.map(j=>{const joined=joinedIds.has(j.id),unread=counts.get(j.id)||0,localId=String(j.local_id||'');const meta=joined?`${quickDate(j.start)} · Im Chat${unread?` · ${unread} ungelesen`:''}`:`${quickDate(j.start)} · Nicht im Chat · öffnen und beitreten`;return `<button type="button" class="jobChatQuickItem ${joined?'joined':'notJoined'}" data-chat-quick-job="${esc(localId)}" ${localId?'':'disabled'}><span class="jobChatQuickIcon">💬</span><span class="jobChatQuickText"><b>${esc(j.title||'Baustelle')}</b><small>${esc(meta)}</small></span>${unread?`<strong class="jobChatListBadge">${unread>99?'99+':unread}</strong>`:'<span class="jobChatQuickArrow">›</span>'}</button>`}).join('');
+    }catch(e){console.error('Chat quick picker',e);if(list)list.innerHTML='<div class="empty">Baustellenchats konnten nicht geladen werden. Bitte Verbindung prüfen.</div>'}
+  }
 
   function inject(){
-    if(q('jobChatCard'))return;
-    const editor=q('jobEditor');if(!editor)return;
-    const photoCard=q('jobPhotoGrid')?.closest('.card');
-    const html=`<div class="card jobChatCard" id="jobChatCard">
-      <div class="jobChatHead">
-        <div><span class="securityBadge">💬 TEAM</span><h3>Baustellenchat</h3><p>Jede Baustelle hat ihren eigenen Chat. Zugewiesene Mitarbeiter sind automatisch dabei.</p></div>
-        <div class="jobChatHeadActions"><button type="button" class="jobChatParticipantsBtn" id="jobChatParticipantsBtn" aria-expanded="false">👥 <span id="jobChatParticipantCount">0</span></button><span class="jobChatUnread hidden" id="jobChatUnread" hidden>0</span></div>
+    if(q('jobChatView'))return;
+    const html=`<div id="jobChatView" class="jobChatView hidden" hidden aria-hidden="true">
+      <div class="jobChatViewInner">
+        <header class="jobChatViewTop">
+          <button type="button" class="jobChatBackBtn" id="jobChatBackBtn" aria-label="Zurück zu den Baustellen">‹</button>
+          <div class="jobChatViewTitleWrap"><span>💬 BAUSTELLENCHAT</span><h2 id="jobChatViewTitle">Baustellenchat</h2><small id="jobChatViewSubtitle">Team-Kommunikation</small></div>
+          <div class="jobChatViewTopActions">
+            <button type="button" class="jobChatTopBtn" id="jobChatParticipantsBtn" aria-expanded="false" aria-label="Chat-Teilnehmer">👥 <span id="jobChatParticipantCount">0</span></button>
+            <button type="button" class="jobChatTopBtn" id="jobChatSettingsBtn" aria-expanded="false" aria-label="Chat-Einstellungen">⚙️</button>
+            <span class="jobChatUnread hidden" id="jobChatUnread" hidden>0</span>
+          </div>
+        </header>
+        <section class="jobChatWorkspace" id="jobChatCard">
+          <div class="jobChatParticipantsPanel hidden" id="jobChatParticipantsPanel" hidden>
+            <div class="jobChatParticipantsHead"><div><b>${tr('chat_participants','Chat-Teilnehmer')}</b><small>${tr('assigned_staff_auto','Zugewiesene Mitarbeiter werden automatisch aufgenommen.')}</small></div><button type="button" class="btn small" id="jobChatParticipantsClose">Schließen</button></div>
+            <div class="jobChatParticipantList" id="jobChatParticipantList"></div>
+            <p class="jobChatParticipantHint" id="jobChatParticipantHint"></p>
+          </div>
+          <div class="jobChatVoicePrefs hidden" id="jobChatVoicePrefs" hidden>
+            <div class="jobChatSettingsHead"><div><b>Sprache & Übersetzung</b><small>Persönliche Einstellungen für diesen Account</small></div><button type="button" class="btn small" id="jobChatSettingsClose">Schließen</button></div>
+            <label><span>Meine Sprache</span><select id="jobChatLanguage"></select></label>
+            <label class="jobChatToggle"><input type="checkbox" id="jobChatTranscriptToggle"><span>Sprachmemos in Text umwandeln</span></label>
+            <label class="jobChatToggle"><input type="checkbox" id="jobChatAutoTranslateToggle"><span>Automatisch in meine Sprache übersetzen</span></label>
+            <small id="jobChatAiStatus">KI-Status wird geprüft …</small>
+          </div>
+          <div class="jobChatMessages" id="jobChatMessages" aria-live="polite"><div class="empty">Chat wird geladen …</div></div>
+          <div class="jobChatRecorder hidden" id="jobChatRecorder" hidden><span class="jobChatRecDot"></span><b>Aufnahme läuft</b><strong id="jobChatRecordTime">0:00</strong><button type="button" class="btn small danger" id="jobChatRecordStop">Senden</button></div>
+          <div class="jobChatComposer">
+            <button type="button" class="jobChatIconBtn" id="jobChatAttachBtn" aria-label="Datei anhängen">＋</button>
+            <textarea id="jobChatInput" rows="1" maxlength="4000" placeholder="Nachricht an die Baustelle …"></textarea>
+            <button type="button" class="jobChatIconBtn" id="jobChatMicBtn" aria-label="Sprachmemo aufnehmen">🎙️</button>
+            <button type="button" class="jobChatSend" id="jobChatSendBtn">Senden</button>
+            <input id="jobChatFileInput" type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" multiple hidden>
+          </div>
+          <p class="jobChatFoot">🔒 Nur eingetragene Personen sehen Nachrichten und Chat-Dateien.</p>
+        </section>
       </div>
-      <div class="jobChatParticipantsPanel hidden" id="jobChatParticipantsPanel" hidden>
-        <div class="jobChatParticipantsHead"><div><b>${tr('chat_participants','Chat-Teilnehmer')}</b><small>${tr('assigned_staff_auto','Zugewiesene Mitarbeiter werden automatisch aufgenommen.')}</small></div><button type="button" class="btn small" id="jobChatParticipantsClose">Schließen</button></div>
-        <div class="jobChatParticipantList" id="jobChatParticipantList"></div>
-        <p class="jobChatParticipantHint" id="jobChatParticipantHint"></p>
-      </div>
-      <div class="jobChatVoicePrefs" id="jobChatVoicePrefs">
-        <label><span>Meine Sprache</span><select id="jobChatLanguage"></select></label>
-        <label class="jobChatToggle"><input type="checkbox" id="jobChatTranscriptToggle"><span>Sprachmemos in Text umwandeln</span></label>
-        <label class="jobChatToggle"><input type="checkbox" id="jobChatAutoTranslateToggle"><span>Automatisch in meine Sprache übersetzen</span></label>
-        <small id="jobChatAiStatus">KI-Status wird geprüft …</small>
-      </div>
-      <div class="jobChatMessages" id="jobChatMessages" aria-live="polite"><div class="empty">Chat wird geladen …</div></div>
-      <div class="jobChatRecorder hidden" id="jobChatRecorder" hidden><span class="jobChatRecDot"></span><b>Aufnahme läuft</b><strong id="jobChatRecordTime">0:00</strong><button type="button" class="btn small danger" id="jobChatRecordStop">Senden</button></div>
-      <div class="jobChatComposer">
-        <button type="button" class="jobChatIconBtn" id="jobChatAttachBtn" aria-label="Datei anhängen">＋</button>
-        <textarea id="jobChatInput" rows="1" maxlength="4000" placeholder="Nachricht an die Baustelle …"></textarea>
-        <button type="button" class="jobChatIconBtn" id="jobChatMicBtn" aria-label="Sprachmemo aufnehmen">🎙️</button>
-        <button type="button" class="jobChatSend" id="jobChatSendBtn">Senden</button>
-        <input id="jobChatFileInput" type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" multiple hidden>
-      </div>
-      <p class="jobChatFoot">🔒 Nur Personen, die in diesem Baustellenchat eingetragen sind, können Nachrichten und Chat-Dateien sehen.</p>
     </div>`;
-    (photoCard||q('jobSaveBtn'))?.insertAdjacentHTML('beforebegin',html);
+    document.body.insertAdjacentHTML('beforeend',html);
     bind();renderLanguageOptions();
   }
 
+  function setSettingsPanel(show=true){const panel=q('jobChatVoicePrefs'),btn=q('jobChatSettingsBtn');if(panel){panel.hidden=!show;panel.classList.toggle('hidden',!show)}if(btn)btn.setAttribute('aria-expanded',show?'true':'false')}
+  function toggleSettingsPanel(){setSettingsPanel(q('jobChatVoicePrefs')?.hidden!==false)}
+  async function closeView(){
+    state.viewOpen=false;await closeChannel();showParticipantsPanel(false);setSettingsPanel(false);
+    const view=q('jobChatView');if(view){view.hidden=true;view.classList.add('hidden');view.setAttribute('aria-hidden','true')}
+    document.body.classList.remove('jobChatViewOpen');refreshUnreadCounts().catch(()=>{});
+  }
+
   function bind(){
+    q('jobChatBackBtn')?.addEventListener('click',closeView);
+    q('jobChatSettingsBtn')?.addEventListener('click',toggleSettingsPanel);
+    q('jobChatSettingsClose')?.addEventListener('click',()=>setSettingsPanel(false));
     q('jobChatSendBtn')?.addEventListener('click',sendText);
     q('jobChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendText()}});
     q('jobChatAttachBtn')?.addEventListener('click',()=>q('jobChatFileInput')?.click());
@@ -144,8 +209,12 @@
   }
 
   async function open(localJobId){
-    inject();await closeChannel();state.localJobId=String(localJobId||'');state.cloudJobId='';state.messages=[];state.participants=[];state.members=[];state.archiveLinks.clear();state.isParticipant=false;
-    const card=q('jobChatCard');if(card)card.classList.toggle('jobChatUnavailable',!state.localJobId);showParticipantsPanel(false);
+    inject();await closeChannel();state.localJobId=String(localJobId||'');state.cloudJobId='';state.messages=[];state.participants=[];state.members=[];state.archiveLinks.clear();state.isParticipant=false;state.viewOpen=true;
+    const localJob=globalThis.data?.jobs?.find?.(j=>String(j.id)===state.localJobId)||null;
+    const view=q('jobChatView');if(view){view.hidden=false;view.classList.remove('hidden');view.setAttribute('aria-hidden','false')}
+    document.body.classList.add('jobChatViewOpen');
+    const title=q('jobChatViewTitle'),subtitle=q('jobChatViewSubtitle');if(title)title.textContent=localJob?.title||'Baustellenchat';if(subtitle)subtitle.textContent=[localJob?.start?quickDate(localJob.start):'',localJob?.address||''].filter(Boolean).join(' · ')||'Team-Kommunikation';
+    const card=q('jobChatCard');if(card)card.classList.toggle('jobChatUnavailable',!state.localJobId);showParticipantsPanel(false);setSettingsPanel(false);
     if(!state.localJobId){renderUnavailable('Baustelle zuerst speichern, dann ist der Team-Chat verfügbar.');return}
     const {client,company,session}=cloud();
     if(!client||!company||!session?.user){renderUnavailable('Für den Baustellenchat ist das Betriebskonto erforderlich.');return}
@@ -373,12 +442,10 @@
   }
 
   function patchAppHooks(){
-    const edit=globalThis.editJob;if(typeof edit==='function'&&!edit.__jobChatPatched){const wrapped=function(id){const r=edit.apply(this,arguments);setTimeout(()=>open(id),0);return r};wrapped.__jobChatPatched=true;globalThis.editJob=wrapped}
-    const fresh=globalThis.newJob;if(typeof fresh==='function'&&!fresh.__jobChatPatched){const wrapped=function(){closeChannel();state.localJobId='';state.cloudJobId='';const r=fresh.apply(this,arguments);setTimeout(()=>{inject();renderUnavailable('Baustelle zuerst speichern, dann ist der Team-Chat verfügbar.')},0);return r};wrapped.__jobChatPatched=true;globalThis.newJob=wrapped}
     const renderJobsFn=globalThis.renderJobs;if(typeof renderJobsFn==='function'&&!renderJobsFn.__jobChatPatched){const wrapped=function(){const r=renderJobsFn.apply(this,arguments);setTimeout(()=>{ensureJobBadges();refreshUnreadCounts().catch(()=>{})},0);return r};wrapped.__jobChatPatched=true;globalThis.renderJobs=wrapped}
   }
 
-  globalThis.JobChat={open,refreshUnreadCounts,syncVoicePreferenceUI,load:loadMessages,loadParticipants};
+  globalThis.JobChat={open,close:closeView,openQuickPicker,refreshUnreadCounts,syncVoicePreferenceUI,load:loadMessages,loadParticipants};
   const start=()=>{inject();patchAppHooks();document.addEventListener('ap-language-changed',()=>{renderParticipants();if(state.isParticipant)render().catch(()=>{})});setTimeout(()=>{ensureJobBadges();refreshUnreadCounts().catch(()=>{})},1200)};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

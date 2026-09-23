@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.8 – Angebots-Sprachmemos & KI-Diktat
+/* AngebotsPilot v11.32.9 – Angebots-Sprachmemos & KI-Diktat
    Voice notes are private evidence/working notes. AI suggestions never modify or save
    an offer automatically: every suggested field/position requires an explicit user action. */
 (function(){

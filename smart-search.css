@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.8 – global Smart Search */
+/* AngebotsPilot v11.32.9 – global Smart Search */
 #globalSearchBtn{position:relative}
 .smartSearchOpen{overflow:hidden}
 .apSmartSearch{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-start;justify-content:center;padding:clamp(64px,10vh,110px) 14px 24px}
