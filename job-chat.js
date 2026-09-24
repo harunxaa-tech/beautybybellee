@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.10 – Baustellenchat */
+/* AngebotsPilot v11.32.11 – Baustellenchat */
 (function(){
   'use strict';
   const q=id=>document.getElementById(id);
@@ -38,7 +38,7 @@
         const ids=[...joinedIds];if(!ids.length){if(list)list.innerHTML='<div class="empty">Noch kein Baustellenchat. Du wirst automatisch hinzugefügt, sobald dir eine Baustelle zugewiesen wird.</div>';return}
         jq=jq.in('id',ids);
       }
-      const {data:jobs,error:jErr}=await jq.order('start',{ascending:false});if(jErr)throw jErr;
+      const {data:jobs,error:jErr}=await jq.order('start_date',{ascending:false});if(jErr)throw jErr;
       const readableIds=(jobs||[]).filter(j=>joinedIds.has(j.id)).map(j=>j.id);
       let counts=new Map();
       if(readableIds.length){
@@ -80,7 +80,7 @@
             <p class="jobChatParticipantHint" id="jobChatParticipantHint"></p>
           </div>
           <div class="jobChatVoicePrefs hidden" id="jobChatVoicePrefs" hidden>
-            <div class="jobChatSettingsHead"><div><b>Sprache & Übersetzung</b><small>Persönliche Einstellungen für diesen Account</small></div><button type="button" class="btn small" id="jobChatSettingsClose">Schließen</button></div>
+            <div class="jobChatSettingsHead"><div><b>Sprache & Übersetzung</b><small>Persönliche Einstellungen für diesen Account</small></div><button type="button" class="btn small" id="jobChatSettingsClose">Schließen</button></div><div class="jobChatSafetyBar"><button type="button" class="btn small" id="jobChatSafetyBtn">🛡️ Sicherheit & Regeln</button><span>Regeln · Melden · Blockieren · Support</span></div>
             <label><span>Meine Sprache</span><select id="jobChatLanguage"></select></label>
             <label class="jobChatToggle"><input type="checkbox" id="jobChatTranscriptToggle"><span>Sprachmemos in Text umwandeln</span></label>
             <label class="jobChatToggle"><input type="checkbox" id="jobChatAutoTranslateToggle"><span>Automatisch in meine Sprache übersetzen</span></label>
@@ -115,6 +115,7 @@
     q('jobChatBackBtn')?.addEventListener('click',closeView);
     q('jobChatSettingsBtn')?.addEventListener('click',toggleSettingsPanel);
     q('jobChatSettingsClose')?.addEventListener('click',()=>setSettingsPanel(false));
+    q('jobChatSafetyBtn')?.addEventListener('click',()=>globalThis.APChatCompliance?.openSafety?.());
     q('jobChatSendBtn')?.addEventListener('click',sendText);
     q('jobChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendText()}});
     q('jobChatAttachBtn')?.addEventListener('click',()=>q('jobChatFileInput')?.click());
@@ -124,6 +125,7 @@
     q('jobChatParticipantsBtn')?.addEventListener('click',toggleParticipantsPanel);
     q('jobChatParticipantsClose')?.addEventListener('click',()=>showParticipantsPanel(false));
     q('jobChatParticipantList')?.addEventListener('click',async e=>{
+      if(e.target.closest('[data-chat-safety-action]'))return;
       const btn=e.target.closest('[data-chat-participant-action]');if(!btn)return;
       const userId=btn.dataset.userId||'',action=btn.dataset.chatParticipantAction||'';
       if(action==='add')await setManualParticipant(userId,true);
@@ -184,8 +186,8 @@
     const workers=state.members.filter(m=>m.role==='worker'&&byUser.get(m.user_id)?.source==='assignment');
     const office=state.members.filter(m=>['owner','office'].includes(m.role));
     const rows=[];
-    for(const m of workers){rows.push(`<div class="jobChatParticipantRow"><span class="jobChatParticipantAvatar">${esc((m.display_name||m.email||'?').split(/\s+/).map(x=>x[0]||'').join('').slice(0,2).toUpperCase())}</span><div><b>${esc(m.display_name||m.email||'Mitarbeiter')}</b><small>${tr('worker','Mitarbeiter')} · ${tr('auto_assigned','automatisch zugewiesen')}</small></div><span class="jobChatParticipantAuto">AUTO</span></div>`)}
-    for(const m of office){const p=byUser.get(m.user_id),joined=p?.source==='manual';const role=m.role==='owner'?tr('boss','Chef / Inhaber'):tr('office','Büro');rows.push(`<div class="jobChatParticipantRow"><span class="jobChatParticipantAvatar">${esc((m.display_name||m.email||'?').split(/\s+/).map(x=>x[0]||'').join('').slice(0,2).toUpperCase())}</span><div><b>${esc(m.display_name||m.email||role)}</b><small>${esc(role)} · ${joined?tr('in_chat','im Chat'):tr('not_in_chat','nicht im Chat')}</small></div>${canManageParticipants()?`<button type="button" class="btn small ${joined?'danger':''}" data-chat-participant-action="${joined?'remove':'add'}" data-user-id="${m.user_id}">${joined?tr('remove','Entfernen'):tr('add','Hinzufügen')}</button>`:(joined?'<span class="jobChatParticipantAuto">DRIN</span>':'')}</div>`)}
+    for(const m of workers){rows.push(`<div class="jobChatParticipantRow"><span class="jobChatParticipantAvatar">${esc((m.display_name||m.email||'?').split(/\s+/).map(x=>x[0]||'').join('').slice(0,2).toUpperCase())}</span><div><b>${esc(m.display_name||m.email||'Mitarbeiter')}</b><small>${tr('worker','Mitarbeiter')} · ${tr('auto_assigned','automatisch zugewiesen')}</small></div><span class="jobChatParticipantAuto">AUTO</span>${globalThis.APChatCompliance?.participantButtons?.(m.user_id)||''}</div>`)}
+    for(const m of office){const p=byUser.get(m.user_id),joined=p?.source==='manual';const role=m.role==='owner'?tr('boss','Chef / Inhaber'):tr('office','Büro');rows.push(`<div class="jobChatParticipantRow"><span class="jobChatParticipantAvatar">${esc((m.display_name||m.email||'?').split(/\s+/).map(x=>x[0]||'').join('').slice(0,2).toUpperCase())}</span><div><b>${esc(m.display_name||m.email||role)}</b><small>${esc(role)} · ${joined?tr('in_chat','im Chat'):tr('not_in_chat','nicht im Chat')}</small></div>${canManageParticipants()?`<button type="button" class="btn small ${joined?'danger':''}" data-chat-participant-action="${joined?'remove':'add'}" data-user-id="${m.user_id}">${joined?tr('remove','Entfernen'):tr('add','Hinzufügen')}</button>`:(joined?'<span class="jobChatParticipantAuto">DRIN</span>':'')}${globalThis.APChatCompliance?.participantButtons?.(m.user_id)||''}</div>`)}
     box.innerHTML=rows.length?rows.join(''):'<div class="empty">Noch keine Chat-Teilnehmer.</div>';
     if(hint){hint.textContent=canManageParticipants()?`${tr('assigned_staff_auto','Zugewiesene Mitarbeiter werden automatisch aufgenommen.')} ${tr('office_chat_optional','Chef und Büro kannst du bei Bedarf hinzufügen.')}`:tr('assigned_staff_auto','Zugewiesene Mitarbeiter werden automatisch aufgenommen.')}
   }
@@ -208,7 +210,7 @@
       if(add){const {error}=await client.from('job_chat_participants').insert({company_id:company.id,job_id:state.cloudJobId,user_id:userId,source:'manual',added_by:session.user.id});if(error)throw error}
       else{const {error}=await client.from('job_chat_participants').delete().eq('company_id',company.id).eq('job_id',state.cloudJobId).eq('user_id',userId).eq('source','manual');if(error)throw error}
       const wasMe=userId===session.user.id;await loadParticipants();
-      if(wasMe&&state.isParticipant){await loadMessages();await markRead();maybeAutoTranslateLatest().catch(()=>{})}
+      if(wasMe&&state.isParticipant){await globalThis.APChatCompliance?.attach?.({jobId:state.cloudJobId,localJobId:state.localJobId});await loadMessages();await markRead();maybeAutoTranslateLatest().catch(()=>{})}
       if(wasMe&&!state.isParticipant){state.messages=[];state.archiveLinks.clear();applyParticipationState()}
       globalThis.toast?.(add?'✓ Zum Baustellenchat hinzugefügt':'Aus dem Baustellenchat entfernt');
     }catch(e){console.error('Chat participant',e);globalThis.toast?.('Chat-Teilnehmer konnten nicht geändert werden.')}
@@ -230,7 +232,7 @@
       if(!state.cloudJobId){renderUnavailable('Baustelle wird noch mit der Cloud synchronisiert. Bitte kurz erneut öffnen.');return}
       [state.prefs,state.ai]=await Promise.all([APVoice.preferences(true),APVoice.status()]);syncVoicePreferenceUI();
       await loadParticipants();subscribe();
-      if(state.isParticipant){await loadMessages();await markRead();maybeAutoTranslateLatest().catch(()=>{})}
+      if(state.isParticipant){await globalThis.APChatCompliance?.attach?.({jobId:state.cloudJobId,localJobId:state.localJobId});await loadMessages();await markRead();maybeAutoTranslateLatest().catch(()=>{})}
       refreshUnreadCounts().catch(()=>{});
     }catch(e){console.error('JobChat open',e);renderUnavailable('Chat konnte nicht geladen werden. Bitte Verbindung prüfen.')}
   }
@@ -266,7 +268,7 @@
       const aiEnabled=!!state.ai?.enabled;const canTranscribe=m.message_type==='voice'&&!m.transcript_text&&aiEnabled;const source=String(m.transcript_text||m.body||'').trim();const canTranslate=!!source&&aiEnabled&&!translation;
       const actions=(canTranscribe||canTranslate)?`<div class="jobChatAiActions">${canTranscribe?`<button type="button" data-chat-action="transcribe" data-message-id="${m.id}">✨ Text erstellen</button>`:''}${canTranslate?`<button type="button" data-chat-action="translate" data-message-id="${m.id}">🌍 Übersetzen</button>`:''}</div>`:'';
       const status=m.message_type==='voice'&&!m.transcript_text&&m.transcript_status==='failed'?'<small class="jobChatAiError">KI-Verarbeitung fehlgeschlagen · Audio bleibt erhalten.</small>':'';
-      return `<div class="jobChatBubbleRow ${own?'own':'other'}"><div class="jobChatBubble"><div class="jobChatMeta"><b>${esc(own?'Du':(m.sender_display_name||'Teammitglied'))}</b><span>${esc(day(m.created_at))} · ${esc(time(m.created_at))}</span></div>${m.body?`<p class="jobChatText">${esc(m.body)}</p>`:''}${media}${mediaActions}${transcript}${translated}${status}${actions}</div></div>`;
+      return `<div class="jobChatBubbleRow ${own?'own':'other'}"><div class="jobChatBubble"><div class="jobChatMeta"><b>${esc(own?'Du':(m.sender_display_name||'Teammitglied'))}</b><span>${esc(day(m.created_at))} · ${esc(time(m.created_at))}</span></div>${m.body?`<p class="jobChatText">${esc(m.body)}</p>`:''}${media}${mediaActions}${transcript}${translated}${status}${actions}${globalThis.APChatCompliance?.messageButtons?.(m,own)||''}</div></div>`;
     }));
     box.innerHTML=rows.join('');requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
   }
@@ -305,6 +307,7 @@
 
   async function sendText(){
     const input=q('jobChatInput'),text=String(input?.value||'').trim();if(!text||state.busy)return;
+    if(globalThis.APChatCompliance&&!await APChatCompliance.ensureCanPost())return;
     if(!state.cloudJobId)return globalThis.toast?.('Baustelle ist noch nicht in der Cloud.');
     const {client,company,session}=cloud();if(!client||!company||!session?.user)return;
     state.busy=true;try{
@@ -315,6 +318,7 @@
 
   async function sendFiles(files=[]){
     if(!files.length||state.busy||!state.cloudJobId)return;
+    if(globalThis.APChatCompliance&&!await APChatCompliance.ensureCanPost())return;
     const max=10*1024*1024;
     state.busy=true;try{
       for(const file of files.slice(0,8)){
@@ -331,7 +335,7 @@
     }catch(e){console.error(e);globalThis.toast?.('Datei konnte nicht gesendet werden.')}finally{state.busy=false}
   }
 
-  async function toggleRecording(){if(state.recording)return stopRecordingAndSend();return startRecording()}
+  async function toggleRecording(){if(state.recording)return stopRecordingAndSend();if(globalThis.APChatCompliance&&!await APChatCompliance.ensureCanPost())return;return startRecording()}
   async function startRecording(){
     if(!state.cloudJobId||state.busy)return;
     try{
@@ -395,11 +399,12 @@
 
   async function notifyParticipants(message,preview){
     try{
-      const {client,company,session}=cloud();if(!client||!company||!session?.user||!globalThis.Notifications)return;
-      const {data:participants,error}=await client.from('job_chat_participants').select('user_id').eq('company_id',company.id).eq('job_id',state.cloudJobId);if(error)throw error;
-      const ids=[...new Set((participants||[]).map(x=>x.user_id).filter(id=>id&&id!==session.user.id))];if(!ids.length)return;
-      const job=(globalThis.data?.jobs||[]).find(j=>String(j.id)===String(state.localJobId));const title=`Chat · ${job?.title||'Baustelle'}`;const body=String(preview||'Neue Nachricht').slice(0,160);
-      await Notifications.notifyUsers(ids,title,body,{type:'chat',tag:`chat-${message?.id||Date.now()}`,url:'./?screen=jobs',metadata:{screen:'jobs',job_local_id:state.localJobId}});
+      const {client,company,session}=cloud();if(!client||!company||!session?.user||!state.cloudJobId)return;
+      const job=(globalThis.data?.jobs||[]).find(j=>String(j.id)===String(state.localJobId));
+      const title=`Chat · ${job?.title||'Baustelle'}`;
+      const body='Neue Nachricht im Baustellenchat';
+      const {error}=await client.functions.invoke('send-push',{body:{mode:'job_chat',job_id:state.cloudJobId,title,body,type:'chat',tag:`chat-${message?.id||Date.now()}`,url:'./?screen=jobs',metadata:{screen:'jobs',job_local_id:state.localJobId,job_id:state.cloudJobId},exclude_self:true}});
+      if(error)throw error;
     }catch(e){console.warn('Chat notification',e)}
   }
 
@@ -451,7 +456,7 @@
     const renderJobsFn=globalThis.renderJobs;if(typeof renderJobsFn==='function'&&!renderJobsFn.__jobChatPatched){const wrapped=function(){const r=renderJobsFn.apply(this,arguments);setTimeout(()=>{ensureJobBadges();refreshUnreadCounts().catch(()=>{})},0);return r};wrapped.__jobChatPatched=true;globalThis.renderJobs=wrapped}
   }
 
-  globalThis.JobChat={open,close:closeView,openQuickPicker,refreshUnreadCounts,syncVoicePreferenceUI,load:loadMessages,loadParticipants};
+  globalThis.JobChat={open,close:closeView,openQuickPicker,refreshUnreadCounts,syncVoicePreferenceUI,load:loadMessages,loadParticipants,getMessage:messageById,context:()=>({jobId:state.cloudJobId,localJobId:state.localJobId,isParticipant:state.isParticipant})};
   const start=()=>{inject();patchAppHooks();document.addEventListener('ap-language-changed',()=>{renderParticipants();if(state.isParticipant)render().catch(()=>{})});setTimeout(()=>{ensureJobBadges();refreshUnreadCounts().catch(()=>{})},1200)};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

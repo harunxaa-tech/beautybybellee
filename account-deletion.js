@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.32.10 – Store-konformer Kontolöschauftrag.
+/* AngebotsPilot v11.32.11 – Store-konformer Kontolöschauftrag.
    Die endgültige Löschung wird serverseitig verarbeitet; gesetzliche Aufbewahrung bleibt vorbehalten. */
 (function installAccountDeletion(){
   'use strict';
 
-  const VERSION='11.32.10';
+  const VERSION='11.32.11';
   const FLAG='__AP_ACCOUNT_DELETION_11_32_1__';
   if(globalThis[FLAG])return;
   globalThis[FLAG]=true;
@@ -35,7 +35,7 @@
       card.innerHTML=`
         <div class="accountDeleteFacts">
           <div class="accountDeleteFact"><b>Konto vollständig löschen</b><span>Du kannst die Löschung deines AngebotsPilot-Accounts direkt hier beantragen – nicht nur lokale Gerätedaten entfernen.</span></div>
-          <div class="accountDeleteFact"><b>Aufbewahrung getrennt</b><span>Gesetzlich notwendige Rechnungs- und Geschäftsunterlagen können trotz Kontolöschung für die erforderliche Dauer aufbewahrt werden.</span></div>
+          <div class="accountDeleteFact"><b>Aufbewahrung getrennt</b><span>Chatnachrichten und Chat-Medien werden grundsätzlich entfernt bzw. anonymisiert. Gesetzlich notwendige Geschäftsunterlagen und konkret benötigte Rechts-/Sicherheitsnachweise können getrennt befristet aufbewahrt werden.</span></div>
         </div>
         <div id="accountDeletionCardStatus" class="accountDeleteStatus">Status wird geladen …</div>
         <div class="accountDeleteActions"><button class="btn danger" type="button" onclick="AccountDeletion.open()">Kontolöschung verwalten</button><button class="btn" type="button" onclick="AccountDeletion.openWebInfo()">Web-Löschseite</button></div>
@@ -50,7 +50,7 @@
           <div class="accountDeleteWarning"><b>Das ist etwas anderes als „lokale Daten löschen“.</b><br>Der Löschauftrag betrifft dein AngebotsPilot-Benutzerkonto. Ein laufendes Abo wird im Löschprozess berücksichtigt; bei alleiniger Inhaberschaft eines Betriebs müssen Eigentum und aufbewahrungspflichtige Geschäftsunterlagen geordnet behandelt werden.</div>
           <div id="accountDeletionDetail" class="accountDeleteInfo">Status wird geladen …</div>
           <div id="accountDeletionRequestWrap">
-            <div class="accountDeleteInfo"><b>Was passiert nach dem Antrag?</b>Nicht aufbewahrungspflichtige Kontodaten werden entfernt. Gesetzlich oder zur Rechtsverteidigung notwendige Geschäftsunterlagen können getrennt bestehen bleiben. Wenn die Bearbeitung nicht sofort abgeschlossen werden kann, bleibt der Status hier sichtbar.</div>
+            <div class="accountDeleteInfo"><b>Was passiert nach dem Antrag?</b>Nicht aufbewahrungspflichtige Kontodaten sowie dem Konto zugeordnete Chatnachrichten, Sprachmemos und Chat-Medien werden entfernt bzw. anonymisiert. Gesetzlich notwendige Geschäftsunterlagen und konkret benötigte Rechts-/Sicherheitsnachweise können getrennt befristet bestehen bleiben. Wenn die Bearbeitung nicht sofort abgeschlossen werden kann, bleibt der Status hier sichtbar.</div>
             <div class="field accountDeletePhrase"><label>Zur Bestätigung <b>KONTO LÖSCHEN</b> eingeben</label><input id="accountDeletionPhrase" class="input" autocomplete="off" placeholder="KONTO LÖSCHEN"></div>
             <div class="accountDeleteFooter"><button class="btn" type="button" onclick="AccountDeletion.close()">Abbrechen</button><button id="accountDeletionRequestBtn" class="btn danger" type="button" onclick="AccountDeletion.request()">Löschauftrag starten</button></div>
           </div>
