@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.14 – Shared Voice Core
+/* AngebotsPilot v11.32.15 – Shared Voice Core
    Recording stays local/private until the user sends it. AI calls are server-side only
    and remain disabled until the server integration is explicitly enabled. */
 (function(){

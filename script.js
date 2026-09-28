@@ -1,5 +1,5 @@
 const KEY='digitaler_handwerker_v3';
-const APP_BUILD_VERSION=globalThis.AP_BUILD_VERSION||'11.32.14';
+const APP_BUILD_VERSION=globalThis.AP_BUILD_VERSION||'11.32.15';
 const PRIVACY_VERSION='1.2';
 const WEATHER_CACHE_KEY='dh_weather_cache_v1';
 const defaultData={settings:{companyName:'',ownerName:'',phone:'',email:'',address:'',street:'',houseNumber:'',postalCode:'',city:'',weatherLocation:'',tax:0,paymentTerm:'7 Tage',taxNumber:'',vatId:'',iban:'',bankName:'',offerNumberNext:'',invoiceNumberNext:'',brandLogoPath:'',brandLogoLocalDataUrl:'',brandAccent:'',brandAccentAuto:'',documentStyle:'auto',logoPosition:'left',brandLogoMeta:{},brandLogoPendingCloud:false,brandReferencePath:'',brandReferencePreviewPath:'',brandReferenceName:'',brandReferenceMeta:{},brandReferenceLocalPreview:'',brandReferencePendingCloud:false,countryCode:'DE',currency:'EUR',appLanguage:'de',taxTreatment:'small_business',taxNote:'',businessMode:'solo',enabledModules:{offers:true,invoices:true,jobs:true,calendar:true,secretariat:true,team:false,time_tracking:false,weather:true,tasks:true,acceptance:true}},privacy:{version:PRIVACY_VERSION,consents:{weather:false,location:false,external:false,analytics:false},role:'owner',acceptedAt:null},audit:[],customers:[],offers:[],events:[],tasks:[],jobs:[],invoices:[],catalog:[{id:uid(),name:'Gartenarbeit / Fachkraft',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Anfahrt',unit:'Pauschale',price:50,type:'service',trade:'garden'},{id:uid(),name:'Rasen mähen und Pflege',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Hecken- und Strauchschnitt',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Rollrasen verlegen',unit:'m²',price:18,type:'service',trade:'garden'},{id:uid(),name:'Humus / Mutterboden',unit:'m³',price:65,type:'material',trade:'garden'},{id:uid(),name:'Entsorgung Grünabfall',unit:'Pauschale',price:120,type:'service',trade:'garden'}]};
@@ -346,13 +346,13 @@ function renderProductTourStep(){
       target.classList.add('tour-target');
       target.scrollIntoView?.({block:'center',behavior:'smooth'});
     }
-    document.getElementById('tourCounter').textContent=`${productTourIndex+1} von ${activeTourSteps.length}`;
+    document.getElementById('tourCounter').textContent=uiText(`${productTourIndex+1} von ${activeTourSteps.length}`);
     document.getElementById('tourIcon').textContent=step.icon;
-    document.getElementById('tourTitle').textContent=step.title;
-    document.getElementById('tourText').textContent=step.text;
+    document.getElementById('tourTitle').textContent=uiText(step.title);
+    document.getElementById('tourText').textContent=uiText(step.text);
     document.getElementById('tourDots').innerHTML=activeTourSteps.map((_,i)=>`<span class="tourDot ${i===productTourIndex?'active':''}"></span>`).join('');
     document.getElementById('tourBack').style.visibility=productTourIndex===0?'hidden':'visible';
-    document.getElementById('tourNext').textContent=productTourIndex===activeTourSteps.length-1?'Fertig ✓':'Weiter →';
+    document.getElementById('tourNext').textContent=uiText(productTourIndex===activeTourSteps.length-1?'Fertig ✓':'Weiter →');
   },120);
 }
 function nextTourStep(){
@@ -484,6 +484,213 @@ function currencySymbol(code=currentCurrencyCode()){return globalThis.APCountry?
 function dateDE(s){if(!s)return'';const d=new Date(String(s).slice(0,10)+'T12:00:00');return Number.isNaN(d.getTime())?'':d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})}
 function uiLocale(){return globalThis.API18n?.locale?.()||'de-DE'}
 function uiDate(s){if(!s)return'';const raw=String(s),d=new Date((raw.length<=10?raw.slice(0,10)+'T12:00:00':raw));return Number.isNaN(d.getTime())?'':d.toLocaleDateString(uiLocale(),{day:'2-digit',month:'2-digit',year:'numeric'})}
+
+function uiText(value){return globalThis.API18n?.translateText?.(String(value??''))??String(value??'')}
+function uiDuration(value,unit='days'){
+  const n=Number(value)||0,formatted=n.toLocaleString(uiLocale(),{maximumFractionDigits:2});
+  if(unit==='hours')return uiText(`${formatted} Std.`);
+  const days=Math.max(1,Math.round(n||1));return uiText(`${days} Tag${days===1?'':'e'}`);
+}
+
+/* v11.32.15 – address suggestions for DE/AT/CH.
+   Uses the public Photon geocoder (OpenStreetMap data) only while the user types.
+   No address query is stored by AngebotsPilot. */
+const AP_ADDRESS_AUTOCOMPLETE_URL='https://photon.komoot.io/api/';
+const AP_ADDRESS_COUNTRIES=new Set(['DE','AT','CH']);
+const apAddressState={timer:null,controller:null,cache:new Map(),panel:null,active:null,items:[]};
+function installInteractionFixStyles(){
+  if(document.getElementById('apInteractionFixStyles'))return;
+  const style=document.createElement('style');style.id='apInteractionFixStyles';style.textContent=`
+    .addressSuggestHost{position:relative}
+    .addressSuggestPanel{position:absolute;left:0;right:0;top:calc(100% - 4px);z-index:11250;display:grid;gap:4px;padding:6px;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:0 18px 48px rgba(0,0,0,.42);max-height:min(42dvh,330px);overflow:auto}
+    .addressSuggestPanel.hidden{display:none!important}
+    .addressSuggestItem{width:100%;border:0;background:transparent;color:var(--text);padding:10px 11px;border-radius:10px;text-align:left;font:inherit;display:grid;gap:3px}
+    .addressSuggestItem:active,.addressSuggestItem.active{background:rgba(127,127,127,.14)}
+    .addressSuggestItem b{font-size:.8rem;line-height:1.25}.addressSuggestItem small{font-size:.67rem;color:var(--muted);line-height:1.3}
+    .addressSuggestState{padding:11px;color:var(--muted);font-size:.72rem}
+    .docActionTrigger{flex:0 0 auto;width:42px;min-height:42px;border:1px solid var(--line);border-radius:12px;background:var(--card2);color:var(--text);font:inherit;font-size:1.1rem;font-weight:900;display:grid;place-items:center}
+    .docActionSheet{width:min(560px,100%)}.docActionList{display:grid;gap:7px}
+    .docActionItem{width:100%;min-height:50px;border:1px solid var(--line);border-radius:14px;background:var(--card2);color:var(--text);font:inherit;font-weight:800;text-align:left;padding:0 14px}
+    .docActionItem.danger{color:var(--danger)}
+    .invoiceCardAside{display:flex;align-items:center;gap:9px;flex:0 0 auto}.invoiceCardAside>strong{white-space:nowrap}
+    @media(max-width:430px){.addressSuggestPanel{position:fixed;left:8px;right:8px;top:auto;bottom:calc(76px + env(safe-area-inset-bottom));max-height:42dvh}.invoiceCardAside{align-items:flex-end;flex-direction:column}}
+  `;
+  document.head.appendChild(style);
+}
+function ensureAddressPanel(input){
+  installInteractionFixStyles();
+  let panel=apAddressState.panel;
+  if(!panel){
+    panel=document.createElement('div');panel.className='addressSuggestPanel hidden';panel.setAttribute('role','listbox');panel.setAttribute('aria-label',uiText('Adressvorschläge'));
+    document.body.appendChild(panel);apAddressState.panel=panel;
+  }
+  const field=input?.closest?.('.field');if(field){field.classList.add('addressSuggestHost');if(window.innerWidth>430&&panel.parentElement!==field)field.appendChild(panel)}
+  else if(panel.parentElement!==document.body)document.body.appendChild(panel);
+  return panel;
+}
+function closeAddressSuggestions(){
+  if(apAddressState.timer)clearTimeout(apAddressState.timer);apAddressState.timer=null;
+  try{apAddressState.controller?.abort()}catch(e){} apAddressState.controller=null;
+  if(apAddressState.panel){apAddressState.panel.classList.add('hidden');apAddressState.panel.innerHTML=''}
+  apAddressState.active=null;apAddressState.items=[];
+}
+function addressAutocompleteGroups(){
+  return [
+    {ids:['companyStreet','companyHouseNumber','companyPostalCode','companyCity'],country:()=>document.getElementById('companyCountry')?.value||currentCountryCode(),split:true},
+    {ids:['custStreet','custHouseNumber','custPostalCode','custCity'],country:()=>currentCountryCode(),split:true},
+    {ids:['quickCustStreet','quickCustHouseNumber','quickCustPostalCode','quickCustCity'],country:()=>currentCountryCode(),split:true},
+    {ids:['subscriptionBillingStreet','subscriptionBillingPostal','subscriptionBillingCity'],country:()=>document.getElementById('subscriptionBillingCountry')?.value||currentCountryCode(),split:true,combinedStreet:true},
+    {ids:['eventAddress'],country:()=>currentCountryCode(),split:false},
+    {ids:['jobAddress'],country:()=>currentCountryCode(),split:false}
+  ];
+}
+function addressGroupForInput(input){
+  const id=input?.id||'';return addressAutocompleteGroups().find(g=>g.ids.includes(id))||null;
+}
+function addressQueryForGroup(group){
+  if(!group)return'';
+  return group.ids.map(id=>document.getElementById(id)?.value?.trim()||'').filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+}
+function photonParts(feature={}){
+  const p=feature.properties||{},code=String(p.countrycode||'').toUpperCase();
+  const city=p.city||p.town||p.village||p.locality||p.district||p.county||'';
+  let street=p.street||'';
+  if(!street&&p.name&&['street','residential','service','tertiary','secondary','primary','unclassified'].includes(String(p.osm_value||p.type||'').toLowerCase()))street=p.name;
+  const house=String(p.housenumber||'').trim(),postal=String(p.postcode||'').trim();
+  const first=[street,house].filter(Boolean).join(' ').trim() || String(p.name||city||'').trim();
+  const second=[postal,city].filter(Boolean).join(' ').trim();
+  const label=[first,second,p.country].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', ');
+  return{street,house,postal,city,country:code,label,secondary:[second,p.state||'',p.country||''].filter(Boolean).join(' · ')};
+}
+async function fetchAddressSuggestions(query,country=''){
+  const key=`${String(country||'').toUpperCase()}|${query.toLowerCase()}`;
+  if(apAddressState.cache.has(key))return apAddressState.cache.get(key);
+  try{apAddressState.controller?.abort()}catch(e){}
+  const controller=new AbortController();apAddressState.controller=controller;
+  const wanted=String(country||'').toUpperCase(),url=new URL(AP_ADDRESS_AUTOCOMPLETE_URL);url.searchParams.set('q',query);url.searchParams.set('limit','12');
+  if(AP_ADDRESS_COUNTRIES.has(wanted))url.searchParams.append('countrycode',wanted);
+  const res=await fetch(url.toString(),{signal:controller.signal,headers:{Accept:'application/json'}});
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+  const json=await res.json();
+  let items=(json.features||[]).map(photonParts).filter(x=>x.label&&AP_ADDRESS_COUNTRIES.has(x.country));
+  if(wanted&&AP_ADDRESS_COUNTRIES.has(wanted)){
+    const own=items.filter(x=>x.country===wanted),other=items.filter(x=>x.country!==wanted);items=[...own,...other];
+  }
+  const seen=new Set();items=items.filter(x=>{const k=x.label.toLowerCase();if(seen.has(k))return false;seen.add(k);return true}).slice(0,6);
+  apAddressState.cache.set(key,items);if(apAddressState.cache.size>80)apAddressState.cache.delete(apAddressState.cache.keys().next().value);
+  return items;
+}
+function renderAddressSuggestions(input,items=[],stateText=''){
+  const panel=ensureAddressPanel(input);panel.classList.remove('hidden');panel.innerHTML='';
+  if(stateText){const row=document.createElement('div');row.className='addressSuggestState';row.textContent=uiText(stateText);panel.appendChild(row);return}
+  apAddressState.items=items;
+  if(!items.length){const row=document.createElement('div');row.className='addressSuggestState';row.textContent=uiText('Keine passende Adresse gefunden.');panel.appendChild(row);return}
+  items.forEach((item,index)=>{
+    const btn=document.createElement('button');btn.type='button';btn.className='addressSuggestItem';btn.dataset.index=String(index);btn.setAttribute('role','option');
+    const b=document.createElement('b');b.textContent=item.label.split(',').slice(0,2).join(', ');
+    const s=document.createElement('small');s.textContent=item.secondary||item.label;btn.append(b,s);
+    btn.addEventListener('pointerdown',e=>e.preventDefault());
+    btn.addEventListener('click',()=>applyAddressSuggestion(input,item));
+    panel.appendChild(btn);
+  });
+}
+function applyAddressSuggestion(input,item){
+  const group=addressGroupForInput(input);if(!group)return;
+  const set=(id,value)=>{const el=document.getElementById(id);if(!el||!value)return;el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))};
+  if(group.split){
+    if(group.combinedStreet){
+      set(group.ids[0],[item.street,item.house].filter(Boolean).join(' ').trim()||item.label.split(',')[0]);
+      set(group.ids[1],item.postal);set(group.ids[2],item.city);
+    }else{
+      set(group.ids[0],item.street);set(group.ids[1],item.house);set(group.ids[2],item.postal);set(group.ids[3],item.city);
+    }
+  }else set(group.ids[0],item.label);
+  closeAddressSuggestions();globalThis.toast?.(uiText('✓ Adresse übernommen'));
+}
+function scheduleAddressSuggestions(input){
+  const group=addressGroupForInput(input);if(!group)return;
+  apAddressState.active=input;
+  if(apAddressState.timer)clearTimeout(apAddressState.timer);
+  const query=addressQueryForGroup(group);
+  if(query.replace(/\d/g,'').trim().length<3){closeAddressSuggestions();return}
+  apAddressState.timer=setTimeout(async()=>{
+    renderAddressSuggestions(input,[],'Adressvorschläge werden geladen …');
+    try{
+      const items=await fetchAddressSuggestions(query,group.country?.()||'');
+      if(apAddressState.active!==input)return;renderAddressSuggestions(input,items);
+    }catch(e){
+      if(e?.name==='AbortError')return;
+      console.warn('Adressvorschläge',e);if(apAddressState.active===input)renderAddressSuggestions(input,[],'Adresssuche derzeit nicht verfügbar.');
+    }
+  },320);
+}
+function initAddressAutocomplete(){
+  installInteractionFixStyles();
+  for(const group of addressAutocompleteGroups())for(const id of group.ids){
+    const input=document.getElementById(id);if(!input||input.dataset.addressSuggestBound==='1')continue;
+    input.dataset.addressSuggestBound='1';
+    input.addEventListener('input',()=>scheduleAddressSuggestions(input));
+    input.addEventListener('focus',()=>{if((input.value||'').trim().length>=3)scheduleAddressSuggestions(input)});
+    input.addEventListener('keydown',e=>{
+      const panel=apAddressState.panel;if(!panel||panel.classList.contains('hidden'))return;
+      const buttons=[...panel.querySelectorAll('.addressSuggestItem')];if(!buttons.length)return;
+      let idx=buttons.findIndex(b=>b.classList.contains('active'));
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();buttons.forEach(b=>b.classList.remove('active'));idx=e.key==='ArrowDown'?Math.min(buttons.length-1,idx+1):Math.max(0,idx<0?buttons.length-1:idx-1);buttons[idx].classList.add('active');buttons[idx].scrollIntoView({block:'nearest'})}
+      else if(e.key==='Enter'&&idx>=0){e.preventDefault();buttons[idx].click()}
+      else if(e.key==='Escape')closeAddressSuggestions();
+    });
+    input.addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement?.closest?.('.addressSuggestPanel'))return;closeAddressSuggestions()},160));
+  }
+}
+document.addEventListener('pointerdown',e=>{if(apAddressState.panel&&!apAddressState.panel.contains(e.target)&&e.target!==apAddressState.active)closeAddressSuggestions()},{capture:true});
+
+/* v11.32.15 – reliable iPhone action sheet for the three-dot document menu. */
+function ensureDocumentActionSheet(){
+  installInteractionFixStyles();
+  let wrap=document.getElementById('documentActionSheet');
+  if(wrap)return wrap;
+  wrap=document.createElement('div');wrap.id='documentActionSheet';wrap.className='sheetBackdrop hidden';
+  wrap.innerHTML=`<div class="bottomSheet docActionSheet" onclick="event.stopPropagation()"><div class="sheetHandle"></div><div class="sheetHeader"><div><div class="eyebrow">${uiText('AKTIONEN')}</div><h2 id="documentActionTitle">${uiText('Aktionen')}</h2><p class="mini" id="documentActionSubtitle"></p></div><button type="button" class="sheetClose" onclick="closeDocumentActionSheet()">✕</button></div><div class="docActionList" id="documentActionList"></div></div>`;
+  wrap.addEventListener('click',e=>{if(e.target===wrap)closeDocumentActionSheet()});document.body.appendChild(wrap);return wrap;
+}
+function closeDocumentActionSheet(){document.getElementById('documentActionSheet')?.classList.add('hidden')}
+function openOfferActionMenu(event,id){
+  event?.preventDefault?.();event?.stopPropagation?.();
+  const o=(data.offers||[]).find(x=>x.id===id);if(!o)return;
+  const c=data.customers.find(x=>x.id===o.customerId),wrap=ensureDocumentActionSheet();
+  document.getElementById('documentActionTitle').textContent=uiText('Angebotsaktionen');
+  document.getElementById('documentActionSubtitle').textContent=[o.number,c?.name].filter(Boolean).join(' · ');
+  document.getElementById('documentActionList').innerHTML=`
+    <button class="docActionItem" onclick="runDocumentCardAction('offer','${id}','edit')">✎ ${uiText('Bearbeiten')}</button>
+    <button class="docActionItem" onclick="runDocumentCardAction('offer','${id}','status')">● ${uiText('Status ändern')}</button>
+    <button class="docActionItem" onclick="runDocumentCardAction('offer','${id}','preview')">▣ ${uiText('Vorschau / PDF')}</button>
+    <button class="docActionItem" onclick="runDocumentCardAction('offer','${id}','duplicate')">⧉ ${uiText('Angebot duplizieren')}</button>
+    <button class="docActionItem danger" onclick="runDocumentCardAction('offer','${id}','delete')">🗑️ ${uiText('Löschen')}</button>`;
+  wrap.classList.remove('hidden');
+}
+function openInvoiceActionMenu(event,id){
+  event?.preventDefault?.();event?.stopPropagation?.();
+  const inv=(data.invoices||[]).find(x=>x.id===id);if(!inv)return;
+  const c=data.customers.find(x=>x.id===inv.customerId),wrap=ensureDocumentActionSheet(),locked=isInvoiceLocked(inv);
+  document.getElementById('documentActionTitle').textContent=uiText('Rechnungsaktionen');
+  document.getElementById('documentActionSubtitle').textContent=[inv.number,c?.name].filter(Boolean).join(' · ');
+  const actions=[
+    `<button class="docActionItem" onclick="runDocumentCardAction('invoice','${id}','edit')">✎ ${uiText(locked?'Öffnen':'Bearbeiten')}</button>`,
+    `<button class="docActionItem" onclick="runDocumentCardAction('invoice','${id}','preview')">▣ ${uiText('Vorschau / PDF')}</button>`,
+    inv.status==='draft'?`<button class="docActionItem" onclick="runDocumentCardAction('invoice','${id}','finalize')">🔒 ${uiText('Ausstellen')}</button>`:`<button class="docActionItem" onclick="runDocumentCardAction('invoice','${id}','share')">📤 ${uiText('Teilen')}</button>`,
+    inv.status==='open'?`<button class="docActionItem" onclick="runDocumentCardAction('invoice','${id}','paid')">✓ ${uiText('Bezahlt')}</button>`:'',
+    ['open','paid'].includes(inv.status)&&inv.documentType!=='cancellation'?`<button class="docActionItem" onclick="runDocumentCardAction('invoice','${id}','correction')">↗ ${uiText('Korrektur')}</button><button class="docActionItem danger" onclick="runDocumentCardAction('invoice','${id}','cancel')">↩ ${uiText('Storno')}</button>`:''
+  ].join('');
+  document.getElementById('documentActionList').innerHTML=actions;wrap.classList.remove('hidden');
+}
+function runDocumentCardAction(type,id,action){
+  closeDocumentActionSheet();
+  if(type==='offer'){
+    if(action==='edit')return editOffer(id);if(action==='status')return quickOfferStatus(id);if(action==='preview')return previewSavedOffer(id);if(action==='duplicate')return duplicateOffer(id);if(action==='delete')return requestDeleteOffer(id);
+  }else{
+    if(action==='edit')return editInvoice(id);if(action==='preview')return previewInvoice(id);if(action==='finalize')return finalizeInvoiceById(id);if(action==='share')return shareInvoicePDF(id);if(action==='paid')return markInvoicePaid(id);if(action==='correction')return createCorrectionDraft(id);if(action==='cancel')return createCancellationDraft(id);
+  }
+}
 function firstName(v){return String(v||'').trim().split(/\s+/)[0]||'Handwerker'}
 function todayISO(){return new Date().toISOString().slice(0,10)}
 let toastTimer=null;
@@ -1188,7 +1395,7 @@ async function openMaps(a){
   location.href='https://www.google.com/maps/search/?api=1&query='+a;
 }
 function normalizeOfferDurationUnit(v){return v==='hours'?'hours':'days'}
-function syncOfferDurationUI(){const unit=normalizeOfferDurationUnit(document.getElementById('offerDurationUnit')?.value),input=document.getElementById('offerDurationValue'),hint=document.getElementById('offerDurationHint');if(input){input.step=unit==='hours'?'0.25':'1';input.min=unit==='hours'?'0.25':'1';if(unit==='days'&&Number(input.value)%1)input.value=Math.max(1,Math.round(Number(input.value)||1))}if(hint){const value=Math.max(unit==='hours'?.25:1,Number(input?.value)||1),days=Math.round(value),label=unit==='hours'?value.toLocaleString(uiLocale(),{maximumFractionDigits:2})+' Std.':days+' Arbeitstag'+(days===1?'':'e'),verb=unit==='days'&&days===1?'wird':'werden';hint.textContent=`${label} ${verb} bei einer späteren Auftragsannahme für die Kalenderplanung verwendet.`}renderOfferDetailsSummary()}
+function syncOfferDurationUI(){const unit=normalizeOfferDurationUnit(document.getElementById('offerDurationUnit')?.value),input=document.getElementById('offerDurationValue'),hint=document.getElementById('offerDurationHint');if(input){input.step=unit==='hours'?'0.25':'1';input.min=unit==='hours'?'0.25':'1';if(unit==='days'&&Number(input.value)%1)input.value=Math.max(1,Math.round(Number(input.value)||1))}if(hint){const value=Math.max(unit==='hours'?.25:1,Number(input?.value)||1),days=Math.round(value),label=unit==='hours'?value.toLocaleString(uiLocale(),{maximumFractionDigits:2})+' Std.':days+' Arbeitstag'+(days===1?'':'e');hint.textContent=`${uiText(label)} · ${uiText('Wird für die Kalenderplanung verwendet.')}`}renderOfferDetailsSummary()}
 function newOffer(){
   document.getElementById('offerId').value='';
   const heading=document.getElementById('offerEditorHeading');if(heading)heading.textContent='Neues Angebot';
@@ -1426,7 +1633,7 @@ function initOfferSwipeRows(){
   });
 }
 function duplicateOffer(id){const source=(data.offers||[]).find(x=>x.id===id);if(!source)return;const suggested=nextOfferNumber(),copy={...structuredClone(source),id:uid(),number:suggested,date:todayISO(),status:'draft',eventId:'',lines:(source.lines||[]).map(l=>({...structuredClone(l),id:uid()}))};data.offers.push(copy);advanceConfiguredNumberAfterUse('offer',copy.number,suggested);rememberOfferNumber(copy.number);saveData('Angebot dupliziert',`${source.number||''} → ${copy.number}`);toast(`✓ ${copy.number} als Entwurf erstellt`);editOffer(copy.id)}
-function renderOffers(){const list=data.offers.filter(o=>currentOfferFilter==='all'||o.status===currentOfferFilter).sort((a,b)=>(b.date||'').localeCompare(a.date||'')),target=document.getElementById('offerList');target.innerHTML=list.length?list.map(o=>{const c=data.customers.find(x=>x.id===o.customerId);return `<div class="offerSwipeRow" data-offer-id="${o.id}"><div class="offerSwipeActions"><button type="button" class="offerSwipeDelete" onclick="requestDeleteOffer('${o.id}')"><span>🗑️</span><b>Löschen</b></button></div><div class="item offerSwipeContent offerCompactCard"><div class="itemTop"><div class="offerCompactMain"><span class="badge ${o.status}">${statusLabel(o.status)}</span><h3>${escapeHTML(c?.name||'Unbekannter Kunde')}</h3><p>${uiDate(o.date)} · ${escapeHTML(o.number||'')} · ${escapeHTML(o.subject||'Angebot')}</p></div><div class="offerCompactAmount"><strong>${euro(o.total)}</strong><small>${o.durationValue?`${o.durationUnit==='hours'?Number(o.durationValue).toLocaleString(uiLocale())+' Std.':Math.round(Number(o.durationValue))+' Tag'+(Math.round(Number(o.durationValue))===1?'':'e')}`:''}</small></div><details class="offerCardMenu" onclick="event.stopPropagation()"><summary aria-label="Angebotsaktionen">•••</summary><div class="offerMenuPopover"><button type="button" onclick="editOffer('${o.id}')">✎ Bearbeiten</button><button type="button" onclick="quickOfferStatus('${o.id}')">● Status ändern</button><button type="button" onclick="previewSavedOffer('${o.id}')">▣ Vorschau / PDF</button><button type="button" onclick="duplicateOffer('${o.id}')">⧉ Angebot duplizieren</button></div></details></div></div></div>`}).join(''):emptyStateHTML('📄',currentOfferFilter==='all'?'Noch keine Angebote':'Keine Angebote in diesem Status',currentOfferFilter==='all'?'Erstelle dein erstes Angebot – Kunde auswählen, Positionen ergänzen, fertig.':'Sobald ein Angebot diesen Status hat, erscheint es hier.','Neues Angebot','newOffer()');initOfferSwipeRows()}
+function renderOffers(){const list=data.offers.filter(o=>currentOfferFilter==='all'||o.status===currentOfferFilter).sort((a,b)=>(b.date||'').localeCompare(a.date||'')),target=document.getElementById('offerList');target.innerHTML=list.length?list.map(o=>{const c=data.customers.find(x=>x.id===o.customerId);return `<div class="offerSwipeRow" data-offer-id="${o.id}"><div class="offerSwipeActions"><button type="button" class="offerSwipeDelete" onclick="requestDeleteOffer('${o.id}')"><span>🗑️</span><b>Löschen</b></button></div><div class="item offerSwipeContent offerCompactCard"><div class="itemTop"><div class="offerCompactMain"><span class="badge ${o.status}">${statusLabel(o.status)}</span><h3>${escapeHTML(c?.name||'Unbekannter Kunde')}</h3><p>${uiDate(o.date)} · ${escapeHTML(o.number||'')} · ${escapeHTML(o.subject||'Angebot')}</p></div><div class="offerCompactAmount"><strong>${euro(o.total)}</strong><small>${o.durationValue?uiDuration(o.durationValue,o.durationUnit):''}</small></div><button type="button" class="docActionTrigger" aria-label="${uiText('Angebotsaktionen')}" onclick="openOfferActionMenu(event,'${o.id}')">•••</button></div></div></div>`}).join(''):emptyStateHTML('📄',currentOfferFilter==='all'?'Noch keine Angebote':'Keine Angebote in diesem Status',currentOfferFilter==='all'?'Erstelle dein erstes Angebot – Kunde auswählen, Positionen ergänzen, fertig.':'Sobald ein Angebot diesen Status hat, erscheint es hier.','Neues Angebot','newOffer()');initOfferSwipeRows()}
 document.querySelectorAll('#offerTabs .tab').forEach(b=>b.onclick=()=>{currentOfferFilter=b.dataset.filter;document.querySelectorAll('#offerTabs .tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderOffers()});
 function quickOfferStatus(id){
   const o=data.offers.find(x=>x.id===id);if(!o)return;
@@ -1643,7 +1850,7 @@ function normalizeJobDurationUnit(v){return v==='hours'?'hours':'days'}
 function jobWorkDates(job){const start=job?.start;if(!start)return[];const unit=normalizeJobDurationUnit(job.durationUnit);if(unit==='hours')return[start];let remaining=Math.max(1,Math.round(Number(job.durationValue)||1)),d=new Date(start+'T12:00:00'),out=[],guard=0;while(remaining>0&&guard<500){guard++;const day=d.getDay();if(day!==0&&day!==6){out.push(d.toISOString().slice(0,10));remaining--}d.setDate(d.getDate()+1)}return out}
 function jobDurationMinutes(job){return normalizeJobDurationUnit(job?.durationUnit)==='hours'?Math.max(15,Math.round((Number(job?.durationValue)||1)*60)):Math.max(1,Math.round(Number(job?.durationValue)||1))*8*60}
 function eventOccursOnDate(e,iso){if(!e)return false;if(e.jobId){const j=(data.jobs||[]).find(x=>x.id===e.jobId);if(j)return jobWorkDates(j).includes(iso)}return e.date===iso}
-function syncJobDurationUI(){const unit=normalizeJobDurationUnit(document.getElementById('jobDurationUnit')?.value),input=document.getElementById('jobDurationValue'),hint=document.getElementById('jobDurationHint');if(input){input.step=unit==='hours'?'0.25':'1';input.min=unit==='hours'?'0.25':'1';if(unit==='days'&&Number(input.value)%1)input.value=Math.max(1,Math.round(Number(input.value)||1))}if(hint){const value=Math.max(unit==='hours'?.25:1,Number(input?.value)||1);const dates=unit==='days'?`${Math.round(value)} Arbeitstag${Math.round(value)===1?'':'e'}`:`${value.toLocaleString(uiLocale(),{maximumFractionDigits:2})} Std.`;hint.querySelector('small').textContent=`${dates} ab ${document.getElementById('jobStartTime')?.value||'08:00'} Uhr werden im Kalender reserviert.`}}
+function syncJobDurationUI(){const unit=normalizeJobDurationUnit(document.getElementById('jobDurationUnit')?.value),input=document.getElementById('jobDurationValue'),hint=document.getElementById('jobDurationHint');if(input){input.step=unit==='hours'?'0.25':'1';input.min=unit==='hours'?'0.25':'1';if(unit==='days'&&Number(input.value)%1)input.value=Math.max(1,Math.round(Number(input.value)||1))}if(hint){const value=Math.max(unit==='hours'?.25:1,Number(input?.value)||1);const dates=unit==='days'?`${Math.round(value)} Arbeitstag${Math.round(value)===1?'':'e'}`:`${value.toLocaleString(uiLocale(),{maximumFractionDigits:2})} Std.`;hint.querySelector('small').textContent=`${uiText(dates)} · ${document.getElementById('jobStartTime')?.value||'08:00'} · ${uiText('Kalenderzeit wird automatisch reserviert.')}`}}
 function upsertCalendarEventForJob(job){
   if(!job||!job.start)return;
   let ev=(data.events||[]).find(e=>e.jobId===job.id);
@@ -2012,7 +2219,7 @@ function renderInvoiceFollowupDashboard(){
 }
 function renderInvoices(){
   const el=document.getElementById('invoiceList');if(!el)return;const list=[...data.invoices].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  el.innerHTML=list.length?list.map(inv=>{const c=data.customers.find(x=>x.id===inv.customerId),locked=isInvoiceLocked(inv),type=invoiceTypeLabel(inv),follow=invoiceFollowupActionHTML(inv);return `<div class="item invoiceListCard"><div class="itemTop"><div><span class="badge ${inv.status==='paid'?'done':inv.status==='open'?'sent':inv.status==='cancelled'?'rejected':'draft'}">${invoiceStatusLabel(inv.status)}</span><h3 style="margin-top:8px">${escapeHTML(inv.subject)}</h3><p>${escapeHTML(c?.name||'Unbekannter Kunde')} · ${escapeHTML(inv.number)} · ${type} · fällig ${uiDate(inv.dueDate)}</p>${invoiceFollowupStateHTML(inv)}</div><strong>${invoiceMoney(inv.total,inv)}</strong></div><div class="itemActions">${follow}<button class="btn small" onclick="editInvoice('${inv.id}')">${locked?'Öffnen':'Bearbeiten'}</button><button class="btn small" onclick="previewInvoice('${inv.id}')">PDF</button>${inv.status==='draft'?`<button class="btn small primary" onclick="finalizeInvoiceById('${inv.id}')">🔒 Ausstellen</button>`:`<button class="btn small primary shareInvoiceBtn" onclick="shareInvoicePDF('${inv.id}')">📤 Teilen</button>`}${inv.status==='open'?`<button class="btn small" onclick="markInvoicePaid('${inv.id}')">✓ Bezahlt</button>`:''}${['open','paid'].includes(inv.status)&&inv.documentType!=='cancellation'?`<button class="btn small" onclick="createCorrectionDraft('${inv.id}')">↗ Korrektur</button><button class="btn small danger" onclick="createCancellationDraft('${inv.id}')">↩ Storno</button>`:''}</div></div>`}).join(''):emptyStateHTML('🧾','Noch keine Rechnungen','Rechnungen können direkt erstellt oder aus einem abgeschlossenen Auftrag vorbereitet werden.','Rechnung anlegen','newInvoice()');
+  el.innerHTML=list.length?list.map(inv=>{const c=data.customers.find(x=>x.id===inv.customerId),locked=isInvoiceLocked(inv),type=invoiceTypeLabel(inv),follow=invoiceFollowupActionHTML(inv);return `<div class="item invoiceListCard"><div class="itemTop"><div><span class="badge ${inv.status==='paid'?'done':inv.status==='open'?'sent':inv.status==='cancelled'?'rejected':'draft'}">${invoiceStatusLabel(inv.status)}</span><h3 style="margin-top:8px">${escapeHTML(inv.subject)}</h3><p>${escapeHTML(c?.name||'Unbekannter Kunde')} · ${escapeHTML(inv.number)} · ${type} · ${uiText('fällig')} ${uiDate(inv.dueDate)}</p>${invoiceFollowupStateHTML(inv)}</div><div class="invoiceCardAside"><strong>${invoiceMoney(inv.total,inv)}</strong><button type="button" class="docActionTrigger" aria-label="${uiText('Rechnungsaktionen')}" onclick="openInvoiceActionMenu(event,'${inv.id}')">•••</button></div></div><div class="itemActions">${follow}<button class="btn small" onclick="editInvoice('${inv.id}')">${locked?'Öffnen':'Bearbeiten'}</button><button class="btn small" onclick="previewInvoice('${inv.id}')">PDF</button>${inv.status==='draft'?`<button class="btn small primary" onclick="finalizeInvoiceById('${inv.id}')">🔒 Ausstellen</button>`:`<button class="btn small primary shareInvoiceBtn" onclick="shareInvoicePDF('${inv.id}')">📤 Teilen</button>`}${inv.status==='open'?`<button class="btn small" onclick="markInvoicePaid('${inv.id}')">✓ Bezahlt</button>`:''}${['open','paid'].includes(inv.status)&&inv.documentType!=='cancellation'?`<button class="btn small" onclick="createCorrectionDraft('${inv.id}')">↗ Korrektur</button><button class="btn small danger" onclick="createCancellationDraft('${inv.id}')">↩ Storno</button>`:''}</div></div>`}).join(''):emptyStateHTML('🧾','Noch keine Rechnungen','Rechnungen können direkt erstellt oder aus einem abgeschlossenen Auftrag vorbereitet werden.','Rechnung anlegen','newInvoice()');
 }
 function openInvoiceFollowup(id,kind=''){
   const inv=data.invoices.find(x=>x.id===id);if(!inv)return;kind=kind||invoiceFollowupKind(inv);if(!kind)return toast('Aktuell ist keine Nachfassaktion nötig');const c=data.customers.find(x=>x.id===inv.customerId);if(!c?.email)return toast('Beim Kunden fehlt eine E-Mail-Adresse');
@@ -2527,7 +2734,7 @@ function exportPrivacyData(){const copy={exportedAt:new Date().toISOString(),pri
 function resetAppPrivacy(){openDeleteDataModal()}
 
 const legalDocs={
-privacyPolicy:`DATENSCHUTZHINWEIS – TECHNISCHER ARBEITSSTAND v11.32.14\n\nWICHTIG\nDieser Text bildet den aktuellen technischen Stand von AngebotsPilot ab, ersetzt aber vor dem kommerziellen Start keine individuelle rechtliche Prüfung und muss mit den tatsächlichen Anbieter-, Vertrags- und Subprozessorangaben vervollständigt werden.\n\nVerantwortlicher Betrieb\nDer jeweilige Betrieb entscheidet über Zweck und Nutzung seiner Kunden-, Auftrags-, Rechnungs- und Mitarbeiterdaten und ist für die Rechtmäßigkeit dieser Verarbeitung verantwortlich. AngebotsPilot ist für die im Auftrag gespeicherten Geschäftsdaten technisch als Auftragsverarbeitung ausgelegt. Vor dem öffentlichen Start ist hierfür ein vollständiger AV-/Auftragsbearbeitungsvertrag bereitzustellen.\n\nCloud & Mandantentrennung\nGeschäftsdaten werden mit dem angemeldeten Betriebskonto synchronisiert. Die Datenbank erzwingt eine Trennung nach Betrieb (company_id) und Rollen wie Inhaber, Büro und Mitarbeiter. Das aktuelle Supabase-Projekt ist in der Region Frankfurt eingerichtet. Übertragungen erfolgen verschlüsselt per HTTPS.\n\nBestandskunden-Import\nCSV- und XLSX-Dateien werden beim Import lokal im Browser ausgewertet. Die ursprüngliche Importdatei wird nicht in die Cloud hochgeladen oder dauerhaft gespeichert. Vor dem Speichern zeigt AngebotsPilot eine Vorschau und mögliche Dubletten. Erst nach ausdrücklicher Bestätigung werden die ausgewählten Kundendaten übernommen. Zur Nachvollziehbarkeit wird ein minimiertes Importprotokoll mit Zeitpunkt, Benutzer, Dateiprüfsumme, Format und Anzahlen gespeichert – nicht die Rohdatei. Ein Import erzeugt keine Einwilligung für Werbung oder Newsletter.\n\nE-Mail-Sekretariat\nBei aktivierter Firmen-Mailbox werden E-Mails des verbundenen Kontos verarbeitet, um geschäftliche Vorgänge wie Angebotsantworten, Terminfragen und Kundenanfragen darzustellen. Antworten werden nicht ohne ausdrückliche Nutzeraktion versendet. Zugangsdaten für IMAP/SMTP werden nicht im Browser gespeichert.\n\nBaustellenchat, Moderation, Sprachmemos & optionale KI\nDer Baustellenchat ist auf den jeweiligen Betrieb, die konkrete Baustelle und eingetragene Chat-Teilnehmer beschränkt. Vor dem Erstellen oder Hochladen eigener Chat-Inhalte müssen die aktuellen Chat-Regeln akzeptiert werden. Nutzer können problematische Nachrichten oder Personen melden und andere Nutzer für die eigene Ansicht blockieren. Inhaber/Büro können Meldungen prüfen und den Chat-Zugriff eines Teammitglieds zeitlich beschränken. Meldungen enthalten zur Nachvollziehbarkeit einen begrenzten Snapshot des gemeldeten Inhalts und werden getrennt vom normalen Chatverlauf verarbeitet.\n\nChat-Nachrichten abgeschlossener Baustellen unterliegen einer betrieblichen Aufbewahrungsregel; die technische Voreinstellung beträgt 180 Tage. Bei dokumentiertem Legal Hold wird die automatische Löschung ausgesetzt. In die Baustellenakte übernommene Fotos oder Dokumente sind separate Geschäftsunterlagen und folgen deren eigener Aufbewahrungslogik. Bei Kontolöschung werden nicht aufbewahrungspflichtige Chat-Inhalte standardmäßig entfernt; bei einem erforderlichen Legal Hold wird die Nutzeridentität anonymisiert.\n\nSprachmemos werden im privaten Firmenspeicher abgelegt. Transkription und Übersetzung sind optionale Funktionen: Ohne gesonderte Aktivierung und Einwilligung wird kein Sprachmemo an einen KI-Dienst übertragen. Wird die KI-Funktion aktiviert und vom Nutzer freigegeben, werden die ausgewählte Audioaufnahme bzw. der zu übersetzende Text serverseitig an den konfigurierten KI-Dienst übermittelt. Original-Audio und Originaltext bleiben erhalten; KI-Ergebnisse werden getrennt gekennzeichnet. Angebotsvorschläge werden niemals automatisch gespeichert oder ungeprüft in Kundendokumente übernommen.\n\nKontosicherheit & Passkeys\nFür die lokale automatische App-Sperre wird auf dem jeweiligen Gerät lediglich ein Zeitstempel der letzten Aktivität gespeichert. Bei Passkeys/WebAuthn verarbeitet AngebotsPilot keine biometrischen Rohdaten wie Gesichts- oder Fingerabdruckdaten. Die lokale Nutzerverifikation erfolgt durch Betriebssystem, Gerät oder den gewählten Passkey-Anbieter; an den Authentifizierungsdienst wird nur der kryptografische Nachweis der Anmeldung übermittelt.\n\nWetter & Standort\nWetterdaten und Gerätestandort werden nur nach den in der App vorgesehenen Freigaben verwendet. Standort- oder Baustellenangaben können für Wetterabfragen an den verwendeten Wetterdienst übertragen werden.\n\nExterne Apps und Dienste\nBeim bewussten Öffnen von Karten, Kalender, WhatsApp oder anderen externen Diensten können die vom Nutzer ausgewählten Daten an den jeweiligen Anbieter übertragen werden.\n\nSpeicherung, Berichtigung, Export und Löschung\nAngebotsPilot hält einen lokalen Offline-Stand und synchronisiert freigegebene Geschäftsdaten mit dem Betriebskonto. Daten können berichtigt und als Datenkopie exportiert werden. Die lokale Löschfunktion entfernt nur den Gerätestand. Die Löschung des AngebotsPilot-Benutzerkontos wird separat über einen serverseitig protokollierten Kontolöschauftrag gestartet und ist zusätzlich über die öffentliche Web-Ressource account-deletion.html erreichbar. Nicht aufbewahrungspflichtige Kontodaten und nutzergenerierte Chat-Inhalte werden im Löschprozess entfernt. Falls ein dokumentierter gesetzlicher oder rechtlicher Aufbewahrungsgrund besteht, kann der erforderliche Geschäftsinhalt getrennt weiter aufbewahrt werden; die Nutzeridentität wird dabei soweit möglich anonymisiert. Rechnungen und andere gesetzlich aufzubewahrende Geschäftsunterlagen bleiben von einer vorzeitigen Löschung ausgenommen.\n\nBetroffenenrechte\nDer Betrieb muss Anfragen betroffener Personen zu Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch bzw. den nach dem anwendbaren Recht vorgesehenen Rechten bearbeiten können. AngebotsPilot ist technisch darauf auszurichten, den Betrieb dabei zu unterstützen.\n\nDeutschland / Österreich\nFür personenbezogene Daten gelten insbesondere die DSGVO-Grundsätze wie Zweckbindung, Datenminimierung, Transparenz und Sicherheit. Der Betrieb muss für seine Kundendaten eine passende Rechtsgrundlage haben. Die bloße Migration bestehender Kundendaten in AngebotsPilot schafft keine neue Werbeeinwilligung.\n\nSchweiz\nFür Schweizer Betriebe wird die Verarbeitung zusätzlich nach den Grundsätzen des Schweizer DSG ausgelegt, insbesondere Transparenz, Datenschutz durch Technik und datenschutzfreundliche Voreinstellungen. Der Betrieb bleibt für die Rechtmäßigkeit seiner Datenbearbeitung verantwortlich.\n\nVor kommerziellem Start\nDatenschutzerklärung, AVV/Auftragsbearbeitungsvertrag, Subprozessorliste, internationale Datenübermittlungen, Löschkonzept, Incident-Prozess und die tatsächlichen Unternehmensdaten müssen final geprüft und veröffentlicht werden.`,
+privacyPolicy:`DATENSCHUTZHINWEIS – TECHNISCHER ARBEITSSTAND v11.32.15\n\nWICHTIG\nDieser Text bildet den aktuellen technischen Stand von AngebotsPilot ab, ersetzt aber vor dem kommerziellen Start keine individuelle rechtliche Prüfung und muss mit den tatsächlichen Anbieter-, Vertrags- und Subprozessorangaben vervollständigt werden.\n\nVerantwortlicher Betrieb\nDer jeweilige Betrieb entscheidet über Zweck und Nutzung seiner Kunden-, Auftrags-, Rechnungs- und Mitarbeiterdaten und ist für die Rechtmäßigkeit dieser Verarbeitung verantwortlich. AngebotsPilot ist für die im Auftrag gespeicherten Geschäftsdaten technisch als Auftragsverarbeitung ausgelegt. Vor dem öffentlichen Start ist hierfür ein vollständiger AV-/Auftragsbearbeitungsvertrag bereitzustellen.\n\nCloud & Mandantentrennung\nGeschäftsdaten werden mit dem angemeldeten Betriebskonto synchronisiert. Die Datenbank erzwingt eine Trennung nach Betrieb (company_id) und Rollen wie Inhaber, Büro und Mitarbeiter. Das aktuelle Supabase-Projekt ist in der Region Frankfurt eingerichtet. Übertragungen erfolgen verschlüsselt per HTTPS.\n\nBestandskunden-Import\nCSV- und XLSX-Dateien werden beim Import lokal im Browser ausgewertet. Die ursprüngliche Importdatei wird nicht in die Cloud hochgeladen oder dauerhaft gespeichert. Vor dem Speichern zeigt AngebotsPilot eine Vorschau und mögliche Dubletten. Erst nach ausdrücklicher Bestätigung werden die ausgewählten Kundendaten übernommen. Zur Nachvollziehbarkeit wird ein minimiertes Importprotokoll mit Zeitpunkt, Benutzer, Dateiprüfsumme, Format und Anzahlen gespeichert – nicht die Rohdatei. Ein Import erzeugt keine Einwilligung für Werbung oder Newsletter.\n\nE-Mail-Sekretariat\nBei aktivierter Firmen-Mailbox werden E-Mails des verbundenen Kontos verarbeitet, um geschäftliche Vorgänge wie Angebotsantworten, Terminfragen und Kundenanfragen darzustellen. Antworten werden nicht ohne ausdrückliche Nutzeraktion versendet. Zugangsdaten für IMAP/SMTP werden nicht im Browser gespeichert.\n\nBaustellenchat, Moderation, Sprachmemos & optionale KI\nDer Baustellenchat ist auf den jeweiligen Betrieb, die konkrete Baustelle und eingetragene Chat-Teilnehmer beschränkt. Vor dem Erstellen oder Hochladen eigener Chat-Inhalte müssen die aktuellen Chat-Regeln akzeptiert werden. Nutzer können problematische Nachrichten oder Personen melden und andere Nutzer für die eigene Ansicht blockieren. Inhaber/Büro können Meldungen prüfen und den Chat-Zugriff eines Teammitglieds zeitlich beschränken. Meldungen enthalten zur Nachvollziehbarkeit einen begrenzten Snapshot des gemeldeten Inhalts und werden getrennt vom normalen Chatverlauf verarbeitet.\n\nChat-Nachrichten abgeschlossener Baustellen unterliegen einer betrieblichen Aufbewahrungsregel; die technische Voreinstellung beträgt 180 Tage. Bei dokumentiertem Legal Hold wird die automatische Löschung ausgesetzt. In die Baustellenakte übernommene Fotos oder Dokumente sind separate Geschäftsunterlagen und folgen deren eigener Aufbewahrungslogik. Bei Kontolöschung werden nicht aufbewahrungspflichtige Chat-Inhalte standardmäßig entfernt; bei einem erforderlichen Legal Hold wird die Nutzeridentität anonymisiert.\n\nSprachmemos werden im privaten Firmenspeicher abgelegt. Transkription und Übersetzung sind optionale Funktionen: Ohne gesonderte Aktivierung und Einwilligung wird kein Sprachmemo an einen KI-Dienst übertragen. Wird die KI-Funktion aktiviert und vom Nutzer freigegeben, werden die ausgewählte Audioaufnahme bzw. der zu übersetzende Text serverseitig an den konfigurierten KI-Dienst übermittelt. Original-Audio und Originaltext bleiben erhalten; KI-Ergebnisse werden getrennt gekennzeichnet. Angebotsvorschläge werden niemals automatisch gespeichert oder ungeprüft in Kundendokumente übernommen.\n\nKontosicherheit & Passkeys\nFür die lokale automatische App-Sperre wird auf dem jeweiligen Gerät lediglich ein Zeitstempel der letzten Aktivität gespeichert. Bei Passkeys/WebAuthn verarbeitet AngebotsPilot keine biometrischen Rohdaten wie Gesichts- oder Fingerabdruckdaten. Die lokale Nutzerverifikation erfolgt durch Betriebssystem, Gerät oder den gewählten Passkey-Anbieter; an den Authentifizierungsdienst wird nur der kryptografische Nachweis der Anmeldung übermittelt.\n\nWetter & Standort\nWetterdaten und Gerätestandort werden nur nach den in der App vorgesehenen Freigaben verwendet. Standort- oder Baustellenangaben können für Wetterabfragen an den verwendeten Wetterdienst übertragen werden.\n\nExterne Apps und Dienste\nBeim bewussten Öffnen von Karten, Kalender, WhatsApp oder anderen externen Diensten können die vom Nutzer ausgewählten Daten an den jeweiligen Anbieter übertragen werden.\n\nSpeicherung, Berichtigung, Export und Löschung\nAngebotsPilot hält einen lokalen Offline-Stand und synchronisiert freigegebene Geschäftsdaten mit dem Betriebskonto. Daten können berichtigt und als Datenkopie exportiert werden. Die lokale Löschfunktion entfernt nur den Gerätestand. Die Löschung des AngebotsPilot-Benutzerkontos wird separat über einen serverseitig protokollierten Kontolöschauftrag gestartet und ist zusätzlich über die öffentliche Web-Ressource account-deletion.html erreichbar. Nicht aufbewahrungspflichtige Kontodaten und nutzergenerierte Chat-Inhalte werden im Löschprozess entfernt. Falls ein dokumentierter gesetzlicher oder rechtlicher Aufbewahrungsgrund besteht, kann der erforderliche Geschäftsinhalt getrennt weiter aufbewahrt werden; die Nutzeridentität wird dabei soweit möglich anonymisiert. Rechnungen und andere gesetzlich aufzubewahrende Geschäftsunterlagen bleiben von einer vorzeitigen Löschung ausgenommen.\n\nBetroffenenrechte\nDer Betrieb muss Anfragen betroffener Personen zu Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch bzw. den nach dem anwendbaren Recht vorgesehenen Rechten bearbeiten können. AngebotsPilot ist technisch darauf auszurichten, den Betrieb dabei zu unterstützen.\n\nDeutschland / Österreich\nFür personenbezogene Daten gelten insbesondere die DSGVO-Grundsätze wie Zweckbindung, Datenminimierung, Transparenz und Sicherheit. Der Betrieb muss für seine Kundendaten eine passende Rechtsgrundlage haben. Die bloße Migration bestehender Kundendaten in AngebotsPilot schafft keine neue Werbeeinwilligung.\n\nSchweiz\nFür Schweizer Betriebe wird die Verarbeitung zusätzlich nach den Grundsätzen des Schweizer DSG ausgelegt, insbesondere Transparenz, Datenschutz durch Technik und datenschutzfreundliche Voreinstellungen. Der Betrieb bleibt für die Rechtmäßigkeit seiner Datenbearbeitung verantwortlich.\n\nVor kommerziellem Start\nDatenschutzerklärung, AVV/Auftragsbearbeitungsvertrag, Subprozessorliste, internationale Datenübermittlungen, Löschkonzept, Incident-Prozess und die tatsächlichen Unternehmensdaten müssen final geprüft und veröffentlicht werden.`,
 imprint:`IMPRESSUM – ENTWURF\n\nAngaben gemäß den für den Anbieter geltenden Vorschriften\n${data.settings.companyName||'[Firmenname]'}\n${data.settings.ownerName||'[Vertretungsberechtigte Person]'}\n${data.settings.address||'[Vollständige Anschrift]'}\n\nKontakt\nTelefon: ${data.settings.phone||'[Telefon]'}\nE-Mail: ${data.settings.email||'[E-Mail]'}\n\nWeitere Pflichtangaben\n[Rechtsform, Register, Registernummer, UID/USt-ID/MWST-Nr., zuständige Kammer oder Berufsangaben ergänzen, soweit zutreffend.]\n\nHinweis\nVor Veröffentlichung ist das Impressum nach Sitzland (DE/AT/CH) und Rechtsform des tatsächlichen AngebotsPilot-Betreibers zu finalisieren.`,
 terms:`NUTZUNGSBEDINGUNGEN – TECHNISCHER ENTWURF\n\n1. Zweck\nAngebotsPilot unterstützt Betriebe bei Kundenverwaltung, Angeboten, Terminen, Baustellen, E-Mail-Kommunikation, Rechnungen, Dokumentation und internen Arbeitsabläufen.\n\n2. Verantwortung des Betriebs\nDer Betrieb bleibt für die Rechtmäßigkeit seiner Kundendaten, Inhalte, Preise, Rechnungsangaben, Steuerbehandlung und versendeten Nachrichten verantwortlich. AngebotsPilot ersetzt keine individuelle Rechts-, Steuer- oder Berufsberatung.\n\n3. Bestandskunden-Import\nImportiert werden nur vom Nutzer ausgewählte Daten. Mögliche Dubletten werden vor dem Import gekennzeichnet. Der Import ist kein Nachweis einer Werbeeinwilligung.\n\n4. Automatisierung\nVorbereitete Antworten, Termine, Rechnungsaktionen und ähnliche Vorgänge werden nur entsprechend der in der App ausgewiesenen Freigabelogik ausgeführt. Sicherheits- und Compliance-Prüfungen reduzieren Fehler, stellen aber keine behördliche oder anwaltliche Zertifizierung dar.\n\n5. Baustellenchat und zulässige Inhalte\nDer Baustellenchat dient ausschließlich der betrieblichen Zusammenarbeit. Vor dem ersten Senden oder Hochladen müssen die aktuellen Chat-Regeln akzeptiert werden. Untersagt sind insbesondere Drohungen, Belästigung, diskriminierende oder sexuell anstößige Inhalte, illegale Inhalte, Schadsoftware, Spam sowie die unnötige Veröffentlichung privater oder sensibler Daten. Nutzer können Inhalte und Personen melden und andere Nutzer für die eigene Ansicht blockieren. Inhaber/Büro dürfen Meldungen prüfen und bei Bedarf zeitlich begrenzte Chat-Sperren verhängen.\n\n6. Aufbewahrung und Kontolöschung\nChat-Inhalte abgeschlossener Baustellen werden nach der betrieblich festgelegten Frist gelöscht, soweit kein dokumentierter Aufbewahrungsgrund besteht. In die Baustellenakte übernommene Geschäftsunterlagen sind davon getrennt. Bei Kontolöschung werden nicht aufbewahrungspflichtige nutzergenerierte Inhalte entfernt; erforderliche Nachweise können nur im notwendigen Umfang und möglichst anonymisiert weiter aufbewahrt werden.\n\n7. KI-Sprachfunktionen\nTranskriptionen, Übersetzungen und aus Sprachmemos erzeugte Angebotsformulierungen sind Vorschläge und können Fehler enthalten. Originalinhalte bleiben maßgeblich. KI-Vorschläge werden nicht automatisch in Angebote übernommen oder gespeichert; der Nutzer muss die Übernahme ausdrücklich auslösen und Inhalte, Mengen, Leistungen und Preise selbst prüfen.\n\n8. Sicherheit und Verfügbarkeit\nDer Anbieter setzt technische und organisatorische Schutzmaßnahmen ein. Für den kommerziellen Betrieb sind Backup-, Wiederherstellungs-, Incident- und Verfügbarkeitsregeln vertraglich festzulegen.`,
 architecture:`DATENSCHUTZ- UND SICHERHEITSARCHITEKTUR – AKTUELLER STAND\n\n• Mandantentrennung je Betrieb über company_id und Row Level Security\n• Rollen Inhaber / Büro / Mitarbeiter serverseitig berücksichtigt\n• HTTPS und Supabase Auth\n• Cloud-Projekt in Frankfurt\n• Lokaler Offline-Stand plus Cloud-Synchronisierung\n• Firmen-Mailbox mit serverseitig geschützten Zugangsdaten\n• Keine automatische E-Mail ohne Nutzerfreigabe\n• Bestandskunden-Dateien werden lokal geparst und nicht als Rohdatei gespeichert\n• Import-Vorschau, Dublettenprüfung, ausdrückliche Bestätigung und minimiertes Importprotokoll\n• Strukturierte E-Rechnungen und Compliance-Prüfungen für DE/AT/CH\n• Finalisierte Rechnungen und Abnahmeprotokolle gegen stille Änderung geschützt\n• Export- und Löschfunktionen für personenbezogene Arbeitsdaten; gesetzliche Aufbewahrung bleibt vorbehalten\n• Servergestützte Datenschutz-Anfragen mit Status, Aufbewahrungsvorbehalt und Audit-Trail\n• Baustellenchat mit RLS: nur eingetragene Teilnehmer; Mitarbeiter automatisch über Baustellenzuweisung, Chef/Büro gezielt\n• Private Chat-Dateien mit participant-/block-aware Storage-RLS; referenzierte Chat-Anhänge sind nicht clientseitig löschbar\n• Chat-Regel-Zustimmung vor UGC-Erstellung; serverseitiger Baseline-Inhaltsfilter\n• In-App-Melden, Nutzerblockierung und Moderationscenter mit zeitlich begrenzter Chat-Sperre\n• 180-Tage-Standardaufbewahrung für abgeschlossene Baustellen, konfigurierbar; Legal Hold setzt automatische Löschung aus\n• Kontolöschung entfernt nicht aufbewahrungspflichtige Chat-UGC; Legal-Hold-Inhalte werden anonymisiert\n• Sprachmemos funktionieren ohne KI; KI-Transkription/Übersetzung nur nach serverseitiger Aktivierung und Nutzereinwilligung\n• KI-Schlüssel ausschließlich serverseitig; Rate-/Tageslimits und Nutzungsprotokoll vorbereitet\n• Keine automatische Übernahme von KI-Angebotsvorschlägen in Kundendokumente\n• Keine KI-Übertragung im aktuellen Kernworkflow ohne gesonderte Aktivierung\n\nVOR ÖFFENTLICHEM LAUNCH\n• AVV / Auftragsbearbeitungsvertrag für Kunden\n• Verträge und Subprozessorliste für Hosting/Mail/weitere Dienste\n• Vollständige Datenschutzerklärung für DE/AT/CH-Zielmarkt\n• Lösch- und Aufbewahrungskonzept je Datenkategorie\n• Incident-/Data-Breach-Prozess\n• Regelmäßige Backups und Restore-Tests\n• Passkeys / MFA / Geräteverwaltung\n• Sicherheits- und Penetrationstests\n• Prüfung, ob für einzelne risikoreiche Verarbeitungen eine DSFA erforderlich ist\n• Finale rechtliche und steuerliche Prüfung vor Bezahl-Launch`};
@@ -2710,6 +2917,8 @@ globalThis.applyRoleUI=applyRoleUI;
 ['jobDurationValue','jobStartTime','jobStart'].forEach(id=>document.getElementById(id)?.addEventListener('input',syncJobDurationUI));
 applyRoleUI();
 renderAll();
+initAddressAutocomplete();
+document.addEventListener('ap-language-changed',()=>{if(apAddressState.panel&&!apAddressState.panel.classList.contains('hidden'))closeAddressSuggestions()});
 setTimeout(()=>{if(shouldShowOnboarding())openOnboarding();},120);
 setTimeout(()=>{
   const place=(data.settings?.weatherLocation||data.settings?.address||'').trim();
