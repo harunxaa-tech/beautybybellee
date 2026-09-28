@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.13 – global fuzzy Smart Search (offline, no AI costs). */
+/* AngebotsPilot v11.32.14 – global fuzzy Smart Search (offline, no AI costs). */
 (function(){
   'use strict';
 
