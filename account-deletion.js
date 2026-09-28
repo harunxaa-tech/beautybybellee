@@ -1,9 +1,9 @@
-/* AngebotsPilot v11.32.11 – Store-konformer Kontolöschauftrag.
+/* AngebotsPilot v11.32.13 – Store-konformer Kontolöschauftrag.
    Die endgültige Löschung wird serverseitig verarbeitet; gesetzliche Aufbewahrung bleibt vorbehalten. */
 (function installAccountDeletion(){
   'use strict';
 
-  const VERSION='11.32.11';
+  const VERSION='11.32.13';
   const FLAG='__AP_ACCOUNT_DELETION_11_32_1__';
   if(globalThis[FLAG])return;
   globalThis[FLAG]=true;
@@ -15,7 +15,7 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const ctx=()=>{try{return globalThis.APCloudContext?.()||null}catch(e){return null}};
   const notify=(text,tone='info')=>{try{globalThis.toast?.(text,tone)}catch(e){console.log(text)}};
-  const fmt=v=>{if(!v)return'–';try{return new Date(v).toLocaleString('de-DE')}catch(e){return String(v)}};
+  const fmt=v=>{if(!v)return'–';try{return new Date(v).toLocaleString(globalThis.API18n?.locale?.()||'de-DE')}catch(e){return String(v)}};
   const pending=s=>['requested','in_review'].includes(String(s||''));
 
   function ensureStyles(){

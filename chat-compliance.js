@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.11 – Chat Store & Legal Hardening */
+/* AngebotsPilot v11.32.13 – Chat Store & Legal Hardening */
 (function(){
   'use strict';
   const POLICY_VERSION='2026-09-24.1';
@@ -153,7 +153,7 @@
     ]);if(rErr||mErr)throw rErr||mErr;
     const names=new Map((members||[]).map(m=>[m.user_id,m.display_name||m.email||'Teammitglied']));const list=q('chatModerationList'),meta=q('chatModerationMeta');if(meta)meta.textContent=`${(reports||[]).length} offen`;
     if(!list)return;if(!(reports||[]).length){list.innerHTML='<div class="empty">Keine offenen Meldungen.</div>';return}
-    list.innerHTML=(reports||[]).map(r=>`<div class="chatModerationRow" data-report-id="${r.id}"><div><b>${esc(names.get(r.reported_user_id)||'Inhalt')}</b><small>${esc(r.category)} · ${new Date(r.created_at).toLocaleString('de-DE')}</small><p>${esc(r.details||r.content_snapshot?.body||'Meldung ohne Zusatztext')}</p></div><div class="chatModerationActions"><button type="button" data-chat-safety-action="review-report" data-report-id="${r.id}">Prüfen</button>${r.reported_user_id?`<button type="button" class="danger" data-chat-safety-action="suspend-user" data-report-id="${r.id}" data-user-id="${r.reported_user_id}">24 h sperren</button>`:''}<button type="button" data-chat-safety-action="dismiss-report" data-report-id="${r.id}">Abweisen</button></div></div>`).join('');
+    list.innerHTML=(reports||[]).map(r=>`<div class="chatModerationRow" data-report-id="${r.id}"><div><b>${esc(names.get(r.reported_user_id)||'Inhalt')}</b><small>${esc(r.category)} · ${new Date(r.created_at).toLocaleString(globalThis.API18n?.locale?.()||'de-DE')}</small><p>${esc(r.details||r.content_snapshot?.body||'Meldung ohne Zusatztext')}</p></div><div class="chatModerationActions"><button type="button" data-chat-safety-action="review-report" data-report-id="${r.id}">Prüfen</button>${r.reported_user_id?`<button type="button" class="danger" data-chat-safety-action="suspend-user" data-report-id="${r.id}" data-user-id="${r.reported_user_id}">24 h sperren</button>`:''}<button type="button" data-chat-safety-action="dismiss-report" data-report-id="${r.id}">Abweisen</button></div></div>`).join('');
   }
 
   async function moderate(action,reportId,userId=''){

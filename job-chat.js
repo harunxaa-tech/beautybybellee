@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.11 – Baustellenchat */
+/* AngebotsPilot v11.32.13 – Baustellenchat */
 (function(){
   'use strict';
   const q=id=>document.getElementById(id);

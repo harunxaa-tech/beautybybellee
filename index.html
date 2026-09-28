@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="AngebotsPilot">
 <script>try{const saved=localStorage.getItem('dh_theme');const light=saved?saved==='light':window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches;document.documentElement.classList.toggle('light',!!light)}catch(e){}</script>
 <style id="v11322UxFixes">
-/* v11.32.11 – Mobile-/Angebots-UX + mehrsprachige Oberfläche */
+/* v11.32.13 – Mobile-/Angebots-UX + mehrsprachige Oberfläche */
 #offerDate{width:100%;min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none}
 .offerPlanningRow,.offerPlanningRow>.field,.offerDetailField{min-width:0}
 body.offerEditing .bottomNav{display:none!important}
@@ -30,11 +30,56 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
 .offerAcceptanceBlock{margin-top:22px;padding-top:16px;border-top:1px solid rgba(127,127,127,.25)}.offerAcceptanceBlock>p{margin:5px 0;line-height:1.45}.offerSignatureGrid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px}.offerSignatureLine{border-top:1px solid currentColor;padding-top:6px;font-size:.7rem;color:#666}
 @media print{.paperTable tr,.paperTable tbody tr,.proSummary,.offerAcceptanceBlock,.offerSignatureGrid,.proTotals{break-inside:avoid!important;page-break-inside:avoid!important}.paperTable{break-inside:auto!important;page-break-inside:auto!important}.offerPaper{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 </style>
-<link rel="stylesheet" href="style.css?v=11.32.11">
-<link rel="stylesheet" href="subscription.css?v=11.32.11">
-<link rel="stylesheet" href="chat-voice.css?v=11.32.11">
-<link rel="stylesheet" href="smart-search.css?v=11.32.11">
-<link rel="manifest" href="manifest.json?v=11.32.11">
+
+<style id="v113212LocalizationLayout">
+/* v11.32.13 – localization-safe mobile layout */
+html[data-ui-language] body,html[data-ui-language] button,html[data-ui-language] input,html[data-ui-language] select,html[data-ui-language] textarea{font-kerning:normal}
+html[data-ui-language] .btn,html[data-ui-language] .quick,html[data-ui-language] .item,html[data-ui-language] .card,html[data-ui-language] .field,html[data-ui-language] .row>*,html[data-ui-language] .row3>*,html[data-ui-language] .sectionTitle>*,html[data-ui-language] .itemTop>*,html[data-ui-language] .actions>*{min-width:0}
+html[data-ui-language] .btn{max-width:100%;overflow-wrap:anywhere;line-height:1.18}
+html[data-ui-language] .sectionTitle h2,html[data-ui-language] .card h2,html[data-ui-language] .card h3,html[data-ui-language] .item h3,html[data-ui-language] label,html[data-ui-language] small,html[data-ui-language] p{overflow-wrap:anywhere}
+html[data-ui-language] select,html[data-ui-language] input,html[data-ui-language] textarea{min-width:0;max-width:100%}
+html[data-ui-language] .tabs,html[data-ui-language] .filterPills,html[data-ui-language] .pickerTabs,html[data-ui-language] .pickerCategories{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+html[data-ui-language] .tabs::-webkit-scrollbar,html[data-ui-language] .filterPills::-webkit-scrollbar,html[data-ui-language] .pickerTabs::-webkit-scrollbar,html[data-ui-language] .pickerCategories::-webkit-scrollbar{display:none}
+html[data-ui-language] .tab,html[data-ui-language] .pickerTab,html[data-ui-language] .categoryChip{flex:0 0 auto;max-width:min(78vw,320px);text-overflow:ellipsis;overflow:hidden}
+html[data-ui-language] .bottomNav .navBtn{min-width:0;padding-inline:2px;line-height:1.12}
+html[data-ui-language] .bottomNav .navBtn span,html[data-ui-language] .bottomNav .navBtn small{display:block;overflow:hidden;text-overflow:ellipsis}
+html[data-ui-language] .switchRow>div,html[data-ui-language] .jobChatParticipantRow>div,html[data-ui-language] .subscriptionPaymentRow>div{min-width:0}
+html[data-ui-language] .offerMenuPopover,html[data-ui-language] .miniModal,html[data-ui-language] .bottomSheet{max-width:calc(100vw - 16px)}
+@media(max-width:430px){
+  html[data-ui-language]:not([data-ui-language="de"]) .btn{padding-inline:10px}
+  html[data-ui-language]:not([data-ui-language="de"]) .btn.small{font-size:11px;padding-inline:8px}
+  html[data-ui-language="pl"] .navBtn,html[data-ui-language="ro"] .navBtn,html[data-ui-language="fr"] .navBtn,html[data-ui-language="it"] .navBtn,html[data-ui-language="tr"] .navBtn{font-size:9px}
+  html[data-ui-language] .sectionTitle{align-items:flex-start;flex-wrap:wrap}
+  html[data-ui-language] .sectionTitleActions{max-width:100%;display:flex;flex-wrap:wrap;gap:6px}
+  html[data-ui-language] .actions .btn{flex:1 1 140px;white-space:normal}
+  html[data-ui-language] .choiceRow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  html[data-ui-language] .choice{min-width:0;white-space:normal;overflow-wrap:anywhere}
+  html[data-ui-language] .subscriptionStatusHead>div:nth-child(2){min-width:0}
+  html[data-ui-language] .jobChatViewTitleWrap h2{font-size:1.04rem}
+}
+@media(max-width:360px){
+  html[data-ui-language] .app{padding-left:8px;padding-right:8px}
+  html[data-ui-language] .top{gap:4px}
+  html[data-ui-language] .brand{min-width:0}
+  html[data-ui-language] .brand h1{font-size:20px;white-space:nowrap}
+  html[data-ui-language] .brand small{font-size:8px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:118px}
+  html[data-ui-language] .topActions{gap:3px;flex:0 0 auto}
+  html[data-ui-language] .topActions .iconBtn{width:40px;min-width:40px;min-height:40px;padding:0;border-radius:12px}
+}
+@media(max-width:335px){
+  html[data-ui-language] .brand h1{font-size:19px}
+  html[data-ui-language] .topActions .iconBtn{width:38px;min-width:38px;min-height:38px}
+  html[data-ui-language] .quickGrid,html[data-ui-language] .officeQuickGrid{grid-template-columns:1fr}
+  html[data-ui-language] .stats{grid-template-columns:1fr 1fr}
+  html[data-ui-language] .bottomNav{gap:0;padding-inline:4px}
+  html[data-ui-language] .navBtn{font-size:8px}
+}
+</style>
+<link rel="stylesheet" href="style.css?v=11.32.13">
+<link rel="stylesheet" href="subscription.css?v=11.32.13">
+<link rel="stylesheet" href="chat-voice.css?v=11.32.13">
+<link rel="stylesheet" href="smart-search.css?v=11.32.13">
+<link rel="manifest" href="manifest.json?v=11.32.13">
 <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
@@ -202,6 +247,7 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
 <section class="screen" id="more">
 <div class="sectionTitle"><h2>Mehr</h2><span>Einstellungen & Werkzeuge</span></div>
 <div class="quickGrid">
+<button class="quick" id="moreLanguageQuick" type="button" onclick="openAppLanguagePicker()"><span class="emoji">🌐</span><b>App-Sprache</b><small id="moreLanguageQuickLabel">Deutsch · jederzeit änderbar</small></button>
 <button class="quick cloudQuick" onclick="openCloudAccount()"><span class="emoji">☁️</span><b>Konto & Cloud</b><small id="cloudQuickStatus">Noch nicht verbunden</small></button>
 <button class="quick owner-only" onclick="openSubscription()"><span class="emoji">💳</span><b>Abo & Abrechnung</b><small id="subscriptionQuickStatus">Tarif, Zahlungen & Belege</small></button>
 <button class="quick" onclick="openNotifications()"><span class="emoji">🔔</span><b>Benachrichtigungen <span id="moreNotificationBadge" class="miniInlineBadge hidden" hidden>0</span></b><small>Push & wichtige Hinweise</small></button>
@@ -217,7 +263,7 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
 </div>
 <div class="card introHub" style="margin-top:14px">
   <h3 style="margin:0 0 6px">App-Einführung</h3>
-  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.32.11</span></div>
+  <p class="mini">Du kannst dir die App jederzeit noch einmal erklären lassen.</p><div class="versionBadge">Version <span data-app-build>11.32.13</span></div>
   <div class="introButtons">
     <button class="btn primary" id="startAppTourBtn" type="button">🧭 Ganze App kurz erklären</button>
   </div>
@@ -288,7 +334,7 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
   <div class="sectionTitle secretariatPageTitle"><div><div class="eyebrow appEyebrow">DEIN BÜRO</div><h2>Sekretariat</h2><p class="mini">Wichtige Kundenmails zuerst. Antworten gehen erst nach deiner Freigabe raus.</p></div><button class="btn small" onclick="showScreen('more')">Zurück</button></div>
 
   <div class="card secretariatControlCard">
-    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.32.11</span></span></div>
+    <div class="secretariatControlTop"><div class="emailAssistantIntroIcon">🛡️</div><div><span class="securityBadge">SICHERER FREIGABEMODUS</span><h3>Die Sekretärin bereitet vor – du entscheidest</h3></div><span class="secretariatBuildBadge">v<span data-app-build>11.32.13</span></span></div>
     <div class="secretariatTrustChips"><span>✓ Nichts wird gelöscht</span><span>✓ Unklare Mails bleiben sichtbar</span><span>✓ Versand nur nach Freigabe</span></div>
     <p class="mini secretariatLocaleLine" id="emailCorrespondenceLocale">🇩🇪 Antwortstil: Deutschland · automatisch nach Firmenland</p>
   </div>
@@ -374,6 +420,7 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
       </div>
     </div>
     <div class="field"><label>Name</label><input class="input" id="teamInviteName" placeholder="z. B. Max Mustermann"></div>
+    <div class="field"><label>Startsprache</label><select id="teamInviteLanguage" aria-label="Startsprache"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="ro">Română</option><option value="hr">Hrvatski</option><option value="bs">Bosanski</option><option value="sr">Srpski</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option></select><small>Die Einladung öffnet sich in dieser Sprache. Die Person kann sie später selbst ändern.</small></div>
     <div class="field"><label>Rolle</label>
       <div class="teamRolePicker">
         <button type="button" class="active" data-teamrole="worker" onclick="selectInviteRole('worker')"><span>🛠️</span><b>Mitarbeiter</b><small>Baustellenbereich</small></button>
@@ -1463,35 +1510,35 @@ body.offerEditing #offerEditor{padding-bottom:calc(96px + env(safe-area-inset-bo
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="printArea"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="cloud-config.js?v=11.32.11" defer></script>
-<script src="country-config.js?v=11.32.11" defer></script>
-<script src="i18n.js?v=11.32.11" defer></script>
-<script src="data-repository.js?v=11.32.11" defer></script>
-<script src="einvoice.js?v=11.32.11" defer></script>
-<script src="script.js?v=11.32.11" defer></script>
-<script src="smart-search.js?v=11.32.11" defer></script>
-<script src="customer-import.js?v=11.32.11" defer></script>
-<script src="cloud-files.js?v=11.32.11" defer></script>
-<script src="cloud-sync.js?v=11.32.11" defer></script>
-<script src="team.js?v=11.32.11" defer></script>
-<script src="assignments.js?v=11.32.11" defer></script>
-<script src="time-tracking.js?v=11.32.11" defer></script>
-<script src="notifications.js?v=11.32.11" defer></script>
-<script src="voice-core.js?v=11.32.11" defer></script>
-<script src="chat-compliance.js?v=11.32.11" defer></script>
-<script src="job-chat.js?v=11.32.11" defer></script>
-<script src="offer-voice.js?v=11.32.11" defer></script>
-<script src="mail-hub.js?v=11.32.11" defer></script>
-<script src="email-assistant.js?v=11.32.11" defer></script>
-<script src="acceptance.js?v=11.32.11" defer></script>
-<script src="privacy-ops.js?v=11.32.11" defer></script>
-<script src="account-deletion.js?v=11.32.11" defer></script>
-<script src="custom-selects.js?v=11.32.11" defer></script>
-<script src="security.js?v=11.32.11" defer></script>
-<script src="onboarding-setup.js?v=11.32.11" defer></script>
-<script src="cloud-auth.js?v=11.32.11" defer></script>
-<script src="subscription.js?v=11.32.11" defer></script>
-<script src="store-billing.js?v=11.32.11" defer></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.32.11").catch(()=>{}));}</script>
+<script src="cloud-config.js?v=11.32.13" defer></script>
+<script src="country-config.js?v=11.32.13" defer></script>
+<script src="i18n.js?v=11.32.13" defer></script>
+<script src="data-repository.js?v=11.32.13" defer></script>
+<script src="einvoice.js?v=11.32.13" defer></script>
+<script src="script.js?v=11.32.13" defer></script>
+<script src="smart-search.js?v=11.32.13" defer></script>
+<script src="customer-import.js?v=11.32.13" defer></script>
+<script src="cloud-files.js?v=11.32.13" defer></script>
+<script src="cloud-sync.js?v=11.32.13" defer></script>
+<script src="team.js?v=11.32.13" defer></script>
+<script src="assignments.js?v=11.32.13" defer></script>
+<script src="time-tracking.js?v=11.32.13" defer></script>
+<script src="notifications.js?v=11.32.13" defer></script>
+<script src="voice-core.js?v=11.32.13" defer></script>
+<script src="chat-compliance.js?v=11.32.13" defer></script>
+<script src="job-chat.js?v=11.32.13" defer></script>
+<script src="offer-voice.js?v=11.32.13" defer></script>
+<script src="mail-hub.js?v=11.32.13" defer></script>
+<script src="email-assistant.js?v=11.32.13" defer></script>
+<script src="acceptance.js?v=11.32.13" defer></script>
+<script src="privacy-ops.js?v=11.32.13" defer></script>
+<script src="account-deletion.js?v=11.32.13" defer></script>
+<script src="custom-selects.js?v=11.32.13" defer></script>
+<script src="security.js?v=11.32.13" defer></script>
+<script src="onboarding-setup.js?v=11.32.13" defer></script>
+<script src="cloud-auth.js?v=11.32.13" defer></script>
+<script src="subscription.js?v=11.32.13" defer></script>
+<script src="store-billing.js?v=11.32.13" defer></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js?v=11.32.13").catch(()=>{}));}</script>
 </body>
 </html>
