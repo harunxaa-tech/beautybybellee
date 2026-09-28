@@ -1,6 +1,6 @@
 workflows:
   angebotspilot-ios-smoke:
-    name: AngebotsPilot iOS – Native v0.3.6 Store Billing Smoke Build
+    name: AngebotsPilot iOS – Native v0.4.0 Store Billing Smoke Build
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
@@ -11,7 +11,7 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           rm -rf native
-          unzip -q AngebotsPilot-Native-Source-v0.3.6.zip -d .
+          unzip -q AngebotsPilot-Native-Source-v0.4.0.zip -d .
       - name: Install Capacitor dependencies
         script: |
           cd "$CM_BUILD_DIR/native"
@@ -32,6 +32,8 @@ workflows:
           npx cap sync ios
           npm run prepare:ios
           npx cap ls ios
+          grep -q "angebotspilot" ios/App/App/Info.plist
+          grep -q "MARKETING_VERSION = 0.4.0" ios/App/App.xcodeproj/project.pbxproj
       - name: Build unsigned iOS simulator app
         script: |
           cd "$CM_BUILD_DIR/native/ios/App"
@@ -48,7 +50,7 @@ workflows:
       - native/ios/App/build/Build/Products/Debug-iphonesimulator/App.app/**
 
   angebotspilot-android-smoke:
-    name: AngebotsPilot Android – Native v0.3.6 Play Billing Smoke Build
+    name: AngebotsPilot Android – Native v0.4.0 Play Billing Smoke Build
     instance_type: linux_x2
     max_build_duration: 60
     environment:
@@ -60,7 +62,7 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           rm -rf native
-          unzip -q AngebotsPilot-Native-Source-v0.3.6.zip -d .
+          unzip -q AngebotsPilot-Native-Source-v0.4.0.zip -d .
       - name: Install Capacitor dependencies
         script: |
           cd "$CM_BUILD_DIR/native"
@@ -82,6 +84,8 @@ workflows:
           npm run prepare:android
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           npx cap ls android
+          grep -q 'android:scheme="angebotspilot"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:windowSoftInputMode="adjustResize"' android/app/src/main/AndroidManifest.xml
       - name: Build unsigned Android debug APK
         script: |
           cd "$CM_BUILD_DIR/native/android"
