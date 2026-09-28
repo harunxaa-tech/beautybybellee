@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.15 – zentrale Datenspeicher-Schicht
+/* AngebotsPilot v11.32.16 – zentrale Datenspeicher-Schicht
    Lokaler Browser-Speicher + kontrollierter Cloud-Adapter.
    v11.32.5 verhindert unnötige Cloud-Vollschreibvorgänge ohne fachliche Datenänderung. */
 (function(){

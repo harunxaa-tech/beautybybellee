@@ -1,9 +1,9 @@
-const CACHE='angebotspilot-v11-32-15';
+const CACHE='angebotspilot-v11-32-16';
 const ASSETS=[
-  './','./index.html','./style.css?v=11.32.15','./subscription.css?v=11.32.15','./chat-voice.css?v=11.32.15','./smart-search.css?v=11.32.15','./cloud-config.js?v=11.32.15',
-  './country-config.js?v=11.32.15','./i18n.js?v=11.32.15','./data-repository.js?v=11.32.15','./einvoice.js?v=11.32.15','./compliance-v1131.js?v=11.32.15','./compliance-v113108.js?v=11.32.15','./compliance-v113128.js?v=11.32.15','./compliance-v113131.js?v=11.32.15','./script.js?v=11.32.15','./smart-search.js?v=11.32.15','./customer-import.js?v=11.32.15','./cloud-files.js?v=11.32.15','./cloud-sync.js?v=11.32.15',
-  './team.js?v=11.32.15','./assignments.js?v=11.32.15','./time-tracking.js?v=11.32.15','./notifications.js?v=11.32.15','./voice-core.js?v=11.32.15','./chat-compliance.js?v=11.32.15','./job-chat.js?v=11.32.15','./offer-voice.js?v=11.32.15','./mail-hub.js?v=11.32.15','./email-assistant.js?v=11.32.15','./acceptance.js?v=11.32.15','./privacy-ops.js?v=11.32.15','./account-deletion.js?v=11.32.15','./account-deletion.html','./custom-selects.js?v=11.32.15',
-  './security.js?v=11.32.15','./onboarding-setup.js?v=11.32.15','./cloud-auth.js?v=11.32.15','./subscription.js?v=11.32.15','./store-billing.js?v=11.32.15','./data-safety.js?v=11.32.15','./manifest.json?v=11.32.15','./icon-192.svg','./icon-512.svg'
+  './','./index.html','./style.css?v=11.32.16','./subscription.css?v=11.32.16','./chat-voice.css?v=11.32.16','./smart-search.css?v=11.32.16','./cloud-config.js?v=11.32.16',
+  './country-config.js?v=11.32.16','./i18n.js?v=11.32.16','./data-repository.js?v=11.32.16','./einvoice.js?v=11.32.16','./compliance-v1131.js?v=11.32.16','./compliance-v113108.js?v=11.32.16','./compliance-v113128.js?v=11.32.16','./compliance-v113131.js?v=11.32.16','./script.js?v=11.32.16','./smart-search.js?v=11.32.16','./customer-import.js?v=11.32.16','./cloud-files.js?v=11.32.16','./cloud-sync.js?v=11.32.16',
+  './team.js?v=11.32.16','./assignments.js?v=11.32.16','./time-tracking.js?v=11.32.16','./notifications.js?v=11.32.16','./voice-core.js?v=11.32.16','./chat-compliance.js?v=11.32.16','./job-chat.js?v=11.32.16','./offer-voice.js?v=11.32.16','./mail-hub.js?v=11.32.16','./email-assistant.js?v=11.32.16','./acceptance.js?v=11.32.16','./privacy-ops.js?v=11.32.16','./account-deletion.js?v=11.32.16','./account-deletion.html','./custom-selects.js?v=11.32.16',
+  './security.js?v=11.32.16','./onboarding-setup.js?v=11.32.16','./cloud-auth.js?v=11.32.16','./subscription.js?v=11.32.16','./store-billing.js?v=11.32.16','./data-safety.js?v=11.32.16','./manifest.json?v=11.32.16','./icon-192.svg','./icon-512.svg'
 ];
 
 self.addEventListener('install',event=>{
