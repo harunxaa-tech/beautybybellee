@@ -1,6 +1,6 @@
 workflows:
   angebotspilot-ios-smoke:
-    name: AngebotsPilot iOS – Native v0.4.0 Store Billing Smoke Build
+    name: AngebotsPilot iOS – Native v0.5.0 Store Billing Smoke Build
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
@@ -11,7 +11,7 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           rm -rf native
-          unzip -q AngebotsPilot-Native-Source-v0.4.0.zip -d .
+          unzip -q AngebotsPilot-Native-Source-v0.5.0.zip -d .
       - name: Install Capacitor dependencies
         script: |
           cd "$CM_BUILD_DIR/native"
@@ -33,7 +33,8 @@ workflows:
           npm run prepare:ios
           npx cap ls ios
           grep -q "angebotspilot" ios/App/App/Info.plist
-          grep -q "MARKETING_VERSION = 0.4.0" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "MARKETING_VERSION = 0.5.0" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "aps-environment" ios/App/App/App.entitlements
       - name: Build unsigned iOS simulator app
         script: |
           cd "$CM_BUILD_DIR/native/ios/App"
@@ -50,7 +51,7 @@ workflows:
       - native/ios/App/build/Build/Products/Debug-iphonesimulator/App.app/**
 
   angebotspilot-android-smoke:
-    name: AngebotsPilot Android – Native v0.4.0 Play Billing Smoke Build
+    name: AngebotsPilot Android – Native v0.5.0 Play Billing Smoke Build
     instance_type: linux_x2
     max_build_duration: 60
     environment:
@@ -62,7 +63,7 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           rm -rf native
-          unzip -q AngebotsPilot-Native-Source-v0.4.0.zip -d .
+          unzip -q AngebotsPilot-Native-Source-v0.5.0.zip -d .
       - name: Install Capacitor dependencies
         script: |
           cd "$CM_BUILD_DIR/native"
@@ -86,6 +87,8 @@ workflows:
           npx cap ls android
           grep -q 'android:scheme="angebotspilot"' android/app/src/main/AndroidManifest.xml
           grep -q 'android:windowSoftInputMode="adjustResize"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
+          grep -q 'versionName "0.5.0"' android/app/build.gradle
       - name: Build unsigned Android debug APK
         script: |
           cd "$CM_BUILD_DIR/native/android"
