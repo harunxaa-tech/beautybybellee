@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.19 – zentrale Runtime + Compliance Loader
+/* AngebotsPilot v11.32.20 – zentrale Runtime + Compliance Loader
    Der Publishable Key ist ausdrücklich für Browser-Apps gedacht.
    Keine geheimen Service-Role-Keys gehören jemals in diese Datei. */
 globalThis.AP_CLOUD_CONFIG = Object.freeze({
@@ -12,15 +12,15 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
 (function installAngebotsPilotRuntime(){
   'use strict';
 
-  const VERSION='11.32.19';
+  const VERSION='11.32.20';
   const COMPLIANCE_RUNTIME_VERSION='11.31.31';
   const COMPLIANCE_SERVER_RUNTIME_VERSION='11.31.28';
-  const DATA_SAFETY_SRC='./data-safety.js?v=11.32.19';
-  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.32.19';
-  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.32.19';
-  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.32.19';
-  const COMPLIANCE_ZUGFERD_SRC='./compliance-v113131.js?v=11.32.19';
-  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_32_2__';
+  const DATA_SAFETY_SRC='./data-safety.js?v=11.32.20';
+  const COMPLIANCE_SRC='./compliance-v1131.js?v=11.32.20';
+  const COMPLIANCE_HARDENING_SRC='./compliance-v113108.js?v=11.32.20';
+  const COMPLIANCE_SERVER_SRC='./compliance-v113128.js?v=11.32.20';
+  const COMPLIANCE_ZUGFERD_SRC='./compliance-v113131.js?v=11.32.20';
+  const BOOT_KEY='__ANGEBOTSPILOT_RUNTIME_11_32_20__';
 
   function stampBuild(){
     document.querySelectorAll('[data-app-build]').forEach(el=>{
@@ -38,7 +38,7 @@ globalThis.AP_CLOUD_CONFIG = Object.freeze({
   globalThis.AP_BUILD_VERSION=VERSION;
   globalThis.APBuild=Object.freeze({
     version:VERSION,
-    cacheTag:'angebotspilot-v11-32-0',
+    cacheTag:'angebotspilot-v11-32-20',
     stamp:stampBuild
   });
 

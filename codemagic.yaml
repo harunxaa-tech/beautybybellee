@@ -1,6 +1,6 @@
 workflows:
   angebotspilot-ios-smoke:
-    name: AngebotsPilot iOS – Native v0.5.0 Store Billing Smoke Build
+    name: AngebotsPilot iOS – Native v0.6.0 Simulator Smoke Build
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
@@ -11,7 +11,7 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           rm -rf native
-          unzip -q AngebotsPilot-Native-Source-v0.5.0.zip -d .
+          unzip -q AngebotsPilot-Native-Source-v0.6.0.zip -d .
       - name: Install Capacitor dependencies
         script: |
           cd "$CM_BUILD_DIR/native"
@@ -30,10 +30,10 @@ workflows:
           rm -rf ios
           npx cap add ios
           npx cap sync ios
-          npm run prepare:ios
+          AP_PUSH_ENV=development npm run prepare:ios
           npx cap ls ios
           grep -q "angebotspilot" ios/App/App/Info.plist
-          grep -q "MARKETING_VERSION = 0.5.0" ios/App/App.xcodeproj/project.pbxproj
+          grep -q "MARKETING_VERSION = 0.6.0" ios/App/App.xcodeproj/project.pbxproj
           grep -q "aps-environment" ios/App/App/App.entitlements
       - name: Build unsigned iOS simulator app
         script: |
@@ -50,8 +50,72 @@ workflows:
     artifacts:
       - native/ios/App/build/Build/Products/Debug-iphonesimulator/App.app/**
 
+  angebotspilot-ios-testflight:
+    name: AngebotsPilot iOS – Native v0.6.0 TestFlight Build
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      groups:
+        - appstore_credentials
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.harunxaa.angebotspilot
+      vars:
+        AP_RELEASE_PLATFORM: ios
+        AP_REQUIRE_SIGNING: "1"
+        AP_PUSH_ENV: production
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Unpack native iOS source
+        script: |
+          cd "$CM_BUILD_DIR"
+          rm -rf native
+          unzip -q AngebotsPilot-Native-Source-v0.6.0.zip -d .
+      - name: Install Capacitor dependencies
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          npm install --no-audit --no-fund
+      - name: Validate native source
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          npm run validate
+          npm run release:preflight
+      - name: Prepare AngebotsPilot web bundle
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          npm run prepare:web
+      - name: Generate iOS project
+        script: |
+          cd "$CM_BUILD_DIR/native"
+          rm -rf ios
+          npx cap add ios
+          npx cap sync ios
+          npm run prepare:ios
+      - name: Apply App Store provisioning profile
+        script: |
+          cd "$CM_BUILD_DIR/native/ios/App"
+          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
+      - name: Build signed IPA
+        script: |
+          cd "$CM_BUILD_DIR/native/ios/App"
+          xcode-project build-ipa \
+            --project App.xcodeproj \
+            --scheme App
+    artifacts:
+      - native/ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: false
+        submit_to_app_store: false
+
   angebotspilot-android-smoke:
-    name: AngebotsPilot Android – Native v0.5.0 Play Billing Smoke Build
+    name: AngebotsPilot Android – Native v0.6.0 Play Billing Smoke Build
     instance_type: linux_x2
     max_build_duration: 60
     environment:
@@ -63,7 +127,7 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           rm -rf native
-          unzip -q AngebotsPilot-Native-Source-v0.5.0.zip -d .
+          unzip -q AngebotsPilot-Native-Source-v0.6.0.zip -d .
       - name: Install Capacitor dependencies
         script: |
           cd "$CM_BUILD_DIR/native"
@@ -88,7 +152,7 @@ workflows:
           grep -q 'android:scheme="angebotspilot"' android/app/src/main/AndroidManifest.xml
           grep -q 'android:windowSoftInputMode="adjustResize"' android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.POST_NOTIFICATIONS' android/app/src/main/AndroidManifest.xml
-          grep -q 'versionName "0.5.0"' android/app/build.gradle
+          grep -q 'versionName "0.6.0"' android/app/build.gradle
       - name: Build unsigned Android debug APK
         script: |
           cd "$CM_BUILD_DIR/native/android"

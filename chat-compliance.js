@@ -1,4 +1,4 @@
-/* AngebotsPilot v11.32.19 – Chat Store & Legal Hardening */
+/* AngebotsPilot v11.32.20 – Chat Store & Legal Hardening */
 (function(){
   'use strict';
   const POLICY_VERSION='2026-09-24.1';
