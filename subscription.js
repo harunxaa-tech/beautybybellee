@@ -3,16 +3,18 @@
 (function(){
   'use strict';
 
-  const BUILD='11.30.6';
+  const BUILD='11.32.28';
+  // New prices are preview-only until matching provider prices and server entitlements are verified.
+  const NEW_PRICING_CHECKOUT_READY=false;
   const TERMS_VERSION='2026-09-16-beta-b2b-v1';
   const q=id=>document.getElementById(id);
   const esc=value=>String(value??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
-  const state={access:null,invoices:[],gateway:{configured:false,webhook_configured:false,plans:{solo:false,team:false,pro:false},has_customer:false,has_subscription:false},loading:false,lastCompanyId:'',refreshTimer:null};
+  const state={access:null,invoices:[],gateway:{configured:false,webhook_configured:false,plans:{solo:false,team:false,pro:false},has_customer:false,has_subscription:false},resources:null,loading:false,lastCompanyId:'',refreshTimer:null};
 
   const PLANS={
-    solo:{name:'Solo',icon:'👤',priceCents:1900,summary:'Für Selbstständige und Ein-Personen-Betriebe',details:'Kunden, Angebote, Rechnungen, Baustellen und Kalender.'},
-    team:{name:'Team',icon:'👥',priceCents:4900,summary:'Für kleine Teams',details:'Gemeinsame Arbeit mit Team, Zuweisungen und Zeiterfassung.'},
-    pro:{name:'Pro',icon:'✦',priceCents:7900,summary:'Für Betriebe mit mehr Automatisierung',details:'Erweiterte Abläufe wie Sekretariat, Automationen und zusätzliche Profi-Funktionen.'}
+    solo:{name:'Solo',icon:'👤',priceCents:2499,summary:'1 Inhaber · bis zu 5 weitere Nutzer zubuchbar',details:'5 GB Speicher · 30 KI-Minuten/Monat · kein Baustellenchat · Büro-/Sekretärin-Zugang zubuchbar.'},
+    team:{name:'Team',icon:'👥',priceCents:14999,summary:'1 Inhaber + 5 Plätze (davon 1 Büro)',details:'30 GB Speicher · 300 KI-Minuten/Monat · Baustellenchat · digitales Sekretariat (Beta).'},
+    pro:{name:'Pro',icon:'✦',priceCents:54999,summary:'1 Inhaber + 25 Plätze (davon 2 Büro)',details:'150 GB Speicher · 1.500 KI-Minuten/Monat · alle freigegebenen Teamfunktionen.'}
   };
 
   const STATUS={
@@ -102,6 +104,20 @@
       .subscriptionLegalActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.subscriptionLegalActions .btn{flex:1;min-width:145px}
       .subscriptionBetaLegal{margin-top:10px;font-size:.72rem;line-height:1.45;color:var(--muted)}
       .subscriptionPricePending{color:var(--text)!important;font-size:.83rem!important}.subscriptionPricePending strong{font-size:1.05rem}
+      .apUsageCard{margin:14px 0;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card,rgba(255,255,255,.03))}
+      .apUsageCard h3{font-size:1.02rem;margin:0 0 6px}.apUsageCard p{font-size:.78rem;color:var(--muted);line-height:1.5;margin:0 0 12px}
+      .apUsageGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+      .apUsageMetric{border:1px solid var(--line);border-radius:13px;padding:12px;min-width:0}
+      .apUsageMetric header{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;font-size:.82rem}
+      .apUsageTrack{height:8px;background:rgba(125,140,155,.2);border-radius:99px;margin:12px 0 8px;overflow:hidden}
+      .apUsageFill{display:block;height:100%;background:#a6c529;border-radius:99px}
+      .apUsageFill.warning{background:#e6a744}.apUsageFill.full{background:#d75d60}
+      .apUsageMetric small{color:var(--muted);font-size:.74rem;line-height:1.5}
+      .apAddonGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+      .apAddonGrid section{padding:12px;border:1px solid var(--line);border-radius:12px}
+      .apAddonGrid b{display:block;font-size:.83rem}.apAddonGrid small{display:block;color:var(--muted);font-size:.71rem;line-height:1.7;margin-top:5px}
+      .apUsageInfo{margin-top:11px!important}
+      @media(max-width:720px){.apUsageGrid,.apAddonGrid{grid-template-columns:1fr}}
       @media(max-width:720px){.subscriptionLiveFacts,.subscriptionLegalGrid{grid-template-columns:1fr}.subscriptionManageActions .btn,.subscriptionLegalActions .btn{width:100%;flex-basis:100%}}
     `;document.head.appendChild(style);
   }
@@ -109,6 +125,7 @@
   function ensureEnhancedUI(){
     ensureEnhancedStyles();
     const planGrid=q('subscriptionPlanGrid');
+    if(planGrid&&!q('apUsageCard'))planGrid.insertAdjacentHTML('afterend','<section id="apUsageCard" class="apUsageCard subscriptionRequiresAccount" aria-live="polite"></section>');
     if(planGrid&&!q('subscriptionManagementCard')){
       planGrid.insertAdjacentHTML('afterend',`<div class="card subscriptionManagementCard subscriptionOwnerOnly subscriptionRequiresAccount" id="subscriptionManagementCard" hidden></div>`);
     }
@@ -143,17 +160,58 @@
   }
   function applyAccessMode(){const restricted=state.access&&state.access.can_write===false;document.body.classList.toggle('subscriptionReadOnly',!!restricted);document.documentElement.dataset.subscriptionAccess=restricted?'restricted':'write';renderBanner()}
 
+  const GB=1073741824;
+  const addonPacks={
+    storage:[['+10 GB','4,99 € / Monat'],['+50 GB','14,99 € / Monat'],['+100 GB','24,99 € / Monat'],['+500 GB','89,99 € / Monat']],
+    voice:[['+100 Min.','9,99 € einmalig'],['+500 Min.','39,99 € einmalig'],['+1.500 Min.','99,99 € einmalig']]
+  };
+  const fmtNumber=(n,places=0)=>new Intl.NumberFormat('de-DE',{maximumFractionDigits:places}).format(Math.max(0,Number(n)||0));
+  function renderResourceUsage(){
+    const host=q('apUsageCard');if(!host)return;
+    if(!ctx()?.company?.id){host.textContent='Bitte Cloud-Konto verbinden, um deinen Verbrauch zu sehen.';return}
+    const u=state.resources;
+    if(!u){host.innerHTML='<h3>☁️ Speicher & KI</h3><p>Die Cloud-Verbrauchsdaten werden geladen. Wenn keine Daten erscheinen, bitte Abo-Status aktualisieren.</p>';return}
+    const storageUsed=Number(u.storage_used_bytes)||0,storageLimit=Math.max(1,Number(u.storage_limit_bytes)||1);
+    const voiceBase=Number(u.voice_base_seconds)||0,voiceUsed=Math.max(0,Number(u.voice_base_used_seconds)||0);
+    const voiceExtra=Number(u.voice_addon_remaining_seconds)||0;
+    const voiceLimit=Math.max(1,voiceBase+voiceExtra);
+    const progress=(used,total)=>Math.max(0,Math.min(100,Math.round(100*used/total)));
+    const bar=(pct)=>'<div class="apUsageTrack"><span class="apUsageFill '+(pct>=100?'full':pct>=80?'warning':'')+'" style="width:'+pct+'%"></span></div>';
+    const pctS=progress(storageUsed,storageLimit),pctV=progress(voiceUsed,voiceLimit);
+    host.innerHTML='<h3>☁️ Cloudspeicher & KI-Sprachminuten</h3>'
+      +'<p>Dein Kontingent gehört dem gesamten Betrieb, nicht jedem Mitarbeiter einzeln. Angaben direkt aus der Cloud.</p>'
+      +'<div class="apUsageGrid">'
+      +'<div class="apUsageMetric"><header><span>Cloudspeicher</span><span>'+pctS+' %</span></header>'+bar(pctS)
+      +'<small>'+fmtNumber(storageUsed/GB,2)+' von '+fmtNumber(storageLimit/GB,2)+' GB belegt · '
+      +fmtNumber(Number(u.storage_remaining_bytes)/GB,2)+' GB frei</small></div>'
+      +'<div class="apUsageMetric"><header><span>KI-Sprachzeit</span><span>'+pctV+' %</span></header>'+bar(pctV)
+      +'<small>'+fmtNumber(voiceUsed/60,1)+' von '+fmtNumber(voiceBase/60+voiceExtra/60,1)+' Min. verbraucht / verfügbar · '
+      +fmtNumber(Number(u.voice_remaining_seconds)/60,1)+' Min. übrig</small></div></div>'
+      +'<p class="apUsageInfo">'+(pctS>=100?'Speicher voll: Bitte Dateien löschen oder Zusatzspeicher buchen. ':pctS>=80?'Speicher über 80 % ausgelastet. ':'')
+      +(pctV>=100?'KI-Minutenlimit erreicht. ':pctV>=80?'KI-Minuten über 80 % ausgeschöpft. ':'')
+      +'KI-Sprachfunktionen sind aktuell noch deaktiviert. Zusatzkäufe sind vorbereitet, aber nicht buchbar.</p>'
+      +'<div class="apAddonGrid"><section><b>☁️ Speicher erweitern (monatlich)</b><small>'+addonPacks.storage.map(a=>a.join(' · ')).join('<br>')+'</small></section>'
+      +'<section><b>🎙️ KI-Minuten nachkaufen (12 Monate gültig)</b><small>'+addonPacks.voice.map(a=>a.join(' · ')).join('<br>')+'</small></section></div>'
+      +'<p class="apUsageInfo">Zusatzkäufe werden erst nach verifiziertem Checkout freigeschaltet. Kein automatischer Kauf und keine Abbuchung. Preise netto zzgl. USt.; alle Abos monatlich kündbar.</p>';
+  }
+  async function fetchResourceUsage(context){
+    if(!context?.client||!context?.company?.id){state.resources=null;return}
+    try{
+      const {data,error}=await context.client.rpc('get_company_resource_usage',{target_company:context.company.id});
+      if(error)throw error;
+      state.resources=data&&typeof data==='object'?data:null;
+    }catch(e){console.warn('Cloudverbrauch konnte nicht abgefragt werden',e);state.resources=null}
+  }
+
   function renderPlanCards(){
     const host=q('subscriptionPlanGrid');if(!host)return;
-    const current=state.access?.plan||'solo';const stripeSub=state.access?.billing_provider==='stripe'&&state.access?.has_provider_subscription;
+    const current=state.access?.plan||'solo';
     host.innerHTML=Object.entries(PLANS).map(([code,p])=>{
-      const ready=gatewayReady(code),same=code===current;let action='';
-      if(isOwner()&&stripeSub&&same)action=`<button class="btn small subscriptionPlanAction" type="button" onclick="SubscriptionBilling.scrollManage()">Abo verwalten</button>`;
-      else if(isOwner()&&stripeSub&&!same){
-        const ending=!!state.access?.cancel_at_period_end;
-        action=`<button class="btn small subscriptionPlanAction" type="button" ${ending?'disabled':''} onclick="SubscriptionBilling.changePlan('${code}')">${ending?'Erst Kündigung zurücknehmen':`Zu ${esc(p.name)} wechseln`}</button>`;
-      }else if(isOwner())action=`<button class="btn small subscriptionPlanAction" type="button" ${ready?'':'disabled'} onclick="SubscriptionBilling.startCheckout('${code}')">${ready?'Im Test-Checkout wählen':'Stripe-Testkonto fehlt'}</button>`;
-      return `<article class="subscriptionPlanCard ${same?'current':''}"><div class="subscriptionPlanTop"><span>${p.icon}</span>${same?'<em>Aktuell</em>':''}</div><h3>${esc(p.name)}</h3><p>${esc(p.summary)}</p><small>${esc(p.details)}</small><div class="subscriptionPricePending"><strong>${formatMoney(p.priceCents)}</strong> / Monat</div>${action}</article>`;
+      const same=code===current;
+      const action=isOwner()&&state.access?.has_provider_subscription&&same
+        ?'<button class="btn small subscriptionPlanAction" type="button" onclick="SubscriptionBilling.scrollManage()">Bestehendes Abo verwalten</button>'
+        :'<button class="btn small subscriptionPlanAction" type="button" disabled title="Neue Tarifpreise noch nicht bei Stripe freigeschaltet">Bald buchbar</button>';
+      return '<article class="subscriptionPlanCard '+(same?'current':'')+'"><div class="subscriptionPlanTop"><span>'+p.icon+'</span>'+(same?'<em>Aktueller Testtarif</em>':'')+'</div><h3>'+esc(p.name)+'</h3><p>'+esc(p.summary)+'</p><small>'+esc(p.details)+'</small><div class="subscriptionPricePending"><strong>'+formatMoney(p.priceCents)+'</strong> / Monat (Tarifvorschau)</div>'+action+'</article>';
     }).join('');
   }
 
@@ -165,8 +223,8 @@
     const periodLabel=ending?'Nutzbar bis':'Nächste Abrechnung';
     const periodValue=formatDate(a.current_period_end);
     host.innerHTML=`
-      <div class="subscriptionManageHead"><div><span class="subscriptionEyebrow">VERTRAG & VERWALTUNG</span><h3>${p.icon} ${esc(p.name)} · ${formatMoney(p.priceCents)}/Monat</h3><p>${ending?'Die automatische Verlängerung ist beendet. Der Tarif bleibt bis zum Periodenende nutzbar.':'Monatliche Abrechnung · automatische Verlängerung bis zur Kündigung.'}</p></div><span class="subscriptionModePill">${test?'TESTMODUS':'LIVE'}</span></div>
-      <div class="subscriptionLiveFacts"><div><span>Preis</span><strong>${formatMoney(p.priceCents)} / Monat</strong></div><div><span>${periodLabel}</span><strong>${periodValue}</strong></div><div><span>Zahlung</span><strong>Stripe · ${test?'Test':'Live'}</strong></div></div>
+      <div class="subscriptionManageHead"><div><span class="subscriptionEyebrow">VERTRAG & VERWALTUNG</span><h3>${p.icon} ${esc(p.name)} · bestehendes Abo</h3><p>${ending?'Die automatische Verlängerung ist beendet. Der Tarif bleibt bis zum Periodenende nutzbar.':'Monatliche Abrechnung · automatische Verlängerung bis zur Kündigung.'}</p></div><span class="subscriptionModePill">${test?'TESTMODUS':'LIVE'}</span></div>
+      <div class="subscriptionLiveFacts"><div><span>Preis</span><strong>Beim Anbieter prüfen (Altvertrag)</strong></div><div><span>${periodLabel}</span><strong>${periodValue}</strong></div><div><span>Zahlung</span><strong>Stripe · ${test?'Test':'Live'}</strong></div></div>
       ${ending?`<div class="subscriptionCancelNotice"><b>✓ Kündigung vorgemerkt</b><br>Es erfolgt nach dem ${periodValue} keine weitere Verlängerung. Deine gespeicherten Betriebsdaten werden dadurch nicht gelöscht.</div>`:''}
       <div class="subscriptionManageActions"><button class="btn" type="button" onclick="SubscriptionBilling.openPortal()">Zahlungsdaten verwalten</button>${ending?`<button class="btn primary" type="button" onclick="SubscriptionBilling.resumeSubscription()">Kündigung zurücknehmen</button>`:`<button class="btn danger" type="button" onclick="SubscriptionBilling.cancelSubscription()">Abo zum Periodenende kündigen</button>`}</div>`;
   }
@@ -215,7 +273,7 @@
     let meta='';
     if(a.cancel_at_period_end&&a.current_period_end)meta=`Gekündigt · nutzbar bis ${formatDate(a.current_period_end)} · keine weitere Verlängerung`;
     else if(s.key==='trial'){const left=daysLeft(a.trial_ends_at);meta=left===null?'Kostenlose Testphase':`${left} ${left===1?'Tag':'Tage'} verbleibend · bis ${formatDate(a.trial_ends_at)}`}
-    else if(s.key==='active'&&a.billing_provider==='stripe')meta=`${a.provider_livemode?'Abo':'Stripe-Testabo'} aktiv · ${formatMoney(p.priceCents)}/Monat${a.current_period_end?` · nächste Abrechnung ${formatDate(a.current_period_end)}`:''}`;
+    else if(s.key==='active'&&a.billing_provider==='stripe')meta=`${a.provider_livemode?'Abo':'Stripe-Testabo'} aktiv · bestehende Vertragskonditionen${a.current_period_end?` · nächste Abrechnung ${formatDate(a.current_period_end)}`:''}`;
     else if(s.key==='active')meta=a.billing_provider==='test'?'Beta-Testmodus · keine Abbuchung':'Abo aktiv';
     else if(s.key==='past_due'||s.key==='grace_period')meta=a.grace_ends_at?`Kulanz bis ${formatDate(a.grace_ends_at)}`:'Zahlung prüfen';
     else if(s.key==='restricted')meta='Lesen und Exportieren bleiben möglich';
@@ -231,7 +289,7 @@
     const nonOwner=q('subscriptionNonOwnerNote');if(nonOwner)nonOwner.hidden=isOwner();
     const testCard=q('subscriptionTestCard');if(testCard)testCard.hidden=!(isOwner()&&a.test_mode_enabled&&a.billing_provider==='test');
     if(q('subscriptionTestPlan'))q('subscriptionTestPlan').value=a.plan||'solo';if(q('subscriptionTestStatus'))q('subscriptionTestStatus').value=a.status||'active';
-    hydrateBillingForm();renderPlanCards();renderManagement();renderInvoices();renderLegal();applyAccessMode();
+    hydrateBillingForm();renderPlanCards();renderResourceUsage();renderManagement();renderInvoices();renderLegal();applyAccessMode();
   }
 
   function renderLoading(){const host=q('subscriptionStatusCard');if(host)host.innerHTML='<div class="subscriptionLoading"><span></span><div><b>Abo wird geprüft …</b><small>Sicherer Abgleich mit deinem Betriebskonto</small></div></div>'}
@@ -242,12 +300,13 @@
   }
   async function refresh(options={}){
     if(state.loading)return state.access;const context=ctx();stampBuild();ensureEnhancedUI();
-    if(!context?.client||!context?.session||!context?.company?.id){state.access=null;state.invoices=[];renderAccess();applyAccessMode();return null}
+    if(!context?.client||!context?.session||!context?.company?.id){state.access=null;state.invoices=[];state.resources=null;renderAccess();applyAccessMode();return null}
     state.loading=true;if(!options.silent)renderLoading();
     try{
       const {data,error}=await context.client.rpc('get_subscription_access',{target_company:context.company.id});if(error)throw error;
       state.access=data||null;state.lastCompanyId=context.company.id;
       try{await refreshGateway()}catch(e){console.warn('Stripe-Status konnte nicht geladen werden',e)}
+       await fetchResourceUsage(context);
       try{await loadInvoices(context.client,context.company.id)}catch(e){console.warn('Abo-Rechnungen konnten nicht geladen werden',e);state.invoices=[]}
       renderAccess();return state.access;
     }catch(e){console.error('Subscription refresh failed',e);if(!options.silent)toast('Abo-Status konnte gerade nicht geladen werden.','error');renderAccess();return null}
@@ -276,6 +335,7 @@
   }
 
   async function startCheckout(plan){
+    if(!NEW_PRICING_CHECKOUT_READY)return toast('Neue Tarifpreise sind noch nicht bei Stripe freigegeben. Es wird kein Checkout gestartet.','info');
     if(!isOwner())return toast('Nur der Inhaber kann das Abo verwalten.','error');if(!gatewayReady(plan))return toast('Stripe-Testkonto oder Tarifpreis ist noch nicht vollständig verbunden.','info');if(!state.access?.billing_name||!state.access?.billing_email)return toast('Bitte zuerst Rechnungsempfänger und Rechnungs-E-Mail speichern.','warning');
     const p=PLANS[plan]||PLANS.solo;
     const text=`${p.name} kostet ${formatMoney(p.priceCents)} pro Monat und verlängert sich monatlich bis zur Kündigung.\n\nIch bestätige, dass ich den Tarif ausschließlich für meine gewerbliche oder selbständige berufliche Tätigkeit als Unternehmer abschließe.`;
@@ -285,6 +345,7 @@
   }
 
   async function changePlan(plan){
+    if(!NEW_PRICING_CHECKOUT_READY)return toast('Tarifwechsel zu den neuen Preisen noch nicht freigegeben. Dein bisheriges Abo bleibt unverändert.','info');
     if(!isOwner())return toast('Nur der Inhaber kann den Tarif wechseln.','error');
     const a=state.access||{},from=currentPlan(),to=PLANS[plan];
     if(!to)return toast('Unbekannter Tarif.','error');
