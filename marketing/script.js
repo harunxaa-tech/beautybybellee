@@ -1,16 +1,1 @@
-const menuBtn=document.getElementById('menuBtn');
-const mainNav=document.getElementById('mainNav');
-if(menuBtn&&mainNav){
-  menuBtn.addEventListener('click',()=>{const open=mainNav.classList.toggle('open');menuBtn.setAttribute('aria-expanded',String(open));});
-  mainNav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mainNav.classList.remove('open');menuBtn.setAttribute('aria-expanded','false');}));
-}
-document.querySelectorAll('.faq-list details').forEach(detail=>{
-  detail.addEventListener('toggle',()=>{if(!detail.open)return;document.querySelectorAll('.faq-list details').forEach(other=>{if(other!==detail)other.open=false;});});
-});
-const reveals=document.querySelectorAll('.reveal');
-if('IntersectionObserver' in window){
-  const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target);}});},{threshold:.12});
-  reveals.forEach(el=>observer.observe(el));
-}else reveals.forEach(el=>el.classList.add('visible'));
-const header=document.querySelector('.site-header');
-window.addEventListener('scroll',()=>{header?.classList.toggle('scrolled',window.scrollY>12);},{passive:true});
+const menuBtn=document.getElementById('menuBtn');const mainNav=document.getElementById('mainNav');if(menuBtn&&mainNav){menuBtn.addEventListener('click',()=>{const open=mainNav.classList.toggle('open');menuBtn.setAttribute('aria-expanded',String(open));});mainNav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mainNav.classList.remove('open');menuBtn.setAttribute('aria-expanded','false');}));}document.querySelectorAll('.faq-list details').forEach(detail=>{detail.addEventListener('toggle',()=>{if(!detail.open)return;document.querySelectorAll('.faq-list details').forEach(other=>{if(other!==detail)other.open=false;});});});const reveals=document.querySelectorAll('.reveal');if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target);}});},{threshold:.12});reveals.forEach(el=>observer.observe(el));}else reveals.forEach(el=>el.classList.add('visible'));const header=document.querySelector('.site-header');window.addEventListener('scroll',()=>{header?.classList.toggle('scrolled',window.scrollY>12);},{passive:true});

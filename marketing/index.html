@@ -6,24 +6,11 @@
   <title>AngebotsPilot – Dein digitales Büro fürs Handwerk</title>
   <meta name="description" content="AngebotsPilot verbindet Angebote, Kunden, Baustellen, Rechnungen, E-Rechnungen, Kalender und Team in einer einfachen Betriebssoftware für Handwerk und Service.">
   <meta name="theme-color" content="#0a0c10">
-  <meta name="robots" content="noindex,nofollow">
   <meta property="og:title" content="AngebotsPilot – Weniger Papierkram. Mehr Betrieb.">
   <meta property="og:description" content="Die einfache Betriebssoftware für Angebote, Kunden, Baustellen, Rechnungen und Team.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <style id="ap-preview-initial">html{background:#0a0c10}body{visibility:hidden}</style>
-  <noscript><style>body{visibility:visible!important}</style></noscript>
-  <script>
-  (async()=>{try{
-    if(!("DecompressionStream" in window))throw new Error("Browser unterstützt keine gzip-Dekomprimierung");
-    const r=await fetch("./styles.css.gz?v=01",{cache:"force-cache"});
-    if(!r.ok)throw new Error("Stylesheet HTTP "+r.status);
-    const stream=r.body.pipeThrough(new DecompressionStream("gzip"));
-    const css=await new Response(stream).text();
-    const style=document.createElement("style");style.textContent=css;document.head.appendChild(style);
-  }catch(e){console.error("AngebotsPilot-Styles konnten nicht geladen werden",e)}
-  finally{document.getElementById("ap-preview-initial")?.remove()}
-  })();
-  </script>
+  <link rel="stylesheet" href="styles.css">
+  <meta name="robots" content="noindex,nofollow">
 </head>
 <body>
   <header class="site-header" id="top">
@@ -45,7 +32,6 @@
       </div>
     </div>
   </header>
-  <div role="note" style="text-align:center;background:#d8ff3e;color:#0b0e10;padding:9px 18px;font:700 12px/1.4 system-ui,sans-serif">VORSCHAU · Die Werbeseite befindet sich im Aufbau. Ein offizieller Verkaufsstart ist noch nicht erfolgt.</div>
 
   <main>
     <section class="hero">
@@ -162,7 +148,7 @@
           <article class="price-card featured reveal delay-1"><div class="popular">BELIEBT</div><div class="price-top"><span>TEAM</span><p>Für kleine Teams</p></div><div class="price"><b>49 €</b><small>/ Monat</small></div><a class="btn primary full" href="https://harunxaa-tech.github.io/beautybybellee/">Team starten</a><ul><li>✓ Alles aus Solo</li><li>✓ Team & Rollen</li><li>✓ Zeiterfassung</li><li>✓ Baustellenchat</li><li>✓ Gemeinsame Cloud-Abläufe</li></ul></article>
           <article class="price-card reveal delay-2"><div class="price-top"><span>PRO</span><p>Für wachsende Betriebe</p></div><div class="price"><b>79 €</b><small>/ Monat</small></div><a class="btn secondary full" href="https://harunxaa-tech.github.io/beautybybellee/">Pro starten</a><ul><li>✓ Alles aus Team</li><li>✓ Digitales Sekretariat</li><li>✓ Erweiterte Automatisierung</li><li>✓ Mehr Betriebsfunktionen</li><li>✓ Priorisierte Weiterentwicklung</li></ul></article>
         </div>
-        <p class="pricing-note">Geplante Monatspreise für den späteren Marktstart. Verbindliche Preise, Steuern und Vertragsbedingungen werden vor dem öffentlichen Verkaufsstart veröffentlicht.</p>
+        <p class="pricing-note">Vorschau: Preise und Leistungsumfang sind bis zum offiziellen Marktstart vorläufig. Steuerliche Darstellung und finale Vertragsbedingungen werden beim Marktstart ausgewiesen.</p>
       </div>
     </section>
 
