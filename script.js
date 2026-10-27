@@ -1,5 +1,5 @@
 const KEY='digitaler_handwerker_v3';
-const APP_BUILD_VERSION=globalThis.AP_BUILD_VERSION||'11.32.26';
+const APP_BUILD_VERSION=globalThis.AP_BUILD_VERSION||'11.32.27';
 const PRIVACY_VERSION='1.2';
 const WEATHER_CACHE_KEY='dh_weather_cache_v1';
 const defaultData={settings:{companyName:'',ownerName:'',phone:'',email:'',address:'',street:'',houseNumber:'',postalCode:'',city:'',weatherLocation:'',tax:0,paymentTerm:'7 Tage',taxNumber:'',vatId:'',iban:'',bankName:'',offerNumberNext:'',invoiceNumberNext:'',brandLogoPath:'',brandLogoLocalDataUrl:'',brandAccent:'',brandAccentAuto:'',documentStyle:'auto',logoPosition:'left',brandLogoMeta:{},brandLogoPendingCloud:false,brandReferencePath:'',brandReferencePreviewPath:'',brandReferenceName:'',brandReferenceMeta:{},brandReferenceLocalPreview:'',brandReferencePendingCloud:false,countryCode:'DE',currency:'EUR',appLanguage:'de',taxTreatment:'small_business',taxNote:'',businessMode:'solo',enabledModules:{offers:true,invoices:true,jobs:true,calendar:true,secretariat:true,team:false,time_tracking:false,weather:true,tasks:true,acceptance:true}},privacy:{version:PRIVACY_VERSION,consents:{weather:false,location:false,external:false,analytics:false},role:'owner',acceptedAt:null},audit:[],customers:[],offers:[],events:[],tasks:[],jobs:[],invoices:[],catalog:[{id:uid(),name:'Gartenarbeit / Fachkraft',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Anfahrt',unit:'Pauschale',price:50,type:'service',trade:'garden'},{id:uid(),name:'Rasen mähen und Pflege',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Hecken- und Strauchschnitt',unit:'Std.',price:55,type:'service',trade:'garden'},{id:uid(),name:'Rollrasen verlegen',unit:'m²',price:18,type:'service',trade:'garden'},{id:uid(),name:'Humus / Mutterboden',unit:'m³',price:65,type:'material',trade:'garden'},{id:uid(),name:'Entsorgung Grünabfall',unit:'Pauschale',price:120,type:'service',trade:'garden'}]};
@@ -270,15 +270,15 @@ function confirmDeleteAllData(){
 
 
 const PRODUCT_TOUR_STEPS=[
-  {screen:'today',selector:'.bottomNav [data-screen="today"]',icon:'☀️',title:'1. Dein Arbeitstag',text:'Auf „Heute“ siehst du Aufgaben, Termine, Wetter und die wichtigsten Schnellzugriffe. Das ist deine tägliche Startseite.'},
+  {screen:'today',selector:'.desktopSideNav [data-screen="today"], .bottomNav [data-screen="today"]',icon:'☀️',title:'1. Dein Arbeitstag',text:'Auf „Heute“ siehst du Aufgaben, Termine, Wetter und die wichtigsten Schnellzugriffe. Das ist deine tägliche Startseite.'},
   {screen:'customers',selector:'#customers .btn.primary',icon:'👥',title:'2. Kunden & Kundenakten',text:'Lege einen Kunden einmal an. Tippe danach auf „Akte öffnen“: Dort sammeln wir Baustellen, Fotos, Angebote und Rechnungen zu diesem Kunden.'},
   {screen:'offers',selector:'#offers .btn.primary',icon:'📄',title:'3. Angebote erstellen',text:'Unter „Angebote“ startest du mit + Neu. Kunde auswählen, Auftrag benennen, Leistungen oder Material hinzufügen, Menge und Preis prüfen – speichern, fertig.'},
-  {screen:'calendar',selector:'.bottomNav [data-screen="calendar"]',icon:'📅',title:'4. Termine planen',text:'Besichtigungen und Baustellentermine landen im Kalender. Später synchronisieren wir ihn mit den Konten des Betriebs.'},
+  {screen:'calendar',selector:'.desktopSideNav [data-screen="calendar"], .bottomNav [data-screen="calendar"]',icon:'📅',title:'4. Termine planen',text:'Besichtigungen und Baustellentermine landen im Kalender. Später synchronisieren wir ihn mit den Konten des Betriebs.'},
   {screen:'more',selector:'#more .quick:nth-child(1)',icon:'🏗️',title:'5. Baustellen dokumentieren',text:'Unter „Mehr → Baustellen“ verwaltest du laufende Aufträge. In jeder Baustelle kannst du Fotos und Dokumentationsnotizen speichern.'},
   {screen:'more',selector:'#more .quick:nth-child(2)',icon:'🧾',title:'6. Rechnung nach Abschluss',text:'Wird eine Baustelle abgeschlossen, bereitet AngebotsPilot automatisch einen Rechnungsentwurf vor. Vor Versand prüft der Betrieb alles noch einmal.'},
   {screen:'more',selector:'#more .quick:nth-child(5)',icon:'📦',title:'7. Deine Preisliste',text:'Materialien und Leistungen liegen im Betriebskatalog. Standardpositionen sind vorbereitet; du ergänzt nur deine eigenen Preise und Positionen.'},
   {screen:'more',selector:'#more .quick:nth-child(7)',icon:'👑',title:'8. Chef & Mitarbeiter',text:'In der Rollen-Vorschau kannst du Chef, Büro und Mitarbeiter testen. Aktuell ist das nur lokal simuliert; echte sichere Rechte folgen später mit Benutzerkonten.'},
-  {screen:'today',selector:'.bottomNav [data-screen="today"]',icon:'✓',title:'Startklar',text:'Das war die ganze App. Kunde, Adresse, Baustelle und Kalender arbeiten zusammen: einmal eintragen, an den passenden Stellen wiederverwenden. Merke dir nur: Kunde → Angebot → Baustelle → Dokumentation → Rechnung.'}
+  {screen:'today',selector:'.desktopSideNav [data-screen="today"], .bottomNav [data-screen="today"]',icon:'✓',title:'Startklar',text:'Das war die ganze App. Kunde, Adresse, Baustelle und Kalender arbeiten zusammen: einmal eintragen, an den passenden Stellen wiederverwenden. Merke dir nur: Kunde → Angebot → Baustelle → Dokumentation → Rechnung.'}
 ]
 
 const OFFER_GUIDE_STEPS=[
@@ -492,7 +492,7 @@ function uiDuration(value,unit='days'){
   const days=Math.max(1,Math.round(n||1));return uiText(`${days} Tag${days===1?'':'e'}`);
 }
 
-/* v11.32.26 – address suggestions for DE/AT/CH.
+/* v11.32.27 – address suggestions for DE/AT/CH.
    Uses the public Photon geocoder (OpenStreetMap data) only while the user types.
    No address query is stored by AngebotsPilot. */
 const AP_ADDRESS_AUTOCOMPLETE_URL='https://photon.komoot.io/api/';
@@ -664,7 +664,7 @@ const repositionAddressSuggestions=()=>{if(apAddressState.active)requestAnimatio
 window.addEventListener('resize',repositionAddressSuggestions,{passive:true});window.addEventListener('scroll',repositionAddressSuggestions,{passive:true,capture:true});
 try{window.visualViewport?.addEventListener('resize',repositionAddressSuggestions,{passive:true});window.visualViewport?.addEventListener('scroll',repositionAddressSuggestions,{passive:true})}catch(e){}
 
-/* v11.32.26 – reliable iPhone action sheet for the three-dot document menu. */
+/* v11.32.27 – reliable iPhone action sheet for the three-dot document menu. */
 function ensureDocumentActionSheet(){
   installInteractionFixStyles();
   let wrap=document.getElementById('documentActionSheet');
@@ -1028,8 +1028,143 @@ async function saveHomeQuickActionsCloud(actions){
 }
 globalThis.loadHomeQuickActionsFromCloud=loadHomeQuickActionsFromCloud;
 
+
+const DESKTOP_NAV_DEFAULT_OWNER=['offers','customers','calendar','invoices'];
+const DESKTOP_NAV_DEFAULT_WORKER=['jobs','calendar','tasks','time'];
+const DESKTOP_NAV_DEFS={
+  offers:{icon:'📄',label:'Angebote',hint:'Angebote öffnen',screen:'offers',roles:['owner','office']},
+  customers:{icon:'👥',label:'Kunden',hint:'Kunden & Akten',screen:'customers',roles:['owner','office']},
+  calendar:{icon:'📅',label:'Kalender',hint:'Termine planen',screen:'calendar',roles:['owner','office','worker']},
+  invoices:{icon:'🧾',label:'Rechnungen',hint:'Rechnungen & Zahlungen',screen:'invoices',roles:['owner','office']},
+  jobs:{icon:'🏗️',label:'Baustellen',hint:'Aufträge & Dokumentation',screen:'jobs',roles:['owner','office','worker']},
+  tasks:{icon:'✅',label:'Aufgaben',hint:'Offene Aufgaben',screen:'tasks',roles:['owner','office','worker']},
+  catalog:{icon:'📦',label:'Preisliste',hint:'Leistungen & Material',screen:'catalog',roles:['owner','office']},
+  secretariat:{icon:'✦',label:'Sekretariat',hint:'Postfach & Freigaben',action:'secretariat',roles:['owner','office']},
+  team:{icon:'👥',label:'Team & Zeiten',hint:'Mitarbeiter & Zeiten',action:'team',roles:['owner','office']},
+  time:{icon:'⏱️',label:'Zeiterfassung',hint:'Arbeitszeiten öffnen',action:'time',roles:['owner','office','worker']},
+  chat:{icon:'💬',label:'Baustellenchat',hint:'Chats öffnen',action:'chat',roles:['owner','office','worker']}
+};
+let desktopNavCache=null,desktopNavCacheKey='',desktopNavEditSlot=-1,desktopNavCloudLoadedFor='';
+function desktopNavRole(){return data?.privacy?.role||'owner'}
+function desktopNavDefaults(role=desktopNavRole()){return role==='worker'?[...DESKTOP_NAV_DEFAULT_WORKER]:[...DESKTOP_NAV_DEFAULT_OWNER]}
+function desktopNavIdentity(){
+  const st=globalThis.getCloudState?.()||{};
+  const companyId=st.company?.id||data?.meta?.cloudCompanyId||data?.meta?.companyId||'local';
+  const userId=st.session?.user?.id||data?.meta?.authUserId||data?.meta?.currentUserId||'local';
+  return{companyId,userId,key:`angebotspilot_desktop_nav_v1_${companyId}_${userId}`};
+}
+function desktopNavAllowed(key,role=desktopNavRole()){
+  const d=DESKTOP_NAV_DEFS[key];if(!d||!d.roles.includes(role))return false;
+  const m=data?.settings?.enabledModules||{};
+  if(key==='jobs'||key==='chat')return m.jobs!==false;
+  if(key==='secretariat')return m.secretariat!==false;
+  if(key==='team')return m.team!==false;
+  if(key==='time')return m.team!==false&&m.time_tracking!==false;
+  return true;
+}
+function normalizeDesktopNavActions(raw,role=desktopNavRole()){
+  const out=[],allowed=Object.keys(DESKTOP_NAV_DEFS).filter(k=>desktopNavAllowed(k,role));
+  (Array.isArray(raw)?raw:[]).forEach(k=>{if(allowed.includes(k)&&!out.includes(k)&&k!=='more')out.push(k)});
+  [...desktopNavDefaults(role),...allowed].forEach(k=>{if(out.length<4&&allowed.includes(k)&&!out.includes(k)&&k!=='more')out.push(k)});
+  return out.slice(0,4);
+}
+function getDesktopNavActions(){
+  const {key}=desktopNavIdentity(),role=desktopNavRole();
+  if(desktopNavCache&&desktopNavCacheKey===key)return normalizeDesktopNavActions(desktopNavCache,role);
+  desktopNavCacheKey=key;
+  try{desktopNavCache=normalizeDesktopNavActions(JSON.parse(localStorage.getItem(key)||'null'),role)}
+  catch(e){desktopNavCache=desktopNavDefaults(role)}
+  return desktopNavCache;
+}
+function storeDesktopNavActionsLocal(actions){
+  const {key}=desktopNavIdentity();desktopNavCacheKey=key;
+  desktopNavCache=normalizeDesktopNavActions(actions);
+  try{localStorage.setItem(key,JSON.stringify(desktopNavCache))}catch(e){}
+  return desktopNavCache;
+}
+function runDesktopNavAction(key){
+  const d=DESKTOP_NAV_DEFS[key];if(!d)return;
+  if(d.screen)return showScreen(d.screen);
+  if(d.action==='secretariat')return openEmailAssistant();
+  if(d.action==='team')return globalThis.openTeam?.()||showScreen('more');
+  if(d.action==='time')return globalThis.openTeam?.()||showScreen('jobs');
+  if(d.action==='chat')return globalThis.JobChat?.openQuickPicker?.()||showScreen('jobs');
+}
+function desktopNavButtonHTML(key,slot){
+  const d=DESKTOP_NAV_DEFS[key];if(!d)return'';
+  return `<button type="button" class="navBtn desktopNavEditable" data-desktop-nav-key="${key}" data-desktop-nav-slot="${slot}" ${d.screen?`data-screen="${d.screen}"`:''} aria-label="${escapeHTML(d.label)}. Klicken zum Öffnen, gedrückt halten zum Ersetzen."><b>${d.icon}</b><span class="desktopNavLabel">${escapeHTML(d.label)}</span><span class="desktopNavGrip">⋮</span></button>`;
+}
+function renderDesktopNavActions(){
+  const nav=document.getElementById('desktopSideNav');if(!nav)return;
+  const actions=getDesktopNavActions(),active=document.querySelector('.screen.active')?.id||'today';
+  nav.innerHTML=`<button type="button" class="navBtn desktopNavFixed ${active==='today'?'active':''}" data-screen="today" onclick="showScreen('today')"><b>☀️</b><span class="desktopNavLabel">Heute</span><span class="desktopNavGrip"></span></button>${actions.map((k,i)=>desktopNavButtonHTML(k,i)).join('')}<button type="button" class="navBtn desktopNavFixed ${active==='more'?'active':''}" data-screen="more" onclick="showScreen('more')"><b>•••</b><span class="desktopNavLabel">Mehr</span><span class="desktopNavGrip"></span></button><div class="desktopSideNavHint"><span>↟</span><small>Eintrag gedrückt halten zum Anpassen</small></div>`;
+  nav.querySelectorAll('.desktopNavEditable').forEach(btn=>{if(btn.dataset.screen===active)btn.classList.add('active');bindDesktopNavPress(btn)});
+}
+function bindDesktopNavPress(btn){
+  if(btn.dataset.desktopNavBound==='1')return;btn.dataset.desktopNavBound='1';
+  let timer=null,longPressed=false,startX=0,startY=0;
+  const clear=()=>{if(timer){clearTimeout(timer);timer=null}};
+  btn.addEventListener('pointerdown',e=>{
+    if(e.button!==undefined&&e.button!==0)return;
+    longPressed=false;startX=e.clientX||0;startY=e.clientY||0;clear();
+    timer=setTimeout(()=>{
+      longPressed=true;btn.dataset.suppressClick='1';
+      try{if(navigator.vibrate)navigator.vibrate(18)}catch(err){}
+      btn.classList.remove('desktopNavPressReady');void btn.offsetWidth;btn.classList.add('desktopNavPressReady');
+      setTimeout(()=>btn.classList.remove('desktopNavPressReady'),480);
+      setTimeout(()=>openDesktopNavActionSheet(Number(btn.dataset.desktopNavSlot)||0),120);
+    },560);
+  });
+  btn.addEventListener('pointermove',e=>{if(Math.hypot((e.clientX||0)-startX,(e.clientY||0)-startY)>11)clear()});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>btn.addEventListener(ev,clear));
+  btn.addEventListener('contextmenu',e=>e.preventDefault());
+  btn.addEventListener('click',e=>{
+    if(longPressed||btn.dataset.suppressClick==='1'){e.preventDefault();e.stopPropagation();btn.dataset.suppressClick='0';longPressed=false;return}
+    runDesktopNavAction(btn.dataset.desktopNavKey);
+  });
+}
+function openDesktopNavActionSheet(slot){
+  desktopNavEditSlot=Math.max(0,Math.min(3,Number(slot)||0));
+  const current=getDesktopNavActions()[desktopNavEditSlot],role=desktopNavRole(),box=document.getElementById('desktopNavActionChoices');
+  if(box)box.innerHTML=Object.entries(DESKTOP_NAV_DEFS).filter(([key])=>desktopNavAllowed(key,role)).map(([key,d])=>`<button type="button" class="homeQuickChoice ${key===current?'active':''}" onclick="chooseDesktopNavAction('${key}')"><span class="homeQuickChoiceIcon">${d.icon}</span><span><b>${escapeHTML(d.label)}</b><small>${escapeHTML(d.hint)}</small></span><strong>${key===current?'✓':'›'}</strong></button>`).join('');
+  document.getElementById('desktopNavActionSheet')?.classList.remove('hidden');
+}
+function closeDesktopNavActionSheet(e){if(e&&e.target!==e.currentTarget)return;document.getElementById('desktopNavActionSheet')?.classList.add('hidden');desktopNavEditSlot=-1}
+async function chooseDesktopNavAction(key){
+  if(!DESKTOP_NAV_DEFS[key]||desktopNavEditSlot<0||!desktopNavAllowed(key))return;
+  const actions=[...getDesktopNavActions()],slot=desktopNavEditSlot,old=actions[slot],other=actions.indexOf(key);
+  if(other>=0&&other!==slot){actions[other]=old;actions[slot]=key}else actions[slot]=key;
+  storeDesktopNavActionsLocal(actions);renderDesktopNavActions();closeDesktopNavActionSheet();
+  toast(`${DESKTOP_NAV_DEFS[key].label} ist jetzt links in der Navigation`);
+  saveDesktopNavActionsCloud(actions).catch(e=>console.warn('Desktop-Navigation Cloud-Speicherung fehlgeschlagen',e));
+}
+async function loadDesktopNavActionsFromCloud(){
+  const st=globalThis.getCloudState?.()||{},client=st.client,session=st.session,company=st.company;
+  if(!client||!session?.user||!company?.id)return false;
+  const cloudKey=`${company.id}:${session.user.id}`;if(desktopNavCloudLoadedFor===cloudKey)return true;
+  try{
+    const {data:row,error}=await client.from('user_preferences').select('desktop_nav_actions').eq('company_id',company.id).eq('user_id',session.user.id).maybeSingle();
+    if(error)throw error;
+    if(row?.desktop_nav_actions){
+      const {key}=desktopNavIdentity();desktopNavCacheKey=key;desktopNavCache=normalizeDesktopNavActions(row.desktop_nav_actions);
+      try{localStorage.setItem(key,JSON.stringify(desktopNavCache))}catch(e){}
+      renderDesktopNavActions();
+      if(JSON.stringify(row.desktop_nav_actions)!==JSON.stringify(desktopNavCache))await saveDesktopNavActionsCloud(desktopNavCache);
+    }else await saveDesktopNavActionsCloud(getDesktopNavActions());
+    desktopNavCloudLoadedFor=cloudKey;return true;
+  }catch(e){console.warn('Desktop-Navigation Cloud-Laden fehlgeschlagen',e);return false}
+}
+async function saveDesktopNavActionsCloud(actions){
+  const st=globalThis.getCloudState?.()||{},client=st.client,session=st.session,company=st.company;
+  if(!client||!session?.user||!company?.id)return false;
+  const clean=normalizeDesktopNavActions(actions);
+  const {error}=await client.from('user_preferences').upsert({company_id:company.id,user_id:session.user.id,desktop_nav_actions:clean,updated_at:new Date().toISOString()},{onConflict:'company_id,user_id'});
+  if(error)throw error;desktopNavCloudLoadedFor=`${company.id}:${session.user.id}`;return true;
+}
+globalThis.loadDesktopNavActionsFromCloud=loadDesktopNavActionsFromCloud;
+
 function syncVisibleBuildVersion(){document.querySelectorAll('[data-app-build]').forEach(el=>{el.textContent=APP_BUILD_VERSION})}
-function renderAll(){syncVisibleBuildVersion();renderHomeQuickActions();renderToday();renderOffers();renderInvoices();renderCustomers();renderCalendar();renderTasks();renderJobs();renderCatalog();loadSettingsForm();renderPrivacy();renderCachedWeather();applyRoleUI();if(document.getElementById('customerDetail')?.classList.contains('active'))renderCustomerFolder()}
+function renderAll(){syncVisibleBuildVersion();renderHomeQuickActions();renderDesktopNavActions();renderToday();renderOffers();renderInvoices();renderCustomers();renderCalendar();renderTasks();renderJobs();renderCatalog();loadSettingsForm();renderPrivacy();renderCachedWeather();applyRoleUI();if(document.getElementById('customerDetail')?.classList.contains('active'))renderCustomerFolder();queueMicrotask(()=>{loadHomeQuickActionsFromCloud().catch(()=>{});loadDesktopNavActionsFromCloud().catch(()=>{})})}
 function greetingForNow(){
   const h=new Date().getHours();
   return h<11?'Guten Morgen':h<18?'Guten Tag':'Guten Abend';
@@ -2768,7 +2903,7 @@ function exportPrivacyData(){const copy={exportedAt:new Date().toISOString(),pri
 function resetAppPrivacy(){openDeleteDataModal()}
 
 const legalDocs={
-privacyPolicy:`DATENSCHUTZHINWEIS – TECHNISCHER ARBEITSSTAND v11.32.26\n\nWICHTIG\nDieser Text bildet den aktuellen technischen Stand von AngebotsPilot ab, ersetzt aber vor dem kommerziellen Start keine individuelle rechtliche Prüfung und muss mit den tatsächlichen Anbieter-, Vertrags- und Subprozessorangaben vervollständigt werden.\n\nVerantwortlicher Betrieb\nDer jeweilige Betrieb entscheidet über Zweck und Nutzung seiner Kunden-, Auftrags-, Rechnungs- und Mitarbeiterdaten und ist für die Rechtmäßigkeit dieser Verarbeitung verantwortlich. AngebotsPilot ist für die im Auftrag gespeicherten Geschäftsdaten technisch als Auftragsverarbeitung ausgelegt. Vor dem öffentlichen Start ist hierfür ein vollständiger AV-/Auftragsbearbeitungsvertrag bereitzustellen.\n\nCloud & Mandantentrennung\nGeschäftsdaten werden mit dem angemeldeten Betriebskonto synchronisiert. Die Datenbank erzwingt eine Trennung nach Betrieb (company_id) und Rollen wie Inhaber, Büro und Mitarbeiter. Das aktuelle Supabase-Projekt ist in der Region Frankfurt eingerichtet. Übertragungen erfolgen verschlüsselt per HTTPS.\n\nBestandskunden-Import\nCSV- und XLSX-Dateien werden beim Import lokal im Browser ausgewertet. Die ursprüngliche Importdatei wird nicht in die Cloud hochgeladen oder dauerhaft gespeichert. Vor dem Speichern zeigt AngebotsPilot eine Vorschau und mögliche Dubletten. Erst nach ausdrücklicher Bestätigung werden die ausgewählten Kundendaten übernommen. Zur Nachvollziehbarkeit wird ein minimiertes Importprotokoll mit Zeitpunkt, Benutzer, Dateiprüfsumme, Format und Anzahlen gespeichert – nicht die Rohdatei. Ein Import erzeugt keine Einwilligung für Werbung oder Newsletter.\n\nE-Mail-Sekretariat\nBei aktivierter Firmen-Mailbox werden E-Mails des verbundenen Kontos verarbeitet, um geschäftliche Vorgänge wie Angebotsantworten, Terminfragen und Kundenanfragen darzustellen. Antworten werden nicht ohne ausdrückliche Nutzeraktion versendet. Zugangsdaten für IMAP/SMTP werden nicht im Browser gespeichert.\n\nBaustellenchat, Moderation, Sprachmemos & optionale KI\nDer Baustellenchat ist auf den jeweiligen Betrieb, die konkrete Baustelle und eingetragene Chat-Teilnehmer beschränkt. Vor dem Erstellen oder Hochladen eigener Chat-Inhalte müssen die aktuellen Chat-Regeln akzeptiert werden. Nutzer können problematische Nachrichten oder Personen melden und andere Nutzer für die eigene Ansicht blockieren. Inhaber/Büro können Meldungen prüfen und den Chat-Zugriff eines Teammitglieds zeitlich beschränken. Meldungen enthalten zur Nachvollziehbarkeit einen begrenzten Snapshot des gemeldeten Inhalts und werden getrennt vom normalen Chatverlauf verarbeitet.\n\nChat-Nachrichten abgeschlossener Baustellen unterliegen einer betrieblichen Aufbewahrungsregel; die technische Voreinstellung beträgt 180 Tage. Bei dokumentiertem Legal Hold wird die automatische Löschung ausgesetzt. In die Baustellenakte übernommene Fotos oder Dokumente sind separate Geschäftsunterlagen und folgen deren eigener Aufbewahrungslogik. Bei Kontolöschung werden nicht aufbewahrungspflichtige Chat-Inhalte standardmäßig entfernt; bei einem erforderlichen Legal Hold wird die Nutzeridentität anonymisiert.\n\nSprachmemos werden im privaten Firmenspeicher abgelegt. Transkription und Übersetzung sind optionale Funktionen: Ohne gesonderte Aktivierung und Einwilligung wird kein Sprachmemo an einen KI-Dienst übertragen. Wird die KI-Funktion aktiviert und vom Nutzer freigegeben, werden die ausgewählte Audioaufnahme bzw. der zu übersetzende Text serverseitig an den konfigurierten KI-Dienst übermittelt. Original-Audio und Originaltext bleiben erhalten; KI-Ergebnisse werden getrennt gekennzeichnet. Angebotsvorschläge werden niemals automatisch gespeichert oder ungeprüft in Kundendokumente übernommen.\n\nKontosicherheit & Passkeys\nFür die lokale automatische App-Sperre wird auf dem jeweiligen Gerät lediglich ein Zeitstempel der letzten Aktivität gespeichert. Bei Passkeys/WebAuthn verarbeitet AngebotsPilot keine biometrischen Rohdaten wie Gesichts- oder Fingerabdruckdaten. Die lokale Nutzerverifikation erfolgt durch Betriebssystem, Gerät oder den gewählten Passkey-Anbieter; an den Authentifizierungsdienst wird nur der kryptografische Nachweis der Anmeldung übermittelt.\n\nWetter & Standort\nWetterdaten und Gerätestandort werden nur nach den in der App vorgesehenen Freigaben verwendet. Standort- oder Baustellenangaben können für Wetterabfragen an den verwendeten Wetterdienst übertragen werden.\n\nExterne Apps und Dienste\nBeim bewussten Öffnen von Karten, Kalender, WhatsApp oder anderen externen Diensten können die vom Nutzer ausgewählten Daten an den jeweiligen Anbieter übertragen werden.\n\nSpeicherung, Berichtigung, Export und Löschung\nAngebotsPilot hält einen lokalen Offline-Stand und synchronisiert freigegebene Geschäftsdaten mit dem Betriebskonto. Daten können berichtigt und als Datenkopie exportiert werden. Die lokale Löschfunktion entfernt nur den Gerätestand. Die Löschung des AngebotsPilot-Benutzerkontos wird separat über einen serverseitig protokollierten Kontolöschauftrag gestartet und ist zusätzlich über die öffentliche Web-Ressource account-deletion.html erreichbar. Nicht aufbewahrungspflichtige Kontodaten und nutzergenerierte Chat-Inhalte werden im Löschprozess entfernt. Falls ein dokumentierter gesetzlicher oder rechtlicher Aufbewahrungsgrund besteht, kann der erforderliche Geschäftsinhalt getrennt weiter aufbewahrt werden; die Nutzeridentität wird dabei soweit möglich anonymisiert. Rechnungen und andere gesetzlich aufzubewahrende Geschäftsunterlagen bleiben von einer vorzeitigen Löschung ausgenommen.\n\nBetroffenenrechte\nDer Betrieb muss Anfragen betroffener Personen zu Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch bzw. den nach dem anwendbaren Recht vorgesehenen Rechten bearbeiten können. AngebotsPilot ist technisch darauf auszurichten, den Betrieb dabei zu unterstützen.\n\nDeutschland / Österreich\nFür personenbezogene Daten gelten insbesondere die DSGVO-Grundsätze wie Zweckbindung, Datenminimierung, Transparenz und Sicherheit. Der Betrieb muss für seine Kundendaten eine passende Rechtsgrundlage haben. Die bloße Migration bestehender Kundendaten in AngebotsPilot schafft keine neue Werbeeinwilligung.\n\nSchweiz\nFür Schweizer Betriebe wird die Verarbeitung zusätzlich nach den Grundsätzen des Schweizer DSG ausgelegt, insbesondere Transparenz, Datenschutz durch Technik und datenschutzfreundliche Voreinstellungen. Der Betrieb bleibt für die Rechtmäßigkeit seiner Datenbearbeitung verantwortlich.\n\nVor kommerziellem Start\nDatenschutzerklärung, AVV/Auftragsbearbeitungsvertrag, Subprozessorliste, internationale Datenübermittlungen, Löschkonzept, Incident-Prozess und die tatsächlichen Unternehmensdaten müssen final geprüft und veröffentlicht werden.`,
+privacyPolicy:`DATENSCHUTZHINWEIS – TECHNISCHER ARBEITSSTAND v11.32.27\n\nWICHTIG\nDieser Text bildet den aktuellen technischen Stand von AngebotsPilot ab, ersetzt aber vor dem kommerziellen Start keine individuelle rechtliche Prüfung und muss mit den tatsächlichen Anbieter-, Vertrags- und Subprozessorangaben vervollständigt werden.\n\nVerantwortlicher Betrieb\nDer jeweilige Betrieb entscheidet über Zweck und Nutzung seiner Kunden-, Auftrags-, Rechnungs- und Mitarbeiterdaten und ist für die Rechtmäßigkeit dieser Verarbeitung verantwortlich. AngebotsPilot ist für die im Auftrag gespeicherten Geschäftsdaten technisch als Auftragsverarbeitung ausgelegt. Vor dem öffentlichen Start ist hierfür ein vollständiger AV-/Auftragsbearbeitungsvertrag bereitzustellen.\n\nCloud & Mandantentrennung\nGeschäftsdaten werden mit dem angemeldeten Betriebskonto synchronisiert. Die Datenbank erzwingt eine Trennung nach Betrieb (company_id) und Rollen wie Inhaber, Büro und Mitarbeiter. Das aktuelle Supabase-Projekt ist in der Region Frankfurt eingerichtet. Übertragungen erfolgen verschlüsselt per HTTPS.\n\nBestandskunden-Import\nCSV- und XLSX-Dateien werden beim Import lokal im Browser ausgewertet. Die ursprüngliche Importdatei wird nicht in die Cloud hochgeladen oder dauerhaft gespeichert. Vor dem Speichern zeigt AngebotsPilot eine Vorschau und mögliche Dubletten. Erst nach ausdrücklicher Bestätigung werden die ausgewählten Kundendaten übernommen. Zur Nachvollziehbarkeit wird ein minimiertes Importprotokoll mit Zeitpunkt, Benutzer, Dateiprüfsumme, Format und Anzahlen gespeichert – nicht die Rohdatei. Ein Import erzeugt keine Einwilligung für Werbung oder Newsletter.\n\nE-Mail-Sekretariat\nBei aktivierter Firmen-Mailbox werden E-Mails des verbundenen Kontos verarbeitet, um geschäftliche Vorgänge wie Angebotsantworten, Terminfragen und Kundenanfragen darzustellen. Antworten werden nicht ohne ausdrückliche Nutzeraktion versendet. Zugangsdaten für IMAP/SMTP werden nicht im Browser gespeichert.\n\nBaustellenchat, Moderation, Sprachmemos & optionale KI\nDer Baustellenchat ist auf den jeweiligen Betrieb, die konkrete Baustelle und eingetragene Chat-Teilnehmer beschränkt. Vor dem Erstellen oder Hochladen eigener Chat-Inhalte müssen die aktuellen Chat-Regeln akzeptiert werden. Nutzer können problematische Nachrichten oder Personen melden und andere Nutzer für die eigene Ansicht blockieren. Inhaber/Büro können Meldungen prüfen und den Chat-Zugriff eines Teammitglieds zeitlich beschränken. Meldungen enthalten zur Nachvollziehbarkeit einen begrenzten Snapshot des gemeldeten Inhalts und werden getrennt vom normalen Chatverlauf verarbeitet.\n\nChat-Nachrichten abgeschlossener Baustellen unterliegen einer betrieblichen Aufbewahrungsregel; die technische Voreinstellung beträgt 180 Tage. Bei dokumentiertem Legal Hold wird die automatische Löschung ausgesetzt. In die Baustellenakte übernommene Fotos oder Dokumente sind separate Geschäftsunterlagen und folgen deren eigener Aufbewahrungslogik. Bei Kontolöschung werden nicht aufbewahrungspflichtige Chat-Inhalte standardmäßig entfernt; bei einem erforderlichen Legal Hold wird die Nutzeridentität anonymisiert.\n\nSprachmemos werden im privaten Firmenspeicher abgelegt. Transkription und Übersetzung sind optionale Funktionen: Ohne gesonderte Aktivierung und Einwilligung wird kein Sprachmemo an einen KI-Dienst übertragen. Wird die KI-Funktion aktiviert und vom Nutzer freigegeben, werden die ausgewählte Audioaufnahme bzw. der zu übersetzende Text serverseitig an den konfigurierten KI-Dienst übermittelt. Original-Audio und Originaltext bleiben erhalten; KI-Ergebnisse werden getrennt gekennzeichnet. Angebotsvorschläge werden niemals automatisch gespeichert oder ungeprüft in Kundendokumente übernommen.\n\nKontosicherheit & Passkeys\nFür die lokale automatische App-Sperre wird auf dem jeweiligen Gerät lediglich ein Zeitstempel der letzten Aktivität gespeichert. Bei Passkeys/WebAuthn verarbeitet AngebotsPilot keine biometrischen Rohdaten wie Gesichts- oder Fingerabdruckdaten. Die lokale Nutzerverifikation erfolgt durch Betriebssystem, Gerät oder den gewählten Passkey-Anbieter; an den Authentifizierungsdienst wird nur der kryptografische Nachweis der Anmeldung übermittelt.\n\nWetter & Standort\nWetterdaten und Gerätestandort werden nur nach den in der App vorgesehenen Freigaben verwendet. Standort- oder Baustellenangaben können für Wetterabfragen an den verwendeten Wetterdienst übertragen werden.\n\nExterne Apps und Dienste\nBeim bewussten Öffnen von Karten, Kalender, WhatsApp oder anderen externen Diensten können die vom Nutzer ausgewählten Daten an den jeweiligen Anbieter übertragen werden.\n\nSpeicherung, Berichtigung, Export und Löschung\nAngebotsPilot hält einen lokalen Offline-Stand und synchronisiert freigegebene Geschäftsdaten mit dem Betriebskonto. Daten können berichtigt und als Datenkopie exportiert werden. Die lokale Löschfunktion entfernt nur den Gerätestand. Die Löschung des AngebotsPilot-Benutzerkontos wird separat über einen serverseitig protokollierten Kontolöschauftrag gestartet und ist zusätzlich über die öffentliche Web-Ressource account-deletion.html erreichbar. Nicht aufbewahrungspflichtige Kontodaten und nutzergenerierte Chat-Inhalte werden im Löschprozess entfernt. Falls ein dokumentierter gesetzlicher oder rechtlicher Aufbewahrungsgrund besteht, kann der erforderliche Geschäftsinhalt getrennt weiter aufbewahrt werden; die Nutzeridentität wird dabei soweit möglich anonymisiert. Rechnungen und andere gesetzlich aufzubewahrende Geschäftsunterlagen bleiben von einer vorzeitigen Löschung ausgenommen.\n\nBetroffenenrechte\nDer Betrieb muss Anfragen betroffener Personen zu Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch bzw. den nach dem anwendbaren Recht vorgesehenen Rechten bearbeiten können. AngebotsPilot ist technisch darauf auszurichten, den Betrieb dabei zu unterstützen.\n\nDeutschland / Österreich\nFür personenbezogene Daten gelten insbesondere die DSGVO-Grundsätze wie Zweckbindung, Datenminimierung, Transparenz und Sicherheit. Der Betrieb muss für seine Kundendaten eine passende Rechtsgrundlage haben. Die bloße Migration bestehender Kundendaten in AngebotsPilot schafft keine neue Werbeeinwilligung.\n\nSchweiz\nFür Schweizer Betriebe wird die Verarbeitung zusätzlich nach den Grundsätzen des Schweizer DSG ausgelegt, insbesondere Transparenz, Datenschutz durch Technik und datenschutzfreundliche Voreinstellungen. Der Betrieb bleibt für die Rechtmäßigkeit seiner Datenbearbeitung verantwortlich.\n\nVor kommerziellem Start\nDatenschutzerklärung, AVV/Auftragsbearbeitungsvertrag, Subprozessorliste, internationale Datenübermittlungen, Löschkonzept, Incident-Prozess und die tatsächlichen Unternehmensdaten müssen final geprüft und veröffentlicht werden.`,
 imprint:`IMPRESSUM – ENTWURF\n\nAngaben gemäß den für den Anbieter geltenden Vorschriften\n${data.settings.companyName||'[Firmenname]'}\n${data.settings.ownerName||'[Vertretungsberechtigte Person]'}\n${data.settings.address||'[Vollständige Anschrift]'}\n\nKontakt\nTelefon: ${data.settings.phone||'[Telefon]'}\nE-Mail: ${data.settings.email||'[E-Mail]'}\n\nWeitere Pflichtangaben\n[Rechtsform, Register, Registernummer, UID/USt-ID/MWST-Nr., zuständige Kammer oder Berufsangaben ergänzen, soweit zutreffend.]\n\nHinweis\nVor Veröffentlichung ist das Impressum nach Sitzland (DE/AT/CH) und Rechtsform des tatsächlichen AngebotsPilot-Betreibers zu finalisieren.`,
 terms:`NUTZUNGSBEDINGUNGEN – TECHNISCHER ENTWURF\n\n1. Zweck\nAngebotsPilot unterstützt Betriebe bei Kundenverwaltung, Angeboten, Terminen, Baustellen, E-Mail-Kommunikation, Rechnungen, Dokumentation und internen Arbeitsabläufen.\n\n2. Verantwortung des Betriebs\nDer Betrieb bleibt für die Rechtmäßigkeit seiner Kundendaten, Inhalte, Preise, Rechnungsangaben, Steuerbehandlung und versendeten Nachrichten verantwortlich. AngebotsPilot ersetzt keine individuelle Rechts-, Steuer- oder Berufsberatung.\n\n3. Bestandskunden-Import\nImportiert werden nur vom Nutzer ausgewählte Daten. Mögliche Dubletten werden vor dem Import gekennzeichnet. Der Import ist kein Nachweis einer Werbeeinwilligung.\n\n4. Automatisierung\nVorbereitete Antworten, Termine, Rechnungsaktionen und ähnliche Vorgänge werden nur entsprechend der in der App ausgewiesenen Freigabelogik ausgeführt. Sicherheits- und Compliance-Prüfungen reduzieren Fehler, stellen aber keine behördliche oder anwaltliche Zertifizierung dar.\n\n5. Baustellenchat und zulässige Inhalte\nDer Baustellenchat dient ausschließlich der betrieblichen Zusammenarbeit. Vor dem ersten Senden oder Hochladen müssen die aktuellen Chat-Regeln akzeptiert werden. Untersagt sind insbesondere Drohungen, Belästigung, diskriminierende oder sexuell anstößige Inhalte, illegale Inhalte, Schadsoftware, Spam sowie die unnötige Veröffentlichung privater oder sensibler Daten. Nutzer können Inhalte und Personen melden und andere Nutzer für die eigene Ansicht blockieren. Inhaber/Büro dürfen Meldungen prüfen und bei Bedarf zeitlich begrenzte Chat-Sperren verhängen.\n\n6. Aufbewahrung und Kontolöschung\nChat-Inhalte abgeschlossener Baustellen werden nach der betrieblich festgelegten Frist gelöscht, soweit kein dokumentierter Aufbewahrungsgrund besteht. In die Baustellenakte übernommene Geschäftsunterlagen sind davon getrennt. Bei Kontolöschung werden nicht aufbewahrungspflichtige nutzergenerierte Inhalte entfernt; erforderliche Nachweise können nur im notwendigen Umfang und möglichst anonymisiert weiter aufbewahrt werden.\n\n7. KI-Sprachfunktionen\nTranskriptionen, Übersetzungen und aus Sprachmemos erzeugte Angebotsformulierungen sind Vorschläge und können Fehler enthalten. Originalinhalte bleiben maßgeblich. KI-Vorschläge werden nicht automatisch in Angebote übernommen oder gespeichert; der Nutzer muss die Übernahme ausdrücklich auslösen und Inhalte, Mengen, Leistungen und Preise selbst prüfen.\n\n8. Sicherheit und Verfügbarkeit\nDer Anbieter setzt technische und organisatorische Schutzmaßnahmen ein. Für den kommerziellen Betrieb sind Backup-, Wiederherstellungs-, Incident- und Verfügbarkeitsregeln vertraglich festzulegen.`,
 architecture:`DATENSCHUTZ- UND SICHERHEITSARCHITEKTUR – AKTUELLER STAND\n\n• Mandantentrennung je Betrieb über company_id und Row Level Security\n• Rollen Inhaber / Büro / Mitarbeiter serverseitig berücksichtigt\n• HTTPS und Supabase Auth\n• Cloud-Projekt in Frankfurt\n• Lokaler Offline-Stand plus Cloud-Synchronisierung\n• Firmen-Mailbox mit serverseitig geschützten Zugangsdaten\n• Keine automatische E-Mail ohne Nutzerfreigabe\n• Bestandskunden-Dateien werden lokal geparst und nicht als Rohdatei gespeichert\n• Import-Vorschau, Dublettenprüfung, ausdrückliche Bestätigung und minimiertes Importprotokoll\n• Strukturierte E-Rechnungen und Compliance-Prüfungen für DE/AT/CH\n• Finalisierte Rechnungen und Abnahmeprotokolle gegen stille Änderung geschützt\n• Export- und Löschfunktionen für personenbezogene Arbeitsdaten; gesetzliche Aufbewahrung bleibt vorbehalten\n• Servergestützte Datenschutz-Anfragen mit Status, Aufbewahrungsvorbehalt und Audit-Trail\n• Baustellenchat mit RLS: nur eingetragene Teilnehmer; Mitarbeiter automatisch über Baustellenzuweisung, Chef/Büro gezielt\n• Private Chat-Dateien mit participant-/block-aware Storage-RLS; referenzierte Chat-Anhänge sind nicht clientseitig löschbar\n• Chat-Regel-Zustimmung vor UGC-Erstellung; serverseitiger Baseline-Inhaltsfilter\n• In-App-Melden, Nutzerblockierung und Moderationscenter mit zeitlich begrenzter Chat-Sperre\n• 180-Tage-Standardaufbewahrung für abgeschlossene Baustellen, konfigurierbar; Legal Hold setzt automatische Löschung aus\n• Kontolöschung entfernt nicht aufbewahrungspflichtige Chat-UGC; Legal-Hold-Inhalte werden anonymisiert\n• Sprachmemos funktionieren ohne KI; KI-Transkription/Übersetzung nur nach serverseitiger Aktivierung und Nutzereinwilligung\n• KI-Schlüssel ausschließlich serverseitig; Rate-/Tageslimits und Nutzungsprotokoll vorbereitet\n• Keine automatische Übernahme von KI-Angebotsvorschlägen in Kundendokumente\n• Keine KI-Übertragung im aktuellen Kernworkflow ohne gesonderte Aktivierung\n\nVOR ÖFFENTLICHEM LAUNCH\n• AVV / Auftragsbearbeitungsvertrag für Kunden\n• Verträge und Subprozessorliste für Hosting/Mail/weitere Dienste\n• Vollständige Datenschutzerklärung für DE/AT/CH-Zielmarkt\n• Lösch- und Aufbewahrungskonzept je Datenkategorie\n• Incident-/Data-Breach-Prozess\n• Regelmäßige Backups und Restore-Tests\n• Passkeys / MFA / Geräteverwaltung\n• Sicherheits- und Penetrationstests\n• Prüfung, ob für einzelne risikoreiche Verarbeitungen eine DSFA erforderlich ist\n• Finale rechtliche und steuerliche Prüfung vor Bezahl-Launch`};
@@ -2944,6 +3079,7 @@ function applyRoleUI(){
   else if(role==='office'&&label)label.textContent='BÜRO · CLOUD';
   else if(role==='owner'&&label)label.textContent='DIGITALER HANDWERKER · CLOUD';
 
+  renderDesktopNavActions();
   if(role==='worker')setTimeout(()=>globalThis.TimeTracking?.refreshDashboard?.(),100);
 }
 globalThis.applyRoleUI=applyRoleUI;
