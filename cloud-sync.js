@@ -130,16 +130,23 @@
   async function syncCatalog(d){
     await upsertRows('catalog_items',(d.catalog||[]).map(x=>({...base(x),trade:x.trade||d.settings?.trade||'garden',type:x.type||'service',name:x.name||'',unit:x.unit||'Stk.',price:n(x.price),purchase_price:n(x.purchasePrice),markup:n(x.markup)})));
   }
+  async function saveOfferLines(ctx,offer,cloud){
+    const lines=(offer.lines||[]).filter(l=>String(l?.name||'').trim()).map((l,i)=>({local_id:String(l.id||`${offer.id}:line:${i}`),position:i+1,name:l.name,qty:n(l.qty)||1,unit:l.unit||'Stk.',price:n(l.price),type:l.type||'service',workers:l.workers?Number(l.workers):null,hours_per_worker:l.hoursPerWorker?n(l.hoursPerWorker):null}));
+    if(!lines.length)throw new Error('Angebot ohne Positionen wird nicht synchronisiert.');
+    ctx.assert();
+    const {data,error}=await ctx.client.rpc('replace_offer_lines_atomic',{p_company_id:ctx.companyId,p_offer_id:cloud.id,p_lines:lines});
+    ctx.assert();
+    if(error)throw error;
+    if(data!==lines.length)throw new Error('Angebotspositionen wurden nicht vollständig bestätigt.');
+  }
   async function syncOffers(d,custMap){
+    const ctx=readContext();
     const rows=(d.offers||[]).map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,number:x.number||'',offer_date:x.date||new Date().toISOString().slice(0,10),status:x.status||'draft',subject:x.subject||'Angebot',notes:x.notes||'',duration_value:Math.max(x.durationUnit==='hours'?.25:1,Number(x.durationValue)||1),duration_unit:x.durationUnit==='hours'?'hours':'days',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total)})).filter(x=>x.customer_id);
     await upsertRows('offers',rows);
     const offerMap=await mapFor('offers');
     for(const offer of d.offers||[]){
       const cloud=offerMap.get(offer.id);if(!cloud)continue;
-      const {error:delErr}=await client.from('offer_lines').delete().eq('offer_id',cloud.id);
-      if(delErr)throw delErr;
-      const lines=(offer.lines||[]).filter(l=>l.name).map((l,i)=>({offer_id:cloud.id,local_id:String(l.id||`${offer.id}:line:${i}`),position:i+1,name:l.name,qty:n(l.qty)||1,unit:l.unit||'Stk.',price:n(l.price),type:l.type||'service',workers:l.workers?Number(l.workers):null,hours_per_worker:l.hoursPerWorker?n(l.hoursPerWorker):null}));
-      if(lines.length){const {error}=await client.from('offer_lines').insert(lines);if(error)throw error}
+      await saveOfferLines(ctx,offer,cloud);
     }
     return offerMap;
   }

@@ -30,3 +30,6 @@ jobs:
 
       - name: Cloud pagination regression tests
         run: node --test tests/cloud-pagination.test.mjs
+
+      - name: Atomic offer line regression tests
+        run: node --test tests/offer-lines.test.mjs
