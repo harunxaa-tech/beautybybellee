@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {enqueueVerifiedStripeEvent,claimStripeInboxEvent,retryStripeInboxEvent} from '../scripts/stripe-event-inbox.mjs';
+const event={id:'evt_example',type:'customer.subscription.updated',livemode:false,data:{object:{customer:'private-data'}}};
+const fixture=(response)=>{const calls=[];return {calls,service:{rpc:async(name,args)=>{calls.push({name,args});return response}}}};
+test('verified event persists only minimal identifiers',async()=>{const {service,calls}=fixture({data:'queued'});assert.deepEqual(await enqueueVerifiedStripeEvent(service,event,false),{accepted:true,duplicate:false});assert.deepEqual(calls,[{name:'enqueue_verified_stripe_event',args:{p_event_id:event.id,p_event_type:event.type,p_livemode:false}}])});
+test('duplicate delivery is acknowledged without a second application',async()=>{const {service}=fixture({data:'duplicate'});assert.equal((await enqueueVerifiedStripeEvent(service,event,false)).duplicate,true)});
+test('wrong or unspecified environment fails before database request',async()=>{const {service,calls}=fixture({data:'queued'});for(const e of [true,undefined])await assert.rejects(enqueueVerifiedStripeEvent(service,event,e),/environment_mismatch/);assert.equal(calls.length,0)});
+test('malformed identifiers cannot enter queue',async()=>{const {service,calls}=fixture({data:'queued'});await assert.rejects(enqueueVerifiedStripeEvent(service,{...event,id:'bad'},false),/event_invalid/);assert.equal(calls.length,0)});
+test('unconfirmed enqueue is never success',async()=>{for(const response of [{data:null},{error:{message:'offline'}},{data:'unknown'}]){const {service}=fixture(response);await assert.rejects(enqueueVerifiedStripeEvent(service,event,false),/not_confirmed/)}});
+test('claim returns null only for explicit empty queue',async()=>{const {service}=fixture({data:null});assert.equal(await claimStripeInboxEvent(service,false),null);await assert.rejects(claimStripeInboxEvent(fixture({data:null,error:{}}).service,false),/unavailable/)});
+const claim={event_id:event.id,livemode:false,lease_token:'lease-a',attempts:1};
+test('claim verifies environment and lease',async()=>{const {service}=fixture({data:claim});assert.deepEqual(await claimStripeInboxEvent(service,false),claim);for(const data of [{...claim,livemode:true},{...claim,lease_token:''},{...claim,attempts:11}])await assert.rejects(claimStripeInboxEvent(fixture({data}).service,false),/claim_invalid/)});
+test('retry sends only failure and matching lease',async()=>{const {service,calls}=fixture({data:true});assert.equal(await retryStripeInboxEvent(service,claim,'provider_unavailable'),true);assert.deepEqual(calls,[{name:'finish_stripe_inbox_event',args:{p_event_id:event.id,p_lease:'lease-a',p_success:false,p_error_code:'provider_unavailable'}}])});
+test('stale lease or failed retry cannot be acknowledged',async()=>{for(const response of [{data:false},{error:{}}])await assert.rejects(retryStripeInboxEvent(fixture(response).service,claim,'provider_unavailable'),/not_confirmed/)});
+test('arbitrary error payloads are not persisted',async()=>{const {service,calls}=fixture({data:true});await assert.rejects(retryStripeInboxEvent(service,claim,'secret or customer data'),/retry_invalid/);assert.equal(calls.length,0)});

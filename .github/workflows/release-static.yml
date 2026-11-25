@@ -48,3 +48,6 @@ jobs:
 
       - name: Stripe checkout guard regression tests
         run: node --test tests/stripe-checkout-guard.test.mjs
+
+      - name: Stripe event inbox regression tests
+        run: node --test tests/stripe-event-inbox.test.mjs
