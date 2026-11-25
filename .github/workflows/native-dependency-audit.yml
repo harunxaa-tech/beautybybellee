@@ -7,6 +7,7 @@ on:
       - '.github/workflows/native-dependency-audit.yml'
       - 'AngebotsPilot-Native-Source-v0.6.0.zip'
       - 'tests/check_native_lock.py'
+      - 'scripts/prepare-native-dependency-candidate.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,6 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           unzip -q AngebotsPilot-Native-Source-v0.6.0.zip
+          node scripts/prepare-native-dependency-candidate.mjs native/package.json
           cd native
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
           python3 ../tests/check_native_lock.py package-lock.json
@@ -32,9 +34,20 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-lock-candidate
-          path: native/package-lock.json
+          path: |
+            native/package.json
+            native/package-lock.json
           retention-days: 7
           if-no-files-found: error
       - name: Audit resolved dependency tree
         working-directory: native
-        run: npm audit --package-lock-only --ignore-scripts --audit-level=high --registry=https://registry.npmjs.org/
+        run: npm audit --package-lock-only --ignore-scripts --audit-level=moderate --registry=https://registry.npmjs.org/
+      - name: Verify candidate installation and native preparation
+        working-directory: native
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
+          test "$(node -p 'require(\"./node_modules/@capacitor/cli/package.json\").version')" = 8.6.2
+          npm run validate
+          npm run prepare:web
+          npx --no-install cap --version
