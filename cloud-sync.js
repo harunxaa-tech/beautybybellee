@@ -130,7 +130,11 @@
     if(rows.some(r=>r.company_id!==ctx.companyId))throw new Error('Falscher Cloud-Betrieb.');
     const {data,error}=await ctx.client.from(table).upsert(rows,{onConflict}).select('id,local_id');
     ctx.assert();
-    if(error)throw error;return data||[];
+    if(error){
+      if(String(error.message||error).includes('SYNC_DELETED_RECORD_CONFLICT'))throw new Error('Ein Datensatz wurde auf einem anderen Gerät gelöscht. Deine lokalen Änderungen bleiben erhalten; bitte den Konflikt prüfen.');
+      throw error;
+    }
+    return data||[];
   }
   function base(ctx,entity){return{
     company_id:ctx.companyId,local_id:String(entity.id),created_by:ctx.userId,

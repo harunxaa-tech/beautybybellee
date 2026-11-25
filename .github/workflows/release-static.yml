@@ -64,3 +64,6 @@ jobs:
 
       - name: Cloud account context regression tests
         run: node --test tests/cloud-context-guard.test.mjs
+
+      - name: Deleted record conflict regression tests
+        run: node --test tests/cloud-deletion-conflict.test.mjs
