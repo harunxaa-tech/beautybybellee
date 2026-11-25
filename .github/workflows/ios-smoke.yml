@@ -1,0 +1,61 @@
+name: iOS unsigned build
+on:
+  push:
+    branches:
+      - 'release/ios-seo-preflight'
+    paths:
+      - '.github/workflows/ios-smoke.yml'
+      - 'AngebotsPilot-Native-Source-*.zip'
+      - '*.js'
+      - '*.css'
+      - 'index.html'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-smoke-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: macos-26
+    timeout-minutes: 35
+    env:
+      AP_PUSH_ENV: development
+      CM_BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Verify Apple toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "iOS SDK: $sdk"
+          test "${sdk%%.*}" -ge 26
+      - name: Prepare native source
+        run: |
+          set -euo pipefail
+          unzip -q AngebotsPilot-Native-Source-v0.6.0.zip
+          cd native
+          npm install --no-audit --no-fund
+          npm run validate
+          npm run prepare:web
+          npx cap add ios
+          npx cap sync ios
+          npm run prepare:ios
+          grep -q 'MARKETING_VERSION = 0.6.0' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'angebotspilot' ios/App/App/Info.plist
+          plutil -lint ios/App/App/Info.plist
+          plutil -lint ios/App/App/App.entitlements
+      - name: Compile without signing or publishing
+        working-directory: native/ios/App
+        run: |
+          set -euo pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+          test -d build/Build/Products/Debug-iphonesimulator/App.app
+          /usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' build/Build/Products/Debug-iphonesimulator/App.app/Info.plist | grep -Fx com.harunxaa.angebotspilot
+          find build/Build/Products/Debug-iphonesimulator/App.app -name PrivacyInfo.xcprivacy -print
