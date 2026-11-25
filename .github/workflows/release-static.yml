@@ -39,3 +39,6 @@ jobs:
 
       - name: Local backup safety regression tests
         run: node --test tests/backup-preview.test.mjs
+
+      - name: Voice API cost guard regression tests
+        run: node --test tests/voice-api-cost.test.mjs
