@@ -2917,8 +2917,31 @@ function downloadBlob(content,name,type){const a=document.createElement('a');a.h
 
 function backendReadinessCheck(){return AppRepository.diagnostics(data)}
 
-function exportBackup(){downloadBlob(JSON.stringify(data,null,2),'angebotspilot-backup.json','application/json')}
-function importBackup(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);globalThis.data=data;saveData();toast('Backup importiert')}catch(e){toast('Ungültiges Backup')}};r.readAsText(f)}
+async function exportBackup(){
+  try{
+    const api=globalThis.APBackupPreview,context=globalThis.APCloudContext?.();
+    const snapshot=api.makeSnapshot(data,context);
+    const ok=await appConfirm({title:'Lokalen Datenstand exportieren?',text:'Diese vertrauliche Datei enthält nur lokale Geschäftsdatensätze, keine vollständige Cloud-Sicherung oder Dokumentdateien. Bitte geschützt speichern.',confirmLabel:'Datenstand exportieren'});
+    if(!ok)return;
+    const current=api.identity(data,globalThis.APCloudContext?.());
+    if(current.companyId!==snapshot.scope.companyId||current.userId!==snapshot.scope.userId)throw new Error('Betrieb oder Anmeldung wurde geändert.');
+    downloadBlob(JSON.stringify(snapshot,null,2),'angebotspilot-lokaler-datenstand.json','application/json');
+  }catch(e){toast(String(e?.message||'Export fehlgeschlagen'))}
+}
+async function importBackup(ev){
+  const file=ev?.target?.files?.[0];if(ev?.target)ev.target.value='';if(!file)return;
+  try{
+    const api=globalThis.APBackupPreview;
+    const scope=api.identity(data,globalThis.APCloudContext?.());
+    if(file.size>api.MAX_BYTES)throw new Error('Sicherungsdatei ist zu groß für die lokale Prüfung.');
+    const raw=JSON.parse(await file.text());
+    const current=api.identity(data,globalThis.APCloudContext?.());
+    if(current.companyId!==scope.companyId||current.userId!==scope.userId)throw new Error('Betrieb oder Anmeldung wurde geändert.');
+    const preview=api.inspect(raw,data,globalThis.APCloudContext?.());
+    const count=Object.values(preview.found).reduce((a,b)=>a+b,0);
+    toast('Sicherung geprüft: '+count+' Datensätze. Keine Daten geändert. Wiederherstellung wird separat abgesichert.');
+  }catch(e){toast(String(e?.message||'Ungültige Sicherungsdatei'))}
+}
 function resetApp(){resetAppPrivacy()}
 document.getElementById('weatherDate').value=todayISO();
 

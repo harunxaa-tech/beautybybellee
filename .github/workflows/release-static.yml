@@ -36,3 +36,6 @@ jobs:
 
       - name: Atomic job assignment regression tests
         run: node --test tests/job-assignments.test.mjs
+
+      - name: Local backup safety regression tests
+        run: node --test tests/backup-preview.test.mjs
