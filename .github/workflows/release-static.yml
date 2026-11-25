@@ -45,3 +45,6 @@ jobs:
 
       - name: Stripe webhook safety regression tests
         run: node --test tests/stripe-webhook-safety.test.mjs
+
+      - name: Stripe checkout guard regression tests
+        run: node --test tests/stripe-checkout-guard.test.mjs
