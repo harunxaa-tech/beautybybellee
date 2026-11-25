@@ -251,7 +251,7 @@
     }
   }
   async function pushSnapshot(payload){
-    if(!client||!company||!session)return;
+    if(!client||!company||!session)return{deferred:true,reason:'disconnected'};
 
     // v11.31.28: Während einer rechtlichen Rechnungsfinalisierung darf der normale
     // Voll-Sync keinen halbfertigen Zustand schreiben. Der atomare RPC schließt den
@@ -268,7 +268,7 @@
       throw new Error(mismatch);
     }
 
-    if(syncing){queued=true;return}
+    if(syncing){queued=true;return{deferred:true,reason:'sync-in-progress'}}
     syncing=true;lastError='';emit();
     try{
       const d=localData();
@@ -286,13 +286,14 @@
         return;
       }
       if(membership?.role==='owner'){
-        await client.from('companies').update({
+        const {error:companyUpdateError}=await client.from('companies').update({
           name:d.settings?.companyName||company.name,trade:d.settings?.trade||company.trade||'garden',
           address:d.settings?.address||'',phone:d.settings?.phone||'',email:d.settings?.email||session.user.email||'',
           tax_number:d.settings?.taxNumber||'',vat_id:d.settings?.vatId||'',iban:d.settings?.iban||'',
           bank_name:d.settings?.bankName||'',tax_rate:n(d.settings?.tax),country_code:d.settings?.countryCode||'DE',currency_code:d.settings?.currency||'EUR',app_language:d.settings?.appLanguage||'de',tax_treatment:d.settings?.taxTreatment||'standard',tax_note:d.settings?.taxNote||'',offer_number_next:d.settings?.offerNumberNext||'',invoice_number_next:d.settings?.invoiceNumberNext||'',
           payment_days:Math.max(0,Number(String(d.settings?.paymentTerm||'7').match(/\d+/)?.[0]||7)),business_mode:d.settings?.businessMode||company.business_mode||'solo',enabled_modules:d.settings?.enabledModules||company.enabled_modules||{},brand_logo_path:d.settings?.brandLogoPath||'',brand_accent:d.settings?.brandAccent||'',document_style:d.settings?.documentStyle||'auto',logo_position:d.settings?.logoPosition||'left',brand_logo_meta:d.settings?.brandLogoMeta||{},brand_reference_path:d.settings?.brandReferencePath||'',brand_reference_preview_path:d.settings?.brandReferencePreviewPath||'',brand_reference_name:d.settings?.brandReferenceName||'',brand_reference_meta:d.settings?.brandReferenceMeta||{}
         }).eq('id',company.id);
+        if(companyUpdateError)throw companyUpdateError;
       }
       const custMap=await syncCustomers(d);await syncCatalog(d);
       setProgress(40,'Cloud wird aktualisiert','Angebote …');
@@ -313,7 +314,7 @@
       throw e;
     }finally{
       syncing=false;emit();
-      if(queued){queued=false;setTimeout(()=>pushSnapshot(),250)}
+      if(queued){queued=false;setTimeout(()=>{pushSnapshot().catch(e=>console.warn('Erneuter Cloud-Sync fehlgeschlagen',e))},250)}
     }
   }
   async function cloudCount(){

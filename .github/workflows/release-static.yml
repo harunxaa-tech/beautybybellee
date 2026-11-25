@@ -24,3 +24,6 @@ jobs:
 
       - name: Store billing regression tests
         run: node --test tests/store-billing.test.mjs
+
+      - name: Repository sync regression tests
+        run: node --test tests/repository-sync.test.mjs

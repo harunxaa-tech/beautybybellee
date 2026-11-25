@@ -8,6 +8,9 @@
   const ENTITY_COLLECTIONS=['customers','offers','events','tasks','jobs','invoices','catalog'];
   let cloudAdapter=null;
   let lastSyncError='';
+  let adapterGeneration=0;
+  const saveEpochs=new Map();
+  function identity(d){return JSON.stringify([d?.meta?.authUserId||'',d?.meta?.cloudCompanyId||'',d?.meta?.currentUserId||'',d?.meta?.companyId||''])}
 
   function makeId(){
     if(globalThis.crypto?.randomUUID)return globalThis.crypto.randomUUID();
@@ -122,16 +125,29 @@
     const beforeCloud=cloudComparable(previous);
     prepare(data,previous);
     const businessChanged=beforeCloud!==cloudComparable(data);
+    const epoch=(saveEpochs.get(key)||0)+1;
+    saveEpochs.set(key,epoch);
+    const adapter=cloudAdapter,generation=adapterGeneration,workspace=identity(data);
+    const needsPush=!!(adapter?.pushSnapshot&&(businessChanged||previous.meta?.repositoryPushPending===true));
+    if(needsPush)data.meta.repositoryPushPending=true;
     writeLocal(key,data);
-    if(cloudAdapter?.pushSnapshot&&businessChanged){
-      Promise.resolve(cloudAdapter.pushSnapshot(toCloudPayload(data)))
-        .then(()=>{lastSyncError='';data.meta.lastCloudPushAt=now();data.meta.lastSyncError='';writeLocal(key,data)})
-        .catch(err=>{lastSyncError=String(err?.message||err||'Cloud-Sync fehlgeschlagen');data.meta.lastSyncError=lastSyncError;writeLocal(key,data)});
+    if(needsPush){
+      const payload=toCloudPayload(data);
+      const current=()=>generation===adapterGeneration&&saveEpochs.get(key)===epoch&&identity(data)===workspace&&(!globalThis.data||globalThis.data===data);
+      Promise.resolve().then(()=>current()?adapter.pushSnapshot(payload):{deferred:true})
+        .then(result=>{
+          if(!current()||result?.deferred===true)return;
+          lastSyncError='';data.meta.lastCloudPushAt=now();data.meta.lastSyncError='';data.meta.repositoryPushPending=false;writeLocal(key,data);
+        })
+        .catch(err=>{
+          if(!current())return;
+          lastSyncError=String(err?.message||err||'Cloud-Sync fehlgeschlagen');data.meta.lastSyncError=lastSyncError;data.meta.repositoryPushPending=true;writeLocal(key,data);
+        });
     }
     return data;
   }
-  function clear(key=DEFAULT_KEY){try{localStorage.removeItem(key)}catch(e){}}
-  function setCloudAdapter(adapter){cloudAdapter=adapter||null}
+  function clear(key=DEFAULT_KEY){saveEpochs.set(key,(saveEpochs.get(key)||0)+1);try{localStorage.removeItem(key)}catch(e){}}
+  function setCloudAdapter(adapter){adapterGeneration++;cloudAdapter=adapter||null;lastSyncError=''}
   function getContext(data){return{companyId:data?.meta?.companyId||'',userId:data?.meta?.currentUserId||'',deviceId:data?.meta?.deviceId||'',schemaVersion:SCHEMA_VERSION}}
   function fileMeta(data){const c=getContext(data),t=now();return{companyId:c.companyId,createdBy:c.userId,createdAt:t,updatedAt:t,syncState:cloudAdapter?'pending':'local'}}
   function toCloudPayload(data){
