@@ -1,0 +1,40 @@
+name: Native dependency audit
+on:
+  push:
+    branches:
+      - 'release/ios-seo-preflight'
+    paths:
+      - '.github/workflows/native-dependency-audit.yml'
+      - 'AngebotsPilot-Native-Source-v0.6.0.zip'
+      - 'tests/check_native_lock.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Resolve candidate lock without lifecycle scripts
+        run: |
+          set -euo pipefail
+          unzip -q AngebotsPilot-Native-Source-v0.6.0.zip
+          cd native
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
+          python3 ../tests/check_native_lock.py package-lock.json
+      - name: Preserve candidate lock for review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-lock-candidate
+          path: native/package-lock.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Audit resolved dependency tree
+        working-directory: native
+        run: npm audit --package-lock-only --ignore-scripts --audit-level=high --registry=https://registry.npmjs.org/

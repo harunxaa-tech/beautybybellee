@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
       - name: Runtime versions
         run: |
           python3 --version
@@ -54,3 +56,8 @@ jobs:
 
       - name: Storage quota notice regression tests
         run: node --test tests/storage-quota-notice.test.mjs
+
+      - name: Secret scanner regression tests
+        run: python3 tests/secret_scan_test.py
+      - name: Scan tracked source and archives for privileged secrets
+        run: python3 tests/secret_scan.py
