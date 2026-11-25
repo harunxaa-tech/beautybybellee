@@ -15,6 +15,14 @@
   let catalogPromise=null;
   let storeProducts=[];
   let storeProductsPromise=null;
+  let billingBusy=false;
+  function purchaseContext(){const c=cloud();return c?.session?.user?.id&&c?.company?.id&&c?.membership?.role==='owner'?{userId:c.session.user.id,companyId:c.company.id}:null}
+  function contextMatches(snapshot){const current=purchaseContext();return !!(snapshot&&current&&current.userId===snapshot.userId&&current.companyId===snapshot.companyId)}
+  async function exclusiveBilling(action){
+    if(billingBusy)return toast('Eine Store-Aktion läuft bereits.','info');
+    billingBusy=true;
+    try{return await action()}finally{billingBusy=false;scheduleApply()}
+  }
 
   const q=id=>document.getElementById(id);
   const cloud=()=>{try{return globalThis.APCloudContext?.()||null}catch{return null}};
@@ -116,6 +124,9 @@
     if(!isNative())return globalThis.SubscriptionBilling?.__webStartCheckout?.(plan);
     if(!owner())return toast('Nur der Inhaber kann das Abo verwalten.','error');
     if(!PLAN_ORDER.includes(plan))return toast('Unbekannter Tarif.','error');
+    return exclusiveBilling(async()=>{
+    const snapshot=purchaseContext();
+    if(!snapshot)return toast('Bitte erneut anmelden und den Betrieb auswählen.','error');
     const a=access();
     if(hasActiveProviderSubscription(a)&&!sameNativeProvider(a))return toast(externalProviderMessage(a),'info');
     await loadCatalog();
@@ -125,26 +136,41 @@
     if(!adapterReady())return toast('Store-Kauf ist in diesem Build noch nicht freigeschaltet.','info');
     await loadStoreProducts();
     if(!storeProductFor(plan))return toast('Der Store-Tarif konnte nicht sicher geladen werden. Bitte später erneut versuchen.','error');
+    if(!contextMatches(snapshot))return toast('Betrieb oder Anmeldung wurde geändert. Bitte erneut versuchen.','error');
+    const latest=access();
+    if(hasActiveProviderSubscription(latest)&&!sameNativeProvider(latest))return toast(externalProviderMessage(latest),'info');
     try{
-      const result=await bridge.purchase({provider:providerFor(),environment:catalog.environment,plan,productId:product.product_id,planIdentifier:product.plan_identifier||'',companyId:cloud()?.company?.id||''});
+      const result=await bridge.purchase({provider:providerFor(),environment:catalog.environment,plan,productId:product.product_id,planIdentifier:product.plan_identifier||'',companyId:snapshot.companyId});
       if(result?.cancelled)return;
-      toast('Store-Kauf wurde übermittelt. Der Abo-Status wird serverseitig geprüft.','success');
-      setTimeout(()=>globalThis.SubscriptionBilling?.refresh?.({silent:true}),900);
+      if(!contextMatches(snapshot))return;
+      toast('Store-Kauf wurde übermittelt. Der Abo-Status wird serverseitig geprüft.','info');
+      setTimeout(()=>{if(contextMatches(snapshot))globalThis.SubscriptionBilling?.refresh?.({silent:true})},900);
     }catch(e){console.error(e);toast(String(e?.message||'Store-Kauf konnte nicht abgeschlossen werden.'),'error')}
+    });
   }
 
   async function restore(){
     if(!isNative())return;
     if(!owner())return toast('Nur der Inhaber kann Käufe wiederherstellen.','error');
+    return exclusiveBilling(async()=>{
+    const snapshot=purchaseContext();
+    if(!snapshot)return toast('Bitte erneut anmelden und den Betrieb auswählen.','error');
+    const a=access();
+    if(hasActiveProviderSubscription(a)&&!sameNativeProvider(a))return toast(externalProviderMessage(a),'info');
     await loadCatalog();
     if(!catalog.configured||!verificationReady())return toast(nativeUnavailableText(),'info');
     const bridge=nativeAdapter();
     if(!adapterReady())return toast('Käufe wiederherstellen ist in diesem Build noch nicht freigeschaltet.','info');
+    if(!contextMatches(snapshot))return toast('Betrieb oder Anmeldung wurde geändert. Bitte erneut versuchen.','error');
+    const latest=access();
+    if(hasActiveProviderSubscription(latest)&&!sameNativeProvider(latest))return toast(externalProviderMessage(latest),'info');
     try{
-      await bridge.restore({provider:providerFor(),environment:catalog.environment,companyId:cloud()?.company?.id||'',products:catalog.products});
-      toast('Käufe wurden geprüft. Der Abo-Status wird aktualisiert.','success');
-      setTimeout(()=>globalThis.SubscriptionBilling?.refresh?.({silent:true}),700);
+      await bridge.restore({provider:providerFor(),environment:catalog.environment,companyId:snapshot.companyId,products:catalog.products});
+      if(!contextMatches(snapshot))return;
+      toast('Käufe wurden zur Prüfung übermittelt. Der Abo-Status wird aktualisiert.','info');
+      setTimeout(()=>{if(contextMatches(snapshot))globalThis.SubscriptionBilling?.refresh?.({silent:true})},700);
     }catch(e){console.error(e);toast(String(e?.message||'Käufe konnten nicht wiederhergestellt werden.'),'error')}
+    });
   }
 
   async function manage(){
@@ -219,8 +245,8 @@
     const label=providerLabel(a.billing_provider);
     const html=`<div class="storeBillingHead"><div><span class="subscriptionEyebrow">STORE & ZUGANG</span><h3>${active?`${PLAN_NAMES[a.plan]||'Abo'} aktiv`:'Abo über den Store'}</h3><p>${active?externalProviderMessage(a):`Neue Käufe in dieser App werden ausschließlich über ${providerLabel()} abgewickelt.`}</p></div><span class="storeBillingBadge">${active?label:providerLabel()}</span></div>${active&&a.current_period_end?`<div class="storeBillingNotice">${a.cancel_at_period_end?'Nutzbar bis':'Aktuelle Periode bis'} <b>${period}</b></div>`:''}<div class="storeBillingActions">${active&&same?'<button class="btn primary" type="button" id="storeBillingManageButton">Abo verwalten</button>':''}<button class="btn" type="button" id="storeBillingRestoreButton" ${catalog.configured&&verificationReady()&&adapterReady()?'':'disabled'}>Käufe wiederherstellen</button></div>${(!catalog.configured||!verificationReady())?`<div class="storeBillingNotice">${nativeUnavailableText()} Bestehende Web-Abos funktionieren weiterhin.</div>`:''}`;
     if(host.innerHTML!==html)host.innerHTML=html;
-    q('storeBillingManageButton')?.addEventListener('click',manage);
-    q('storeBillingRestoreButton')?.addEventListener('click',restore);
+    const manageButton=q('storeBillingManageButton');if(manageButton)manageButton.onclick=manage;
+    const restoreButton=q('storeBillingRestoreButton');if(restoreButton)restoreButton.onclick=restore;
   }
 
   function renderNativeProviderUI(){

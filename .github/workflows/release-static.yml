@@ -21,3 +21,6 @@ jobs:
 
       - name: Base invoice regression tests
         run: node --test tests/invoice-base.test.mjs
+
+      - name: Store billing regression tests
+        run: node --test tests/store-billing.test.mjs
