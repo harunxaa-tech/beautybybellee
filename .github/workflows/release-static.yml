@@ -61,3 +61,6 @@ jobs:
         run: python3 tests/secret_scan_test.py
       - name: Scan tracked source and archives for privileged secrets
         run: python3 tests/secret_scan.py
+
+      - name: Cloud account context regression tests
+        run: node --test tests/cloud-context-guard.test.mjs

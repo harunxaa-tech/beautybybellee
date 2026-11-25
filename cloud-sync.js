@@ -9,7 +9,7 @@
   };
   let client=null,session=null,company=null,membership=null;
   let syncing=false,queued=false,lastError='',lastSuccessAt='';
-  let initializedCompanyId='';
+  let initializedCompanyId='',contextGeneration=0;
   const q=id=>document.getElementById(id);
   const n=v=>Number(v)||0;
   const iso=v=>v||new Date().toISOString();
@@ -65,11 +65,21 @@
   }
   function creator(){return session?.user?.id||null}
   function readContext(){
-    const c=client,companyId=company?.id,userId=session?.user?.id;
+    const c=client,companyId=company?.id,userId=session?.user?.id,role=membership?.role,generation=contextGeneration,workspace=localData();
     if(!c||!companyId||!userId)throw new Error('Cloud nicht verbunden');
-    return {client:c,companyId,userId,assert(){
-      if(client!==c||company?.id!==companyId||session?.user?.id!==userId)throw new Error('Cloud-Konto wurde während des Ladens gewechselt.');
+    const ctx={client:c,companyId,userId,role,workspace,assert(){
+      const auth=globalThis.APCloudContext?.();
+      if(contextGeneration!==generation||client!==c||company?.id!==companyId||session?.user?.id!==userId||membership?.role!==role||
+        localData()!==workspace||workspace.meta?.cloudCompanyId!==companyId||workspace.meta?.authUserId!==userId||
+        (auth&&(auth.client!==c||auth.company?.id!==companyId||auth.session?.user?.id!==userId||auth.membership?.role!==role)))
+        throw new Error('Cloud-Konto oder Arbeitsbereich wurde während der Synchronisierung gewechselt.');
     }};
+    ctx.assert();return ctx;
+  }
+  function assertSafePull(ctx,revision){
+    ctx.assert();
+    if(ctx.workspace.meta?.repositoryPushPending===true)throw new Error('Lokale Änderungen sind noch nicht bestätigt. Kein Cloud-Download wurde übernommen.');
+    if((ctx.workspace.meta?.localRevision||0)!==revision)throw new Error('Lokale Daten wurden während des Ladens geändert. Kein Cloud-Download wurde übernommen.');
   }
   // Keyset pagination: even a server limit below 500 must not truncate results.
   async function readPaged(build,assertActive=()=>{}){
@@ -101,7 +111,7 @@
       return q;
     },ctx.assert);
   }
-  async function all(table,columns='*'){return companyRows(readContext(),table,columns)}
+
   async function childRows(ctx,table,parentColumn,ids){
     const result=[];
     for(let i=0;i<ids.length;i+=100){
@@ -110,25 +120,28 @@
     }
     return result.sort((a,b)=>Number(a.position)-Number(b.position)||String(a.id).localeCompare(String(b.id)));
   }
-  async function mapFor(table){
-    const rows=await all(table,'id,local_id,deleted_at,client_updated_at');
+  async function mapFor(ctx,table){
+    const rows=await companyRows(ctx,table,'id,local_id,deleted_at,client_updated_at');
+    ctx.assert();
     return new Map(rows.filter(r=>r.local_id).map(r=>[r.local_id,r]));
   }
-  async function upsertRows(table,rows,onConflict='company_id,local_id'){
-    if(!rows.length)return [];
-    const {data,error}=await client.from(table).upsert(rows,{onConflict}).select('id,local_id');
+  async function upsertRows(ctx,table,rows,onConflict='company_id,local_id'){
+    ctx.assert();if(!rows.length)return [];
+    if(rows.some(r=>r.company_id!==ctx.companyId))throw new Error('Falscher Cloud-Betrieb.');
+    const {data,error}=await ctx.client.from(table).upsert(rows,{onConflict}).select('id,local_id');
+    ctx.assert();
     if(error)throw error;return data||[];
   }
-  function base(entity){return{
-    company_id:company.id,local_id:String(entity.id),created_by:creator(),
+  function base(ctx,entity){return{
+    company_id:ctx.companyId,local_id:String(entity.id),created_by:ctx.userId,
     client_updated_at:iso(entity.updatedAt||entity.createdAt),deleted_at:null
   }}
-  async function syncCustomers(d){
-    await upsertRows('customers',(d.customers||[]).map(x=>({...base(x),name:x.name||'',contact:x.contact||'',address:x.address||'',phone:x.phone||'',email:x.email||'',notes:x.notes||'',customer_type:x.customerType||'auto',country_code:x.countryCode||d.settings?.countryCode||'DE',vat_id:x.vatId||'',buyer_reference:x.buyerReference||'',supplier_number:x.supplierNumber||'',e_invoice_address:x.eInvoiceAddress||'',e_invoice_required:!!x.eInvoiceRequired,electronic_invoice_consent_at:x.electronicInvoiceConsentAt||null,customer_number:x.customerNumber||'',import_source:x.importSource||'manual',import_batch_id:x.importBatchId||null,imported_at:x.importedAt||null})));
-    return mapFor('customers');
+  async function syncCustomers(ctx,d){
+    await upsertRows(ctx,'customers',(d.customers||[]).map(x=>({...base(ctx,x),name:x.name||'',contact:x.contact||'',address:x.address||'',phone:x.phone||'',email:x.email||'',notes:x.notes||'',customer_type:x.customerType||'auto',country_code:x.countryCode||d.settings?.countryCode||'DE',vat_id:x.vatId||'',buyer_reference:x.buyerReference||'',supplier_number:x.supplierNumber||'',e_invoice_address:x.eInvoiceAddress||'',e_invoice_required:!!x.eInvoiceRequired,electronic_invoice_consent_at:x.electronicInvoiceConsentAt||null,customer_number:x.customerNumber||'',import_source:x.importSource||'manual',import_batch_id:x.importBatchId||null,imported_at:x.importedAt||null})));
+    return mapFor(ctx,'customers');
   }
-  async function syncCatalog(d){
-    await upsertRows('catalog_items',(d.catalog||[]).map(x=>({...base(x),trade:x.trade||d.settings?.trade||'garden',type:x.type||'service',name:x.name||'',unit:x.unit||'Stk.',price:n(x.price),purchase_price:n(x.purchasePrice),markup:n(x.markup)})));
+  async function syncCatalog(ctx,d){
+    await upsertRows(ctx,'catalog_items',(d.catalog||[]).map(x=>({...base(ctx,x),trade:x.trade||d.settings?.trade||'garden',type:x.type||'service',name:x.name||'',unit:x.unit||'Stk.',price:n(x.price),purchase_price:n(x.purchasePrice),markup:n(x.markup)})));
   }
   async function saveOfferLines(ctx,offer,cloud){
     const lines=(offer.lines||[]).filter(l=>String(l?.name||'').trim()).map((l,i)=>({local_id:String(l.id||`${offer.id}:line:${i}`),position:i+1,name:l.name,qty:n(l.qty)||1,unit:l.unit||'Stk.',price:n(l.price),type:l.type||'service',workers:l.workers?Number(l.workers):null,hours_per_worker:l.hoursPerWorker?n(l.hoursPerWorker):null}));
@@ -139,21 +152,21 @@
     if(error)throw error;
     if(data!==lines.length)throw new Error('Angebotspositionen wurden nicht vollständig bestätigt.');
   }
-  async function syncOffers(d,custMap){
-    const ctx=readContext();
-    const rows=(d.offers||[]).map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,number:x.number||'',offer_date:x.date||new Date().toISOString().slice(0,10),status:x.status||'draft',subject:x.subject||'Angebot',notes:x.notes||'',duration_value:Math.max(x.durationUnit==='hours'?.25:1,Number(x.durationValue)||1),duration_unit:x.durationUnit==='hours'?'hours':'days',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total)})).filter(x=>x.customer_id);
-    await upsertRows('offers',rows);
-    const offerMap=await mapFor('offers');
+  async function syncOffers(ctx,d,custMap){
+    ctx.assert();
+    const rows=(d.offers||[]).map(x=>({...base(ctx,x),customer_id:custMap.get(x.customerId)?.id,number:x.number||'',offer_date:x.date||new Date().toISOString().slice(0,10),status:x.status||'draft',subject:x.subject||'Angebot',notes:x.notes||'',duration_value:Math.max(x.durationUnit==='hours'?.25:1,Number(x.durationValue)||1),duration_unit:x.durationUnit==='hours'?'hours':'days',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total)})).filter(x=>x.customer_id);
+    await upsertRows(ctx,'offers',rows);
+    const offerMap=await mapFor(ctx,'offers');
     for(const offer of d.offers||[]){
       const cloud=offerMap.get(offer.id);if(!cloud)continue;
       await saveOfferLines(ctx,offer,cloud);
     }
     return offerMap;
   }
-  async function syncJobs(d,custMap,offerMap){
-    const rows=(d.jobs||[]).map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,title:x.title||'Baustelle',address:x.address||'',start_date:x.start||null,start_time:(x.startTime||'08:00')+':00',duration_value:Math.max(.25,Number(x.durationValue)||1),duration_unit:x.durationUnit==='hours'?'hours':'days',status:x.status||'open',notes:x.notes||'',doc_note:x.docNote||''})).filter(x=>x.customer_id);
-    await upsertRows('jobs',rows);
-    return mapFor('jobs');
+  async function syncJobs(ctx,d,custMap,offerMap){
+    const rows=(d.jobs||[]).map(x=>({...base(ctx,x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,title:x.title||'Baustelle',address:x.address||'',start_date:x.start||null,start_time:(x.startTime||'08:00')+':00',duration_value:Math.max(.25,Number(x.durationValue)||1),duration_unit:x.durationUnit==='hours'?'hours':'days',status:x.status||'open',notes:x.notes||'',doc_note:x.docNote||''})).filter(x=>x.customer_id);
+    await upsertRows(ctx,'jobs',rows);
+    return mapFor(ctx,'jobs');
   }
   async function saveJobAssignments(ctx,job,cloudJob){
     // Missing assignment fields are not an instruction to remove all workers.
@@ -166,16 +179,15 @@
     if(error)throw error;
     if(data!==desired.length)throw new Error('Mitarbeiterzuweisungen wurden nicht vollständig bestätigt.');
   }
-  async function syncJobAssignments(d,jobMap){
-    if(!['owner','office'].includes(membership?.role||''))return;
-    const ctx=readContext();
+  async function syncJobAssignments(ctx,d,jobMap){
+    ctx.assert();if(!['owner','office'].includes(ctx.role||''))return;
     for(const job of d.jobs||[]){
       const cloudJob=jobMap.get(job.id);if(!cloudJob)continue;
       await saveJobAssignments(ctx,job,cloudJob);
     }
   }
 
-  async function syncWorkerJobProgress(d){
+  async function syncWorkerJobProgress(ctx,d){
     for(const job of d.jobs||[]){
       const payload={
         status:job.status||'open',
@@ -183,27 +195,28 @@
         doc_note:job.docNote||'',
         client_updated_at:new Date().toISOString()
       };
-      const {error}=await client.from('jobs')
+      ctx.assert();const {error}=await ctx.client.from('jobs')
         .update(payload)
-        .eq('company_id',company.id)
+        .eq('company_id',ctx.companyId)
         .eq('local_id',String(job.id));
-      if(error)throw error;
+      ctx.assert();if(error)throw error;
     }
   }
-  async function syncEvents(d,custMap,offerMap,jobMap){
-    const rows=(d.events||[]).map(x=>({...base(x),customer_id:x.customerId?custMap.get(x.customerId)?.id:null,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,title:x.title||'Termin',event_date:x.date||new Date().toISOString().slice(0,10),event_time:x.time||null,duration_minutes:Number(x.duration)||60,type:x.type||'Sonstiges',address:x.address||'',notes:x.notes||''}));
-    await upsertRows('events',rows);
+  async function syncEvents(ctx,d,custMap,offerMap,jobMap){
+    const rows=(d.events||[]).map(x=>({...base(ctx,x),customer_id:x.customerId?custMap.get(x.customerId)?.id:null,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,title:x.title||'Termin',event_date:x.date||new Date().toISOString().slice(0,10),event_time:x.time||null,duration_minutes:Number(x.duration)||60,type:x.type||'Sonstiges',address:x.address||'',notes:x.notes||''}));
+    await upsertRows(ctx,'events',rows);
   }
-  async function syncTasks(d,custMap,jobMap){
-    const rows=(d.tasks||[]).map(x=>({...base(x),customer_id:x.customerId?custMap.get(x.customerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,title:x.title||'Aufgabe',due_date:x.date||null,status:x.done?'done':'open',priority:x.priority||'normal',notes:x.notes||'',done:!!x.done}));
-    await upsertRows('tasks',rows);
+  async function syncTasks(ctx,d,custMap,jobMap){
+    const rows=(d.tasks||[]).map(x=>({...base(ctx,x),customer_id:x.customerId?custMap.get(x.customerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,title:x.title||'Aufgabe',due_date:x.date||null,status:x.done?'done':'open',priority:x.priority||'normal',notes:x.notes||'',done:!!x.done}));
+    await upsertRows(ctx,'tasks',rows);
   }
 
   function isFinalizedInvoiceForSync(inv){
     return !!(inv&&(inv.finalizedAt||['open','paid','cancelled'].includes(inv.status)));
   }
 
-  async function syncDraftInvoiceLines(inv,cloud){
+  async function syncDraftInvoiceLines(ctx,inv,cloud){
+    ctx.assert();
     const lines=(inv.lines||[]).filter(l=>String(l?.name||'').trim()).map((l,i)=>({
       invoice_id:cloud.id,
       local_id:String(l.id||`${inv.id}:line:${i}`),
@@ -220,16 +233,16 @@
     // zerstören. Die App lässt Rechnungen ohnehin nur mit mindestens einer Position speichern.
     if(!lines.length)return;
 
-    const {error:upsertError}=await client.from('invoice_lines')
+    const {error:upsertError}=await ctx.client.from('invoice_lines')
       .upsert(lines,{onConflict:'invoice_id,local_id'});
-    if(upsertError)throw upsertError;
+    ctx.assert();if(upsertError)throw upsertError;
 
     // Nur bei bearbeitbaren Entwürfen dürfen wirklich entfernte Positionen gelöscht werden.
     // Dabei löschen wir ausschließlich bekannte Cloud-Zeilen, die lokal nicht mehr vorkommen.
-    const {data:existing,error:existingError}=await client.from('invoice_lines')
+    const {data:existing,error:existingError}=await ctx.client.from('invoice_lines')
       .select('id,local_id')
       .eq('invoice_id',cloud.id);
-    if(existingError)throw existingError;
+    ctx.assert();if(existingError)throw existingError;
 
     const wanted=new Set(lines.map(line=>String(line.local_id)));
     const staleIds=(existing||[])
@@ -237,19 +250,19 @@
       .map(row=>row.id)
       .filter(Boolean);
     if(staleIds.length){
-      const {error:deleteError}=await client.from('invoice_lines')
+      const {error:deleteError}=await ctx.client.from('invoice_lines')
         .delete()
         .in('id',staleIds)
         .eq('invoice_id',cloud.id);
-      if(deleteError)throw deleteError;
+      ctx.assert();if(deleteError)throw deleteError;
     }
   }
 
-  async function syncInvoices(d,custMap,offerMap,jobMap){
+  async function syncInvoices(ctx,d,custMap,offerMap,jobMap){
     const raw=d.invoices||[];
-    const rows=raw.map(x=>({...base(x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,number:x.number||'',invoice_date:x.date||new Date().toISOString().slice(0,10),due_date:x.dueDate||null,status:x.status||'draft',subject:x.subject||'Rechnung',notes:x.notes||'',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total),document_type:x.documentType||'invoice',finalized_at:x.finalizedAt||null,offer_number:x.offerNumber||'',source_offer_number:x.sourceOfferNumber||'',created_automatically:!!x.createdAutomatically,finalized_snapshot:x.finalizedSnapshot||null,paid_at:x.paidAt||null,cancelled_at:x.cancelledAt||null,reminder_stage:x.reminderStage||'none',last_reminder_at:x.lastReminderAt||null,payment_confirmation_sent_at:x.paymentConfirmationSentAt||null,country_code:x.countryCode||d.settings?.countryCode||'DE',currency_code:x.currencyCode||d.settings?.currency||'EUR',invoice_language:x.invoiceLanguage||d.settings?.appLanguage||'de',tax_treatment:x.taxTreatment||d.settings?.taxTreatment||'standard',tax_note:x.taxNote||'',service_date:x.serviceDate||x.date||null,recipient_type:x.recipientType||'auto',recipient_country_code:x.recipientCountryCode||x.countryCode||d.settings?.countryCode||'DE',recipient_vat_id:x.recipientVatId||'',buyer_reference:x.buyerReference||'',e_invoice_format:x.eInvoiceFormat||'auto',structured_storage_path:x.structuredStoragePath||'',structured_sha256:x.structuredSha256||'',compliance_status:x.complianceStatus||'unchecked',compliance_report:x.complianceReport||{},compliance_checked_at:x.complianceCheckedAt||null})).filter(x=>x.customer_id);
-    await upsertRows('invoices',rows);
-    const invoiceMap=await mapFor('invoices');
+    const rows=raw.map(x=>({...base(ctx,x),customer_id:custMap.get(x.customerId)?.id,offer_id:x.offerId?offerMap.get(x.offerId)?.id:null,job_id:x.jobId?jobMap.get(x.jobId)?.id:null,number:x.number||'',invoice_date:x.date||new Date().toISOString().slice(0,10),due_date:x.dueDate||null,status:x.status||'draft',subject:x.subject||'Rechnung',notes:x.notes||'',discount_type:x.discountType||'euro',discount_value:n(x.discountValue),tax_rate:n(x.tax),subtotal:n(x.subtotal),total:n(x.total),document_type:x.documentType||'invoice',finalized_at:x.finalizedAt||null,offer_number:x.offerNumber||'',source_offer_number:x.sourceOfferNumber||'',created_automatically:!!x.createdAutomatically,finalized_snapshot:x.finalizedSnapshot||null,paid_at:x.paidAt||null,cancelled_at:x.cancelledAt||null,reminder_stage:x.reminderStage||'none',last_reminder_at:x.lastReminderAt||null,payment_confirmation_sent_at:x.paymentConfirmationSentAt||null,country_code:x.countryCode||d.settings?.countryCode||'DE',currency_code:x.currencyCode||d.settings?.currency||'EUR',invoice_language:x.invoiceLanguage||d.settings?.appLanguage||'de',tax_treatment:x.taxTreatment||d.settings?.taxTreatment||'standard',tax_note:x.taxNote||'',service_date:x.serviceDate||x.date||null,recipient_type:x.recipientType||'auto',recipient_country_code:x.recipientCountryCode||x.countryCode||d.settings?.countryCode||'DE',recipient_vat_id:x.recipientVatId||'',buyer_reference:x.buyerReference||'',e_invoice_format:x.eInvoiceFormat||'auto',structured_storage_path:x.structuredStoragePath||'',structured_sha256:x.structuredSha256||'',compliance_status:x.complianceStatus||'unchecked',compliance_report:x.complianceReport||{},compliance_checked_at:x.complianceCheckedAt||null})).filter(x=>x.customer_id);
+    await upsertRows(ctx,'invoices',rows);
+    const invoiceMap=await mapFor(ctx,'invoices');
 
     // Beziehungsfelder werden nur gesetzt, wenn lokal tatsächlich eine Beziehung vorhanden ist.
     // Ein älteres/teilweises Gerät darf bestehende Cloud-Beziehungen nie durch NULL überschreiben.
@@ -260,8 +273,8 @@
       if(inv.correctionOf){const original=invoiceMap.get(inv.correctionOf);if(original?.id)patch.correction_of_id=original.id}
       if(inv.cancelledByInvoiceId){const cancellation=invoiceMap.get(inv.cancelledByInvoiceId);if(cancellation?.id)patch.cancelled_by_invoice_id=cancellation.id}
       if(Object.keys(patch).length){
-        const {error}=await client.from('invoices').update(patch).eq('id',cloud.id);
-        if(error)throw error;
+        ctx.assert();const {error}=await ctx.client.from('invoices').update(patch).eq('id',cloud.id).eq('company_id',ctx.companyId);
+        ctx.assert();if(error)throw error;
       }
     }
 
@@ -273,17 +286,17 @@
       // synchronisiert werden, ohne den ausgestellten Inhalt anzufassen.
       if(isFinalizedInvoiceForSync(inv))continue;
 
-      await syncDraftInvoiceLines(inv,cloud);
+      await syncDraftInvoiceLines(ctx,inv,cloud);
     }
     return invoiceMap;
   }
-  async function applyTombstones(d){
+  async function applyTombstones(ctx,d){
     const tombs=d.meta?.deletedEntities||[];
     const tableMap={customers:'customers',catalog:'catalog_items',offers:'offers',jobs:'jobs',events:'events',tasks:'tasks',invoices:'invoices'};
     for(const t of tombs){
       const table=tableMap[t.collection];if(!table)continue;
-      const {error}=await client.from(table).update({deleted_at:t.deletedAt||new Date().toISOString(),client_updated_at:t.deletedAt||new Date().toISOString()}).eq('company_id',company.id).eq('local_id',String(t.id));
-      if(error)throw error;
+      ctx.assert();const {error}=await ctx.client.from(table).update({deleted_at:t.deletedAt||new Date().toISOString(),client_updated_at:t.deletedAt||new Date().toISOString()}).eq('company_id',ctx.companyId).eq('local_id',String(t.id));
+      ctx.assert();if(error)throw error;
     }
   }
   async function pushSnapshot(payload){
@@ -305,70 +318,76 @@
     }
 
     if(syncing){queued=true;return{deferred:true,reason:'sync-in-progress'}}
+    const ctx=readContext(),revision=ctx.workspace.meta?.localRevision||0;
+    const d=structuredClone(ctx.workspace);
+    const acknowledge=()=>{
+      ctx.assert();
+      if((ctx.workspace.meta?.localRevision||0)!==revision)return false;
+      const meta=ctx.workspace.meta;meta.lastCloudPushAt=new Date().toISOString();meta.lastSyncError='';meta.repositoryPushPending=false;meta.cloudInitialSyncDone=true;
+      if(persistLocal(ctx.workspace)===false){meta.repositoryPushPending=true;throw new Error('Lokaler Sync-Status konnte nicht gespeichert werden.');}
+      lastSuccessAt=meta.lastCloudPushAt;return true;
+    };
     syncing=true;lastError='';emit();
     try{
-      const d=localData();
+      ctx.assert();
       setProgress(15,'Cloud wird aktualisiert','Kunden und Preisliste …');
-      if(membership?.role==='worker'){
+      if(ctx.role==='worker'){
         setProgress(45,'Baustelle wird aktualisiert','Status und Dokumentation …');
-        await syncWorkerJobProgress(d);
-        d.meta=d.meta||{};
-        d.meta.lastCloudPushAt=new Date().toISOString();
-        d.meta.lastSyncError='';
-        persistLocal(d);
-        lastSuccessAt=d.meta.lastCloudPushAt;
+        await syncWorkerJobProgress(ctx,d);
+        if(!acknowledge())return{deferred:true,reason:'newer-local-revision'};
         setProgress(100,'Synchronisiert','Dein Baustellenfortschritt ist gespeichert.');
         renderStatus();
         return;
       }
-      if(membership?.role==='owner'){
-        const {error:companyUpdateError}=await client.from('companies').update({
+      if(ctx.role==='owner'){
+        ctx.assert();const {error:companyUpdateError}=await ctx.client.from('companies').update({
           name:d.settings?.companyName||company.name,trade:d.settings?.trade||company.trade||'garden',
           address:d.settings?.address||'',phone:d.settings?.phone||'',email:d.settings?.email||session.user.email||'',
           tax_number:d.settings?.taxNumber||'',vat_id:d.settings?.vatId||'',iban:d.settings?.iban||'',
           bank_name:d.settings?.bankName||'',tax_rate:n(d.settings?.tax),country_code:d.settings?.countryCode||'DE',currency_code:d.settings?.currency||'EUR',app_language:d.settings?.appLanguage||'de',tax_treatment:d.settings?.taxTreatment||'standard',tax_note:d.settings?.taxNote||'',offer_number_next:d.settings?.offerNumberNext||'',invoice_number_next:d.settings?.invoiceNumberNext||'',
           payment_days:Math.max(0,Number(String(d.settings?.paymentTerm||'7').match(/\d+/)?.[0]||7)),business_mode:d.settings?.businessMode||company.business_mode||'solo',enabled_modules:d.settings?.enabledModules||company.enabled_modules||{},brand_logo_path:d.settings?.brandLogoPath||'',brand_accent:d.settings?.brandAccent||'',document_style:d.settings?.documentStyle||'auto',logo_position:d.settings?.logoPosition||'left',brand_logo_meta:d.settings?.brandLogoMeta||{},brand_reference_path:d.settings?.brandReferencePath||'',brand_reference_preview_path:d.settings?.brandReferencePreviewPath||'',brand_reference_name:d.settings?.brandReferenceName||'',brand_reference_meta:d.settings?.brandReferenceMeta||{}
-        }).eq('id',company.id);
-        if(companyUpdateError)throw companyUpdateError;
+        }).eq('id',ctx.companyId);
+        ctx.assert();if(companyUpdateError)throw companyUpdateError;
       }
-      const custMap=await syncCustomers(d);await syncCatalog(d);
+      const custMap=await syncCustomers(ctx,d);await syncCatalog(ctx,d);
       setProgress(40,'Cloud wird aktualisiert','Angebote …');
-      const offerMap=await syncOffers(d,custMap);
+      const offerMap=await syncOffers(ctx,d,custMap);
       setProgress(58,'Cloud wird aktualisiert','Baustellen und Kalender …');
-      const jobMap=await syncJobs(d,custMap,offerMap);
-      await syncJobAssignments(d,jobMap);
-      await syncEvents(d,custMap,offerMap,jobMap);await syncTasks(d,custMap,jobMap);
+      const jobMap=await syncJobs(ctx,d,custMap,offerMap);
+      await syncJobAssignments(ctx,d,jobMap);
+      await syncEvents(ctx,d,custMap,offerMap,jobMap);await syncTasks(ctx,d,custMap,jobMap);
       setProgress(78,'Cloud wird aktualisiert','Rechnungen …');
-      await syncInvoices(d,custMap,offerMap,jobMap);
-      await applyTombstones(d);
-      d.meta=d.meta||{};d.meta.cloudCompanyId=company.id;d.meta.authUserId=session.user.id;d.meta.storageMode='cloud-sync';d.meta.cloudInitialSyncDone=true;d.meta.lastCloudPushAt=new Date().toISOString();d.meta.lastSyncError='';
-      persistLocal(d);
-      lastSuccessAt=d.meta.lastCloudPushAt;setProgress(100,'Synchronisiert','Alles gespeichert.');renderStatus();
+      await syncInvoices(ctx,d,custMap,offerMap,jobMap);
+      await applyTombstones(ctx,d);
+      if(!acknowledge())return{deferred:true,reason:'newer-local-revision'};
+      setProgress(100,'Synchronisiert','Alles gespeichert.');renderStatus();
     }catch(e){
-      console.error('Cloud push failed',e);lastError=String(e?.message||e||'Cloud-Sync fehlgeschlagen');
-      const d=localData();d.meta=d.meta||{};d.meta.lastSyncError=lastError;persistLocal(d);
+      console.error('Cloud push failed',e);
+      try{ctx.assert();lastError=String(e?.message||e||'Cloud-Sync fehlgeschlagen');ctx.workspace.meta.lastSyncError=lastError;ctx.workspace.meta.repositoryPushPending=true;persistLocal(ctx.workspace)}catch(stale){}
       throw e;
     }finally{
       syncing=false;emit();
-      if(queued){queued=false;setTimeout(()=>{pushSnapshot().catch(e=>console.warn('Erneuter Cloud-Sync fehlgeschlagen',e))},250)}
+      if(queued){queued=false;setTimeout(()=>{try{ctx.assert();pushSnapshot().catch(e=>console.warn('Erneuter Cloud-Sync fehlgeschlagen',e))}catch(stale){}},250)}
     }
   }
-  async function cloudCount(){
-    const {count,error}=await client.from('customers').select('id',{count:'exact',head:true}).eq('company_id',company.id).is('deleted_at',null);
-    if(error)throw error;
-    const {count:offersCount,error:oe}=await client.from('offers').select('id',{count:'exact',head:true}).eq('company_id',company.id).is('deleted_at',null);
-    if(oe)throw oe;
-    const {count:jobsCount,error:je}=await client.from('jobs').select('id',{count:'exact',head:true}).eq('company_id',company.id).is('deleted_at',null);
-    if(je)throw je;
-    const {count:invCount,error:ie}=await client.from('invoices').select('id',{count:'exact',head:true}).eq('company_id',company.id).is('deleted_at',null);
-    if(ie)throw ie;
-    const {count:catalogCount,error:ce}=await client.from('catalog_items').select('id',{count:'exact',head:true}).eq('company_id',company.id).is('deleted_at',null);
-    if(ce)throw ce;
+  async function cloudCount(ctx){
+    ctx.assert();
+    const {count,error}=await ctx.client.from('customers').select('id',{count:'exact',head:true}).eq('company_id',ctx.companyId).is('deleted_at',null);
+    ctx.assert();if(error)throw error;
+    const {count:offersCount,error:oe}=await ctx.client.from('offers').select('id',{count:'exact',head:true}).eq('company_id',ctx.companyId).is('deleted_at',null);
+    ctx.assert();if(oe)throw oe;
+    const {count:jobsCount,error:je}=await ctx.client.from('jobs').select('id',{count:'exact',head:true}).eq('company_id',ctx.companyId).is('deleted_at',null);
+    ctx.assert();if(je)throw je;
+    const {count:invCount,error:ie}=await ctx.client.from('invoices').select('id',{count:'exact',head:true}).eq('company_id',ctx.companyId).is('deleted_at',null);
+    ctx.assert();if(ie)throw ie;
+    const {count:catalogCount,error:ce}=await ctx.client.from('catalog_items').select('id',{count:'exact',head:true}).eq('company_id',ctx.companyId).is('deleted_at',null);
+    ctx.assert();if(ce)throw ce;
     return{customers:count||0,offers:offersCount||0,jobs:jobsCount||0,invoices:invCount||0,catalog:catalogCount||0,total:(count||0)+(offersCount||0)+(jobsCount||0)+(invCount||0)+(catalogCount||0)};
   }
   async function selectActive(table,cols='*',ctx=readContext()){return companyRows(ctx,table,cols,true)}
   async function pullCloud(){
-    const ctx=readContext();
+    const ctx=readContext(),revision=ctx.workspace.meta?.localRevision||0;
+    assertSafePull(ctx,revision);
     setProgress(18,'Cloud-Daten werden geladen','Kunden …');
     const [customers,catalog,offers,jobs,events,tasks,invoices,assignments,members,allOfferNumbers]=await Promise.all([
       ...['customers','catalog_items','offers','jobs','events','tasks','invoices'].map(t=>selectActive(t,'*',ctx)),
@@ -397,7 +416,8 @@
     offerLines.forEach(l=>{if(!linesByOffer.has(l.offer_id))linesByOffer.set(l.offer_id,[]);linesByOffer.get(l.offer_id).push(l)});
     invoiceLines.forEach(l=>{if(!linesByInvoice.has(l.invoice_id))linesByInvoice.set(l.invoice_id,[]);linesByInvoice.get(l.invoice_id).push(l)});
 
-    const d=localData(),s=d.settings||{},previousBrandLogoPath=s.brandLogoPath||'',previousBrandReferencePreviewPath=s.brandReferencePreviewPath||'';
+    assertSafePull(ctx,revision);
+    const d=ctx.workspace,s=d.settings||{},previousBrandLogoPath=s.brandLogoPath||'',previousBrandReferencePreviewPath=s.brandReferencePreviewPath||'';
     Object.assign(s,{
       companyName:company.name||s.companyName||'',trade:company.trade||s.trade||'garden',address:company.address||s.address||'',
       phone:company.phone||s.phone||'',email:company.email||session.user.email||s.email||'',tax:Number(company.tax_rate)||0,
@@ -431,7 +451,8 @@
     setProgress(100,'Cloud geladen','Dein Betrieb ist auf diesem Gerät bereit.');
     globalThis.renderAll?.();
     try{await globalThis.CloudFiles?.refresh?.({silent:false})}catch(e){console.warn('Cloud-Dateien konnten noch nicht geladen werden',e)}try{if(d.settings?.brandLogoPath)await globalThis.ensureBrandLogoLoaded?.(d.settings.brandLogoPath,d.settings.brandLogoMeta||{})}catch(e){console.warn('Firmenlogo konnte noch nicht geladen werden',e)}try{if(d.settings?.brandReferencePreviewPath)await globalThis.ensureBrandReferencePreviewLoaded?.(d.settings.brandReferencePreviewPath)}catch(e){console.warn('Design-Vorschau konnte noch nicht geladen werden',e)}
-    setTimeout(()=>{
+    ctx.assert();setTimeout(()=>{
+      try{ctx.assert()}catch(stale){return}
       const place=(d.settings?.weatherLocation||d.settings?.address||'').trim();
       if(place)globalThis.refreshWeather?.(false);
       globalThis.Notifications?.runReminders?.().catch(()=>{});
@@ -440,42 +461,43 @@
   }
   async function initialSync(){
     if(!client||!session||!company)return false;
-    const d=localData();
+    const ctx=readContext(),d=ctx.workspace;
     showEntrySync(!d.meta?.cloudInitialSyncDone);emit();backupLocalOnce();
     try{
       const pendingFinalization=(d.invoices||[]).some(inv=>inv?.finalizationCloudPending&&inv?.finalizedAt);
       if(pendingFinalization&&typeof globalThis.APAtomicInvoiceRecovery==='function'){
         syncing=true;emit();
-        try{await globalThis.APAtomicInvoiceRecovery()}finally{syncing=false;emit()}
+        try{await globalThis.APAtomicInvoiceRecovery();ctx.assert()}finally{syncing=false;emit()}
       }
       // Bei jedem App-Start wird die Cloud als gemeinsamer Team-Stand geladen.
       // So sieht der Chef auch Änderungen, die Mitarbeiter auf anderen Geräten gemacht haben.
       if(d.meta?.cloudInitialSyncDone&&d.meta?.cloudCompanyId===company.id){
         syncing=true;emit();
         await pullCloud();
-        globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
+        ctx.assert();globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
         lastSuccessAt=new Date().toISOString();lastError='';
         return true;
       }
 
-      const cc=await cloudCount(),lc=localCounts(d);
+      const cc=await cloudCount(ctx),lc=localCounts(d);
+      ctx.assert();
       if(membership?.role==='worker'){
         syncing=true;emit();await pullCloud();
       }else if(cc.total===0 && (lc.customers+lc.offers+lc.jobs+lc.invoices+lc.events+lc.tasks)>0){
         setProgress(8,'Lokale Daten werden gesichert','Sicherheitskopie auf diesem Gerät erstellt.');
-        await pushSnapshot();
+        if((await pushSnapshot())?.deferred)throw new Error('Cloud-Sync noch nicht bestätigt.');
       }else if(cc.total>0){
         syncing=true;emit();await pullCloud();
       }else{
         d.meta=d.meta||{};d.meta.cloudCompanyId=company.id;d.meta.authUserId=session.user.id;d.meta.storageMode='cloud-sync';d.meta.cloudInitialSyncDone=true;
         persistLocal(d);
-        await pushSnapshot();
+        if((await pushSnapshot())?.deferred)throw new Error('Cloud-Sync noch nicht bestätigt.');
       }
-      globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
+      ctx.assert();globalThis.AppRepository?.setCloudAdapter({pushSnapshot});
       lastSuccessAt=new Date().toISOString();lastError='';
       return true;
     }catch(e){
-      lastError=String(e?.message||e||'Erste Synchronisierung fehlgeschlagen');
+      try{ctx.assert();lastError=String(e?.message||e||'Erste Synchronisierung fehlgeschlagen')}catch(stale){}
       console.error(e);
       return false;
     }finally{
@@ -484,24 +506,25 @@
   }
   let attachPromise=null;
   async function attach(c,s,co,m){
-    client=c;session=s;company=co;membership=m;
-    if(!client||!session||!company)return;
-    try{globalThis.CloudFiles?.attach?.(client,session,company,membership)}catch(e){console.warn('Cloud-Dateien konnten nicht vorbereitet werden',e)}
-
+    if(!c||!s?.user?.id||!co?.id)return;
     const active=localData();
-    if(active?.meta?.cloudCompanyId!==company.id||active?.meta?.authUserId!==session.user.id){
-      throw new Error('Sicherheitsstopp: Lokaler Arbeitsbereich und Cloud-Konto stimmen nicht überein.');
-    }
-    if(attachPromise)return attachPromise;
+    if(active?.meta?.cloudCompanyId!==co.id||active?.meta?.authUserId!==s.user.id)throw new Error('Sicherheitsstopp: Lokaler Arbeitsbereich und Cloud-Konto stimmen nicht überein.');
+    const same=client===c&&session?.user?.id===s.user.id&&company?.id===co.id&&membership?.role===m?.role;
+    if(attachPromise){if(same)return attachPromise;throw new Error('Vorherige Cloud-Synchronisierung läuft noch. Bitte erneut versuchen.');}
+    if(syncing)throw new Error('Vorherige Cloud-Synchronisierung läuft noch. Bitte erneut versuchen.');
+    if(!same){contextGeneration++;queued=false;globalThis.AppRepository?.setCloudAdapter(null);}
+    client=c;session=s;company=co;membership=m;
+    const ctx=readContext();
+    try{globalThis.CloudFiles?.attach?.(client,session,company,membership)}catch(e){console.warn('Cloud-Dateien konnten nicht vorbereitet werden',e)}
     attachPromise=(async()=>{
-      const ok=await initialSync();
+      const ok=await initialSync();ctx.assert();
       if(ok){initializedCompanyId=company.id;renderStatus();return true}
       initializedCompanyId='';
       throw new Error(lastError||'Cloud-Synchronisierung fehlgeschlagen');
     })();
     try{return await attachPromise}finally{attachPromise=null}
   }
-  function detach(){try{globalThis.CloudFiles?.detach?.()}catch(e){}client=session=company=membership=null;initializedCompanyId='';globalThis.AppRepository?.setCloudAdapter(null);renderStatus()}
+  function detach(){contextGeneration++;queued=false;try{globalThis.CloudFiles?.detach?.()}catch(e){}client=session=company=membership=null;initializedCompanyId='';globalThis.AppRepository?.setCloudAdapter(null);renderStatus()}
   async function waitForIdle(timeoutMs=15000){
     const started=Date.now();
     while(syncing){
@@ -511,21 +534,20 @@
   }
   async function manual(){
     if(!client||!company)throw new Error('Nicht mit der Cloud verbunden');
+    const ctx=readContext();
     showEntrySync(true);
     try{
-      // Niemals pullen, solange ein älterer Push noch läuft/queued ist.
-      // So können lokale Änderungen nicht mehr durch einen unmittelbar folgenden Pull
-      // mit einem älteren Cloud-Stand überschrieben werden.
-      await waitForIdle();
-      await pushSnapshot();
-      await waitForIdle();
+      await waitForIdle();ctx.assert();
+      if(queued)throw new Error('Cloud-Synchronisierung noch nicht bestätigt.');
+      assertSafePull(ctx,ctx.workspace.meta?.localRevision||0);
+      // A manual refresh is read-only. Never upload an old full snapshot just to refresh.
       syncing=true;emit();
-      await pullCloud();
+      await pullCloud();ctx.assert();
       lastSuccessAt=new Date().toISOString();lastError='';
     }finally{
       syncing=false;emit();setTimeout(()=>{showEntrySync(false);globalThis.requireCloudEntry?.()},450)
     }
   }
   globalThis.CloudSync={version:'11.31.26',attach,detach,pushSnapshot,pullCloud,manual,state,renderStatus};
-  globalThis.manualCloudSync=async()=>{try{await manual();globalThis.toast?.('☁️ Synchronisiert')}catch(e){console.error(e);globalThis.toast?.('Cloud-Sync fehlgeschlagen')}};
+  globalThis.manualCloudSync=async()=>{try{await manual();globalThis.toast?.('☁️ Synchronisiert')}catch(e){console.error(e);globalThis.toast?.(String(e?.message||'Cloud-Sync fehlgeschlagen'))}};
 })();

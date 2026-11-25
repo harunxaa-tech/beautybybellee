@@ -47,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
-          test "$(node -p 'require(\"./node_modules/@capacitor/cli/package.json\").version')" = 8.6.2
+          test "$(node -p 'require("./node_modules/@capacitor/cli/package.json").version')" = 8.6.2
           npm run validate
           npm run prepare:web
           npx --no-install cap --version
