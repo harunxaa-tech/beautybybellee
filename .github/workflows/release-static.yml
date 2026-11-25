@@ -27,3 +27,6 @@ jobs:
 
       - name: Repository sync regression tests
         run: node --test tests/repository-sync.test.mjs
+
+      - name: Cloud pagination regression tests
+        run: node --test tests/cloud-pagination.test.mjs

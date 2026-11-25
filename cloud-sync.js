@@ -64,9 +64,51 @@
     try{localStorage.setItem(PRE_CLOUD_BACKUP,JSON.stringify({savedAt:new Date().toISOString(),data:localData()}))}catch(e){}
   }
   function creator(){return session?.user?.id||null}
-  async function all(table,columns='*'){
-    const {data,error}=await client.from(table).select(columns).eq('company_id',company.id);
-    if(error)throw error;return data||[];
+  function readContext(){
+    const c=client,companyId=company?.id,userId=session?.user?.id;
+    if(!c||!companyId||!userId)throw new Error('Cloud nicht verbunden');
+    return {client:c,companyId,userId,assert(){
+      if(client!==c||company?.id!==companyId||session?.user?.id!==userId)throw new Error('Cloud-Konto wurde während des Ladens gewechselt.');
+    }};
+  }
+  // Keyset pagination: even a server limit below 500 must not truncate results.
+  async function readPaged(build,assertActive=()=>{}){
+    const rows=[],seen=new Set();let cursor=null;
+    for(let page=0;page<10000;page++){
+      assertActive();
+      let query=build().order('id',{ascending:true}).limit(500);
+      if(cursor!==null)query=query.gt('id',cursor);
+      const {data,error}=await query;
+      assertActive();
+      if(error)throw error;
+      if(!Array.isArray(data))throw new Error('Unvollständige Cloud-Antwort.');
+      if(!data.length)return rows;
+      for(const row of data){
+        if(typeof row?.id!=='string'||!row.id||seen.has(row.id))throw new Error('Cloud-Daten konnten nicht eindeutig geladen werden.');
+        seen.add(row.id);rows.push(row);
+      }
+      const next=data[data.length-1].id;
+      if(next===cursor)throw new Error('Cloud-Paginierung ohne Fortschritt.');
+      cursor=next;
+    }
+    throw new Error('Cloud-Abfrage zu groß. Kein unvollständiger Stand wird übernommen.');
+  }
+  async function companyRows(ctx,table,columns='*',active=false){
+    const cols=columns==='*'||columns.split(',').includes('id')?columns:'id,'+columns;
+    return readPaged(()=>{
+      let q=ctx.client.from(table).select(cols).eq('company_id',ctx.companyId);
+      if(active)q=q.is('deleted_at',null);
+      return q;
+    },ctx.assert);
+  }
+  async function all(table,columns='*'){return companyRows(readContext(),table,columns)}
+  async function childRows(ctx,table,parentColumn,ids){
+    const result=[];
+    for(let i=0;i<ids.length;i+=100){
+      const chunk=ids.slice(i,i+100);
+      result.push(...await readPaged(()=>ctx.client.from(table).select('*').in(parentColumn,chunk),ctx.assert));
+    }
+    return result.sort((a,b)=>Number(a.position)-Number(b.position)||String(a.id).localeCompare(String(b.id)));
   }
   async function mapFor(table){
     const rows=await all(table,'id,local_id,deleted_at,client_updated_at');
@@ -330,19 +372,17 @@
     if(ce)throw ce;
     return{customers:count||0,offers:offersCount||0,jobs:jobsCount||0,invoices:invCount||0,catalog:catalogCount||0,total:(count||0)+(offersCount||0)+(jobsCount||0)+(invCount||0)+(catalogCount||0)};
   }
-  async function selectActive(table,cols='*'){
-    const {data,error}=await client.from(table).select(cols).eq('company_id',company.id).is('deleted_at',null);
-    if(error)throw error;return data||[];
-  }
+  async function selectActive(table,cols='*',ctx=readContext()){return companyRows(ctx,table,cols,true)}
   async function pullCloud(){
+    const ctx=readContext();
     setProgress(18,'Cloud-Daten werden geladen','Kunden …');
     const [customers,catalog,offers,jobs,events,tasks,invoices,assignments,members,allOfferNumbers]=await Promise.all([
-      selectActive('customers'),selectActive('catalog_items'),selectActive('offers'),selectActive('jobs'),
-      selectActive('events'),selectActive('tasks'),selectActive('invoices'),
-      client.from('job_assignments').select('job_id,user_id').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]}),
-      client.from('company_members').select('user_id,display_name,email,role,status').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]}),
-      client.from('offers').select('number').eq('company_id',company.id).then(({data,error})=>{if(error)throw error;return data||[]})
+      ...['customers','catalog_items','offers','jobs','events','tasks','invoices'].map(t=>selectActive(t,'*',ctx)),
+      companyRows(ctx,'job_assignments','job_id,user_id'),
+      companyRows(ctx,'company_members','user_id,display_name,email,role,status'),
+      companyRows(ctx,'offers','number')
     ]);
+    ctx.assert();
     const customerLocal=new Map(customers.map(x=>[x.id,x.local_id||x.id]));
     const offerLocal=new Map(offers.map(x=>[x.id,x.local_id||x.id]));
     const jobLocal=new Map(jobs.map(x=>[x.id,x.local_id||x.id]));
@@ -354,9 +394,11 @@
 
     setProgress(48,'Cloud-Daten werden geladen','Positionen und Beziehungen …');
     const offerIds=offers.map(x=>x.id),invoiceIds=invoices.map(x=>x.id);
-    let offerLines=[],invoiceLines=[];
-    if(offerIds.length){const {data,error}=await client.from('offer_lines').select('*').in('offer_id',offerIds).order('position');if(error)throw error;offerLines=data||[]}
-    if(invoiceIds.length){const {data,error}=await client.from('invoice_lines').select('*').in('invoice_id',invoiceIds).order('position');if(error)throw error;invoiceLines=data||[]}
+    const [offerLines,invoiceLines]=await Promise.all([
+      childRows(ctx,'offer_lines','offer_id',offerIds),
+      childRows(ctx,'invoice_lines','invoice_id',invoiceIds)
+    ]);
+    ctx.assert();
     const linesByOffer=new Map(),linesByInvoice=new Map();
     offerLines.forEach(l=>{if(!linesByOffer.has(l.offer_id))linesByOffer.set(l.offer_id,[]);linesByOffer.get(l.offer_id).push(l)});
     invoiceLines.forEach(l=>{if(!linesByInvoice.has(l.invoice_id))linesByInvoice.set(l.invoice_id,[]);linesByInvoice.get(l.invoice_id).push(l)});
