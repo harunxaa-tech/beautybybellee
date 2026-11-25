@@ -155,36 +155,23 @@
     await upsertRows('jobs',rows);
     return mapFor('jobs');
   }
+  async function saveJobAssignments(ctx,job,cloudJob){
+    // Missing assignment fields are not an instruction to remove all workers.
+    if(!Array.isArray(job.assignedUserIds))return;
+    const desired=[...new Set(job.assignedUserIds)];
+    if(desired.some(id=>typeof id!=='string'||!id.trim()))throw new Error('Ungültige Mitarbeiterzuweisung.');
+    ctx.assert();
+    const {data,error}=await ctx.client.rpc('replace_job_assignments_atomic',{p_company_id:ctx.companyId,p_job_id:cloudJob.id,p_user_ids:desired});
+    ctx.assert();
+    if(error)throw error;
+    if(data!==desired.length)throw new Error('Mitarbeiterzuweisungen wurden nicht vollständig bestätigt.');
+  }
   async function syncJobAssignments(d,jobMap){
     if(!['owner','office'].includes(membership?.role||''))return;
-    const {data:workerRows,error:workerErr}=await client.from('company_members')
-      .select('user_id')
-      .eq('company_id',company.id)
-      .eq('role','worker')
-      .eq('status','active');
-    if(workerErr)throw workerErr;
-    const allowedWorkers=new Set((workerRows||[]).map(x=>x.user_id));
-
+    const ctx=readContext();
     for(const job of d.jobs||[]){
       const cloudJob=jobMap.get(job.id);if(!cloudJob)continue;
-      const desired=[...new Set((job.assignedUserIds||[]).filter(id=>id&&allowedWorkers.has(id)))];
-
-      const {error:delErr}=await client.from('job_assignments')
-        .delete()
-        .eq('company_id',company.id)
-        .eq('job_id',cloudJob.id);
-      if(delErr)throw delErr;
-
-      if(desired.length){
-        const rows=desired.map(userId=>({
-          company_id:company.id,
-          job_id:cloudJob.id,
-          user_id:userId,
-          assigned_by:session.user.id
-        }));
-        const {error}=await client.from('job_assignments').insert(rows);
-        if(error)throw error;
-      }
+      await saveJobAssignments(ctx,job,cloudJob);
     }
   }
 

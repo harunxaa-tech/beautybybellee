@@ -33,3 +33,6 @@ jobs:
 
       - name: Atomic offer line regression tests
         run: node --test tests/offer-lines.test.mjs
+
+      - name: Atomic job assignment regression tests
+        run: node --test tests/job-assignments.test.mjs
