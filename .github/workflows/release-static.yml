@@ -51,3 +51,6 @@ jobs:
 
       - name: Stripe event inbox regression tests
         run: node --test tests/stripe-event-inbox.test.mjs
+
+      - name: Storage quota notice regression tests
+        run: node --test tests/storage-quota-notice.test.mjs

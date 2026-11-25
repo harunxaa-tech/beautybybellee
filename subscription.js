@@ -166,6 +166,13 @@
     voice:[['+100 Min.','9,99 € einmalig'],['+500 Min.','39,99 € einmalig'],['+1.500 Min.','99,99 € einmalig']]
   };
   const fmtNumber=(n,places=0)=>new Intl.NumberFormat('de-DE',{maximumFractionDigits:places}).format(Math.max(0,Number(n)||0));
+  function storageQuotaNotice(used,limit){
+    if(!Number.isFinite(used)||!Number.isFinite(limit)||used<0||limit<=0)return 'Speicherstand konnte nicht zuverlässig ermittelt werden. Bitte aktualisieren. ';
+    if(used>limit)return 'Speicherkontingent überschritten: Weitere Uploads sind gesperrt. Vorhandene Dateien werden durch die Kontingentüberschreitung nicht automatisch gelöscht. ';
+    if(used===limit)return 'Speicherkontingent vollständig belegt: Für weitere Uploads wird freier Speicher benötigt. Vorhandene Dateien bleiben erhalten. ';
+    if(used>=limit*0.8)return 'Speicher zu mindestens 80 % ausgelastet. ';
+    return '';
+  }
   function renderResourceUsage(){
     const host=q('apUsageCard');if(!host)return;
     if(!ctx()?.company?.id){host.textContent='Bitte Cloud-Konto verbinden, um deinen Verbrauch zu sehen.';return}
@@ -187,7 +194,7 @@
       +'<div class="apUsageMetric"><header><span>KI-Sprachzeit</span><span>'+pctV+' %</span></header>'+bar(pctV)
       +'<small>'+fmtNumber(voiceUsed/60,1)+' von '+fmtNumber(voiceBase/60+voiceExtra/60,1)+' Min. verbraucht / verfügbar · '
       +fmtNumber(Number(u.voice_remaining_seconds)/60,1)+' Min. übrig</small></div></div>'
-      +'<p class="apUsageInfo">'+(pctS>=100?'Speicher voll: Bitte Dateien löschen oder Zusatzspeicher buchen. ':pctS>=80?'Speicher über 80 % ausgelastet. ':'')
+      +'<p class="apUsageInfo">' +storageQuotaNotice(Number(u.storage_used_bytes??NaN),Number(u.storage_limit_bytes??NaN))
       +(pctV>=100?'KI-Minutenlimit erreicht. ':pctV>=80?'KI-Minuten über 80 % ausgeschöpft. ':'')
       +'KI-Sprachfunktionen sind aktuell noch deaktiviert. Zusatzkäufe sind vorbereitet, aber nicht buchbar.</p>'
       +'<div class="apAddonGrid"><section><b>☁️ Speicher erweitern (monatlich)</b><small>'+addonPacks.storage.map(a=>a.join(' · ')).join('<br>')+'</small></section>'

@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import fs from 'node:fs';
+const src=fs.readFileSync(new URL('../subscription.js',import.meta.url),'utf8');
+const start=src.indexOf('  function storageQuotaNotice('),end=src.indexOf('  function renderResourceUsage(){',start);
+assert.ok(start>=0&&end>start);
+const context=vm.createContext({});
+vm.runInContext(src.slice(start,end),context);
+const notice=context.storageQuotaNotice;
+test('over-quota explains uploads and no automatic deletion',()=>{assert.match(notice(110,100),/Weitere Uploads sind gesperrt/);assert.match(notice(110,100),/nicht automatisch gelöscht/)});
+test('exact quota is distinguished from exceeding quota',()=>{assert.match(notice(100,100),/vollständig belegt/);assert.doesNotMatch(notice(100,100),/überschritten/)});
+test('rounded 100 percent does not falsely claim full storage',()=>{assert.match(notice(999,1000),/80 %/);assert.doesNotMatch(notice(999,1000),/gesperrt|vollständig/)});
+test('threshold uses exact usage',()=>{assert.equal(notice(799,1000),'');assert.match(notice(800,1000),/80 %/)});
+test('missing or invalid counters are not shown as a valid quota',()=>{for(const args of [[NaN,100],[10,0],[-1,100],[10,Infinity]])assert.match(notice(...args),/nicht zuverlässig/)});
+test('active subscription UI uses quota notice; checkout still disabled',()=>{assert.match(src,/\+storageQuotaNotice\(Number\(u\.storage_used_bytes\?\?NaN\),Number\(u\.storage_limit_bytes\?\?NaN\)\)/);assert.match(src,/const NEW_PRICING_CHECKOUT_READY=false/);assert.match(src,/Zusatzkäufe sind vorbereitet, aber nicht buchbar/)});
