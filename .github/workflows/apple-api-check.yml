@@ -1,0 +1,40 @@
+name: Apple API connection check
+on:
+  push:
+    branches: ['release/ios-seo-preflight']
+    paths: ['.github/workflows/apple-api-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    if: github.ref == 'refs/heads/release/ios-seo-preflight'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify read-only Apple API access
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          node <<'NODE'
+          const crypto = require('node:crypto');
+          (async () => {
+            for (const k of ['KEY_ID','ISSUER_ID','PRIVATE_KEY']) {
+              if (!process.env[k]) throw new Error('Missing secret: ' + k);
+            }
+            const enc = x => Buffer.from(JSON.stringify(x)).toString('base64url');
+            const now = Math.floor(Date.now()/1000);
+            const input = enc({alg:'ES256',kid:process.env.KEY_ID.trim(),typ:'JWT'}) + '.' + enc({iss:process.env.ISSUER_ID.trim(),iat:now,exp:now+300,aud:'appstoreconnect-v1'});
+            let sig;
+            try {
+              sig = crypto.sign('sha256',Buffer.from(input),{key:process.env.PRIVATE_KEY.trim(),dsaEncoding:'ieee-p1363'}).toString('base64url');
+            } catch { throw new Error('Private key cannot be parsed or used for ES256 signing'); }
+            const response = await fetch('https://api.appstoreconnect.apple.com/v1/apps?filter%5BbundleId%5D=com.harunxaa.angebotspilot',{headers:{Authorization:'Bearer '+input+'.'+sig},signal:AbortSignal.timeout(30000)});
+            if (!response.ok) throw new Error('Apple API HTTP '+response.status);
+            const body = await response.json();
+            if (!body.data?.some(a=>a.attributes?.bundleId==='com.harunxaa.angebotspilot')) throw new Error('App not found for expected bundle ID');
+            console.log('Apple API authentication and app lookup succeeded.');
+          })().catch(e=>{console.error(e.message);process.exitCode=1});
+          NODE
